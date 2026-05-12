@@ -1,0 +1,39 @@
+# docker-compose.yml — Demo locale E.Practice
+#
+# V0: solo backend FastAPI in-memory.
+# V1: aggiungeremo un service `postgres` con volume persistente.
+#
+# Avvio: docker compose up --build
+# Backend disponibile su http://localhost:8000 (docs su /docs).
+# Richiede `backend/Dockerfile` (creato in F2 - PR011 in poi).
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: epractice-backend:v0
+    container_name: epractice-backend
+    ports:
+      - "8000:8000"
+    environment:
+      MODULE_NAME: e-practice
+      STORAGE: memory
+      TENANT_ID: demo
+      LOG_LEVEL: INFO
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - ./backend:/app
+      - ./data:/data:ro
+    command: >
+      uvicorn app.main:app
+      --host 0.0.0.0
+      --port 8000
+      --reload
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0) if urllib.request.urlopen('http://localhost:8000/healthz', timeout=2).status == 200 else sys.exit(1)"]
+      interval: 15s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped

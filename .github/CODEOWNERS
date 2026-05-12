@@ -1,0 +1,9 @@
+# Default owner per tutto il repo E.Practice.
+# Davide review obbligatoria su ogni PR finché non si differenziano i path-specific.
+*       @davide-torchio
+
+# Cartelle condivise critiche (preparate per la futura migrazione frontend
+# a E.Work/frontend/modules/practice/ — vedi Decisione Architettura Frontend).
+/shared/                @davide-torchio
+/.github/               @davide-torchio
+/docs/                  @davide-torchio
