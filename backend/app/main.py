@@ -16,7 +16,7 @@ from fastapi.responses import JSONResponse, RedirectResponse
 
 from app.config import Settings, get_settings
 from app.constants import API_PREFIX, MODULE_NAME
-from app.deps import get_all_bridges, get_all_repositories, get_settings_dep
+from app.deps import get_all_repositories, get_settings_dep
 from app.logging_setup import configure_logging, get_logger
 from app.routers._helpers import register_exception_handlers
 
@@ -42,29 +42,13 @@ async def _try_load_seed() -> None:
 
     cfg = get_settings()
     repos = get_all_repositories()
-    bridges = get_all_bridges()
 
-    # Tentativo 1: API "all-in-one"
-    if hasattr(seed_loader, "load_seed_into_repositories"):
-        try:
-            seed_loader.load_seed_into_repositories(cfg.seed_path, repos, bridges)
-            log.info("seed_loaded", path=cfg.seed_path)
-            return
-        except Exception as exc:
-            log.error("seed_load_failed", err=str(exc), path=cfg.seed_path)
-            return
-
-    # Tentativo 2: API "load + populate" separati
+    # Firma Codex F4: load_seed_json(path) + populate_repositories(data, repos)
     if hasattr(seed_loader, "load_seed_json") and hasattr(seed_loader, "populate_repositories"):
         try:
             data = seed_loader.load_seed_json(cfg.seed_path)
-            seed_loader.populate_repositories(data, repos, bridges=bridges)
-            log.info("seed_loaded", path=cfg.seed_path)
-            return
-        except TypeError:
-            # firma populate_repositories(data, repos) — senza bridges kwarg
             seed_loader.populate_repositories(data, repos)
-            log.info("seed_loaded_no_bridges", path=cfg.seed_path)
+            log.info("seed_loaded", path=cfg.seed_path)
             return
         except Exception as exc:
             log.error("seed_load_failed", err=str(exc), path=cfg.seed_path)

@@ -136,26 +136,39 @@ def get_activity_log_repo() -> Repository[ActivityLog]:
     return InMemoryRepository[ActivityLog](entity_name="ActivityLog")
 
 
-# ---------------------------------------------------------------------------
-# M:N bridges — set di tuple (no id proprio, no Repository[T])
-# ---------------------------------------------------------------------------
+# I modelli ponte `PracticeLabel`/`ClientLabel` non hanno un `id` statico
+# nel Pydantic — Codex F4 lo sintetizza a runtime via object.__setattr__ con
+# valore "<a_id>:<b_id>". Per accontentare mypy + Protocol HasId, tipizziamo
+# i repository come `Any` (al boot vengono passati al seed_loader nel formato
+# che lui si aspetta).
+from typing import Any  # noqa: E402
 
 
 @lru_cache(maxsize=1)
-def get_practice_label_bridge() -> set[tuple[str, str]]:
-    """Set di (practice_id, label_id). Mutevole, gestito dai router etichette."""
-    return set()
+def get_practice_label_repo() -> InMemoryRepository[Any]:
+    """Bridge M:N pratica↔etichetta. Codex F4 setta `id` sintetico
+    `"<practice_id>:<label_id>"` sui record durante il seed."""
+    return InMemoryRepository[Any](entity_name="PracticeLabel")
 
 
 @lru_cache(maxsize=1)
-def get_client_label_bridge() -> set[tuple[str, str]]:
-    """Set di (client_id, label_id)."""
-    return set()
+def get_client_label_repo() -> InMemoryRepository[Any]:
+    """Bridge M:N cliente↔etichetta. Stessa convenzione di `practice_label`."""
+    return InMemoryRepository[Any](entity_name="ClientLabel")
+
+
+# ---------------------------------------------------------------------------
+# Collaborators bridge — non nel seed (gestito a runtime dai router)
+# ---------------------------------------------------------------------------
 
 
 @lru_cache(maxsize=1)
 def get_practice_collaborator_bridge() -> set[tuple[str, str, str]]:
-    """Set di (practice_id, user_id, role). Role per pratica: editor | viewer."""
+    """Set di (practice_id, user_id, role). Role per pratica: editor | viewer.
+
+    Non fa parte del seed_loader di Codex (F4): popolato a runtime dai
+    router `POST /practices` (campo `collaborator_ids`) e da future ops.
+    """
     return set()
 
 
@@ -167,7 +180,9 @@ def get_practice_collaborator_bridge() -> set[tuple[str, str, str]]:
 def get_all_repositories() -> dict[str, Repository]:
     """Dict nome→repo passato al `seed_loader.populate_repositories` al boot.
 
-    Le chiavi corrispondono alle top-level keys di `data/seed.json`.
+    Le chiavi corrispondono ESATTAMENTE alle top-level keys di `data/seed.json`
+    e al `REQUIRED_SEED_KEYS` di `seed_loader.py` (Codex F4).
+    `practice_collaborators` non è nel seed e resta come bridge separato.
     """
     return {
         "users": get_user_repo(),
@@ -182,13 +197,6 @@ def get_all_repositories() -> dict[str, Repository]:
         "reminders": get_reminder_repo(),
         "labels": get_label_repo(),
         "activity_log": get_activity_log_repo(),
-    }
-
-
-def get_all_bridges() -> dict[str, set]:
-    """Dict nome→bridge set per il seed_loader."""
-    return {
-        "practice_labels": get_practice_label_bridge(),
-        "client_labels": get_client_label_bridge(),
-        "practice_collaborators": get_practice_collaborator_bridge(),
+        "practice_labels": get_practice_label_repo(),
+        "client_labels": get_client_label_repo(),
     }
