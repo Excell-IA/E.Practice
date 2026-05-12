@@ -19,6 +19,13 @@ const statusLabel = {
   blocked: "Bloccata",
 };
 
+function splitTitle(title: string) {
+  const words = title.split(" ");
+  if (words.length < 3) return [title];
+  const midpoint = Math.ceil(words.length / 2);
+  return [words.slice(0, midpoint).join(" "), words.slice(midpoint).join(" ")];
+}
+
 function StatusIcon({ phase }: { phase: PracticePhase }) {
   const status = phase.status;
   if (status === "done") return <Check className="h-5 w-5 text-[var(--on-primary)]" />;
@@ -33,6 +40,7 @@ export function PhaseNode({ phase, x, y, selected, onSelect }: PhaseNodeProps) {
     new Date(phase.plannedDate),
   );
   const isActive = phase.status === "in_progress";
+  const titleLines = splitTitle(phase.title);
 
   return (
     <g
@@ -73,8 +81,12 @@ export function PhaseNode({ phase, x, y, selected, onSelect }: PhaseNodeProps) {
       <text className="fill-muted text-[11px] font-semibold" textAnchor="middle" y="56">
         {date}
       </text>
-      <text className="fill-foreground-variant text-[11px] font-semibold" textAnchor="middle" y="76">
-        {phase.title}
+      <text className="fill-foreground-variant text-[13px] font-semibold" textAnchor="middle" y="78">
+        {titleLines.map((line, index) => (
+          <tspan dy={index === 0 ? 0 : 17} key={line} x="0">
+            {line}
+          </tspan>
+        ))}
       </text>
     </g>
   );

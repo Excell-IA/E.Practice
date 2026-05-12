@@ -26,25 +26,46 @@ const disabledToolbar = [
   { label: "Adatta", icon: Maximize2 },
 ];
 
+const timeline = {
+  startX: 120,
+  endX: 1480,
+  y: 250,
+  startDate: new Date("2026-01-15"),
+  endDate: new Date("2026-04-30"),
+  todayDate: new Date("2026-03-16"),
+};
+
+const monthMarkers = [
+  { label: "Febbraio", date: "2026-02-01" },
+  { label: "Marzo", date: "2026-03-01" },
+  { label: "Aprile", date: "2026-04-01" },
+];
+
+function dateToX(value: string | Date) {
+  const date = typeof value === "string" ? new Date(value) : value;
+  const duration = timeline.endDate.getTime() - timeline.startDate.getTime();
+  const elapsed = date.getTime() - timeline.startDate.getTime();
+  const ratio = Math.min(Math.max(elapsed / duration, 0), 1);
+  return timeline.startX + ratio * (timeline.endX - timeline.startX);
+}
+
 export function PracticeTree({ practice, phases, events }: PracticeTreeProps) {
   const [selection, setSelection] = useState<TreeSelection | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const orderedPhases = useMemo(() => [...phases].sort((a, b) => a.order - b.order), [phases]);
   const phasePositions = useMemo(() => {
-    const spacing = 1000 / Math.max(orderedPhases.length - 1, 1);
-    return new Map(orderedPhases.map((phase, index) => [phase.id, { x: 100 + spacing * index, y: 240 }]));
+    return new Map(orderedPhases.map((phase) => [phase.id, { x: dateToX(phase.plannedDate), y: timeline.y }]));
   }, [orderedPhases]);
 
   const eventPositions = useMemo(
     () =>
       new Map(
         events.map((event, index) => {
-          const phasePosition = phasePositions.get(event.phaseId) ?? { x: 100, y: 240 };
           const above = index % 2 === 0;
-          return [event.id, { x: phasePosition.x - 36 + index * 8, y: above ? 140 : 340 }];
+          return [event.id, { x: dateToX(event.occurredAt), y: above ? 132 : 360 }];
         }),
       ),
-    [events, phasePositions],
+    [events],
   );
 
   function selectPhase(phase: PracticePhase) {
@@ -92,34 +113,83 @@ export function PracticeTree({ practice, phases, events }: PracticeTreeProps) {
           <div className="overflow-x-auto">
             <svg
               aria-label="Albero della pratica"
-              className="h-[430px] min-w-[1200px] text-foreground"
+              className="h-[470px] min-w-[1600px] text-foreground"
               role="img"
-              viewBox="0 0 1200 430"
+              viewBox="0 0 1600 470"
             >
               <defs>
-                <linearGradient id="mainLine" x1="80" x2="1120" y1="0" y2="0">
+                <linearGradient id="mainLine" x1="120" x2="1480" y1="0" y2="0">
                   <stop offset="0%" stopColor="var(--success)" />
                   <stop offset="50%" stopColor="var(--electric)" />
                   <stop offset="100%" stopColor="var(--on-surface-muted)" stopOpacity="0.45" />
                 </linearGradient>
+                {(["call", "mail", "warning"] as const).map((tone) => (
+                  <marker
+                    id={`arrow-${tone}`}
+                    key={tone}
+                    markerHeight="8"
+                    markerWidth="8"
+                    orient="auto"
+                    refX="7"
+                    refY="4"
+                    viewBox="0 0 8 8"
+                  >
+                    <path
+                      className={
+                        tone === "mail" ? "fill-[#C193FF]" : tone === "warning" ? "fill-warning" : "fill-warning"
+                      }
+                      d="M 0 0 L 8 4 L 0 8 z"
+                    />
+                  </marker>
+                ))}
               </defs>
 
-              <line className="stroke-border stroke-[10] opacity-70" x1="80" x2="1120" y1="240" y2="240" />
-              <line className="stroke-[url(#mainLine)] stroke-[5]" x1="80" x2="1120" y1="240" y2="240" />
-              <TodayLine />
+              {monthMarkers.map((month) => {
+                const x = dateToX(month.date);
+                return (
+                  <g key={month.label}>
+                    <line
+                      className="stroke-electric/25 stroke-[1] [stroke-dasharray:3_8]"
+                      x1={x}
+                      x2={x}
+                      y1="70"
+                      y2="430"
+                    />
+                    <text className="fill-muted text-[11px] font-semibold uppercase tracking-[0.14em]" x={x + 10} y="86">
+                      {month.label}
+                    </text>
+                  </g>
+                );
+              })}
+
+              <line
+                className="stroke-border stroke-[10] opacity-70"
+                x1={timeline.startX}
+                x2={timeline.endX}
+                y1={timeline.y}
+                y2={timeline.y}
+              />
+              <line
+                className="stroke-[url(#mainLine)] stroke-[5]"
+                x1={timeline.startX}
+                x2={timeline.endX}
+                y1={timeline.y}
+                y2={timeline.y}
+              />
+              <TodayLine x={dateToX(timeline.todayDate)} />
 
               {events.map((event) => {
                 const phase = orderedPhases.find((item) => item.id === event.phaseId);
                 const eventPosition = eventPositions.get(event.id);
-                const phasePosition = phase ? phasePositions.get(phase.id) : null;
-                if (!phase || !eventPosition || !phasePosition) return null;
+                if (!phase || !eventPosition) return null;
                 return (
                   <BezierEdge
                     fromX={eventPosition.x}
-                    fromY={eventPosition.y + (eventPosition.y < phasePosition.y ? 18 : -18)}
+                    fromY={timeline.y + (eventPosition.y < timeline.y ? -10 : 10)}
                     key={`edge-${event.id}`}
-                    toX={phasePosition.x}
-                    toY={phasePosition.y + (eventPosition.y < phasePosition.y ? -26 : 26)}
+                    toX={eventPosition.x}
+                    toY={eventPosition.y + (eventPosition.y < timeline.y ? 24 : -24)}
+                    arrow
                     tone={event.type}
                   />
                 );
@@ -135,6 +205,7 @@ export function PracticeTree({ practice, phases, events }: PracticeTreeProps) {
                     key={event.id}
                     onSelect={selectEvent}
                     phase={phase}
+                    timelineY={timeline.y}
                     x={position.x}
                     y={position.y}
                   />

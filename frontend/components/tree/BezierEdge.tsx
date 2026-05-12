@@ -6,6 +6,7 @@ type BezierEdgeProps = {
   toX: number;
   toY: number;
   tone: "call" | "mail" | "warning";
+  arrow?: boolean;
 };
 
 const toneClass = {
@@ -14,9 +15,15 @@ const toneClass = {
   warning: "stroke-warning",
 };
 
-export function BezierEdge({ fromX, fromY, toX, toY, tone }: BezierEdgeProps) {
+export function BezierEdge({ arrow = false, fromX, fromY, toX, toY, tone }: BezierEdgeProps) {
   const controlY = fromY < toY ? fromY + 58 : fromY - 58;
   const d = `M ${fromX} ${fromY} C ${fromX} ${controlY}, ${toX} ${controlY}, ${toX} ${toY}`;
 
-  return <path className={cn("fill-none stroke-[1.5] opacity-80", toneClass[tone])} d={d} />;
+  return (
+    <path
+      className={cn("fill-none stroke-[1.5] opacity-80", toneClass[tone])}
+      d={d}
+      markerEnd={arrow ? `url(#arrow-${tone})` : undefined}
+    />
+  );
 }
