@@ -1,7 +1,6 @@
-import Link from "next/link";
-
 import { PracticeHeader } from "@/components/practice/PracticeHeader";
 import { PracticeTabs } from "@/components/practice/PracticeTabs";
+import { EWorkShell } from "@/components/shell/EWorkShell";
 import type { Practice, PracticeEvent, PracticePhase, User } from "@/lib/types";
 
 const users = {
@@ -122,17 +121,13 @@ type PracticeDetailPageProps = {
 
 export default function PracticeDetailPage({ params }: PracticeDetailPageProps) {
   return (
-    <main className="min-h-screen">
-      <PracticeHeader practice={practice} />
-      <section className="mx-auto max-w-7xl px-6 py-6 md:px-10">
-        <div className="mb-5 flex items-center justify-between gap-4 text-sm text-muted">
-          <Link className="font-label font-semibold text-electric" href="/">
-            E.Practice
-          </Link>
-          <span>{params.numero}</span>
-        </div>
-        <PracticeTabs events={events} phases={phases} practice={practice} />
-      </section>
-    </main>
+    <EWorkShell code={params.numero}>
+      <main className="min-h-[calc(100vh-4rem)]">
+        <PracticeHeader practice={practice} />
+        <section className="mx-auto max-w-7xl px-6 py-6 md:px-10">
+          <PracticeTabs events={events} phases={phases} practice={practice} />
+        </section>
+      </main>
+    </EWorkShell>
   );
 }
