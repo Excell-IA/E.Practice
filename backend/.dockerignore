@@ -1,0 +1,52 @@
+# Non copiare nel build context Docker robaccia locale.
+# Tenere allineato con .gitignore della root (le 2 liste non sono identiche per design).
+
+# Python caches & build artefacts
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# Virtualenv locale (Windows: backend/.venv/)
+.venv/
+venv/
+env/
+ENV/
+
+# Tooling caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+.tox/
+
+# Storage allegati / runtime locale (V0 in-memory ma può scrivere /tmp)
+data/uploads/
+data/_runtime/
+
+# Env files locali (.env nel container arriva via docker-compose environment)
+.env
+.env.*
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Test files (non servono in runtime image; serviranno in CI con un target separato)
+tests/
+
+# Misc
+*.log
+*.bak
+*.tmp
+README.md
