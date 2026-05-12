@@ -136,11 +136,13 @@ from app.routers import (  # noqa: E402
     attachments,
     categories,
     clients,
+    dashboard,
     events,
     notes,
     phases,
     practices,
     reminders,
+    search,
     session,
     templates,
     users,
@@ -159,5 +161,7 @@ for router in (
     attachments.router,
     reminders.router,
     activity.router,
+    dashboard.router,
+    search.router,
 ):
     app.include_router(router, prefix=API_PREFIX)

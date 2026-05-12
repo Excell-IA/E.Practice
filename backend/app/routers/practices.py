@@ -1,8 +1,8 @@
-"""Router /api/practices — pratiche (lista, dettaglio, creazione con template, archivio)."""
+"""Router /api/practices — lista, dettaglio (aggregato joined), create, archive."""
 
 from __future__ import annotations
 
-from typing import Annotated
+from typing import Annotated, Any
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -11,21 +11,27 @@ from pydantic import BaseModel
 from app.deps import (
     get_activity_log_repo,
     get_attachment_repo,
+    get_category_repo,
     get_client_repo,
     get_current_user_id,
+    get_label_repo,
     get_note_repo,
     get_phase_template_repo,
     get_practice_collaborator_bridge,
     get_practice_event_repo,
+    get_practice_label_repo,
     get_practice_phase_repo,
     get_practice_repo,
+    get_user_repo,
 )
 from app.models import (
     ActivityLog,
     Attachment,
+    Category,
     Client,
     CreatePracticeRequest,
     CreatePracticeResponse,
+    Label,
     Note,
     PhaseTemplate,
     Practice,
@@ -33,8 +39,10 @@ from app.models import (
     PracticePhase,
     PracticePriority,
     PracticeStatus,
+    User,
 )
 from app.repositories.base import Repository
+from app.repositories.memory import InMemoryRepository
 from app.routers._helpers import Page, Pagination, get_pagination
 from app.services.activity_service import ActivityService
 from app.services.practice_service import PracticeService
@@ -42,20 +50,125 @@ from app.services.practice_service import PracticeService
 router = APIRouter(prefix="/practices", tags=["practices"])
 
 
+# ---------------------------------------------------------------------------
+# Aggregato detail enriched (drop-ready per il frontend Daisy/Kowy)
+# ---------------------------------------------------------------------------
+
+
+class UserSummary(BaseModel):
+    """Estratto di User per evitare di esporre PII non necessaria (no email)."""
+
+    id: UUID
+    nome: str
+    cognome: str
+    role: str
+    initials: str
+    avatar_color: str | None = None
+
+
+class CategorySummary(BaseModel):
+    id: UUID
+    name: str
+    group_name: str | None = None
+    icon: str | None = None
+    color: str | None = None
+
+
+class LabelSummary(BaseModel):
+    id: UUID
+    name: str
+    color: str
+
+
+class PhaseEnriched(BaseModel):
+    """PracticePhase + nome+avatar dell'assegnatario."""
+
+    phase: PracticePhase
+    assignee: UserSummary | None = None
+
+
+class EventEnriched(BaseModel):
+    event: PracticeEvent
+    author: UserSummary | None = None
+
+
+class NoteEnriched(BaseModel):
+    note: Note
+    author: UserSummary | None = None
+
+
+class AttachmentEnriched(BaseModel):
+    attachment: Attachment
+    uploaded_by_user: UserSummary | None = None
+
+
 class PracticeDetail(BaseModel):
-    """Aggregato per il dettaglio pratica (vista albero + tab)."""
+    """Aggregato joined per la pagina Dettaglio Pratica.
+
+    Una sola GET ritorna tutto quello che serve a Daisy/Kowy per renderare
+    header + tab bar + vista albero + drawer: zero lookup extra lato frontend.
+    """
 
     practice: Practice
     client: Client | None = None
-    phases: list[PracticePhase]
-    events: list[PracticeEvent]
-    notes: list[Note]
-    attachments: list[Attachment]
-    collaborators: list[UUID]
+    category: CategorySummary | None = None
+    responsible: UserSummary | None = None
+    labels: list[LabelSummary]
+    phases: list[PhaseEnriched]
+    events: list[EventEnriched]
+    notes: list[NoteEnriched]
+    attachments: list[AttachmentEnriched]
+    collaborators: list[UserSummary]
     progress_pct: int
+    counts: dict[str, int]
+    """`counts.phases`, `counts.events`, `counts.notes`, `counts.attachments` —
+    pronti per i badge dei tab."""
 
 
-# ----- LIST -----
+# ---------------------------------------------------------------------------
+# Helper conversioni → Summary
+# ---------------------------------------------------------------------------
+
+
+def _user_to_summary(user: User | None) -> UserSummary | None:
+    if user is None:
+        return None
+    initials = f"{user.nome[:1]}{user.cognome[:1]}".upper() or "??"
+    return UserSummary(
+        id=user.id,
+        nome=user.nome,
+        cognome=user.cognome,
+        role=user.role,
+        initials=initials,
+        avatar_color=user.avatar_color,
+    )
+
+
+def _category_to_summary(cat: Category | None) -> CategorySummary | None:
+    if cat is None:
+        return None
+    return CategorySummary(
+        id=cat.id,
+        name=cat.name,
+        group_name=cat.group_name,
+        icon=cat.icon,
+        color=cat.color,
+    )
+
+
+def _label_to_summary(label: Label) -> LabelSummary:
+    return LabelSummary(id=label.id, name=label.name, color=label.color)
+
+
+async def _load_users_index(user_repo: Repository[User]) -> dict[str, User]:
+    """Indice user_id (str) → User. Una sola listata per evitare N+1."""
+    items = await user_repo.list()
+    return {str(u.id): u for u in items}
+
+
+# ---------------------------------------------------------------------------
+# LIST
+# ---------------------------------------------------------------------------
 
 
 @router.get("", response_model=Page[Practice])
@@ -97,7 +210,9 @@ async def list_practices(
     )
 
 
-# ----- DETAIL -----
+# ---------------------------------------------------------------------------
+# DETAIL — aggregato joined (drop-ready frontend)
+# ---------------------------------------------------------------------------
 
 
 @router.get("/{practice_id}", response_model=PracticeDetail)
@@ -105,6 +220,10 @@ async def get_practice_detail(
     practice_id: UUID,
     practice_repo: Annotated[Repository[Practice], Depends(get_practice_repo)],
     client_repo: Annotated[Repository[Client], Depends(get_client_repo)],
+    category_repo: Annotated[Repository[Category], Depends(get_category_repo)],
+    user_repo: Annotated[Repository[User], Depends(get_user_repo)],
+    label_repo: Annotated[Repository[Label], Depends(get_label_repo)],
+    practice_label_repo: Annotated[InMemoryRepository[Any], Depends(get_practice_label_repo)],
     phase_repo: Annotated[Repository[PracticePhase], Depends(get_practice_phase_repo)],
     event_repo: Annotated[Repository[PracticeEvent], Depends(get_practice_event_repo)],
     note_repo: Annotated[Repository[Note], Depends(get_note_repo)],
@@ -116,36 +235,101 @@ async def get_practice_detail(
     ],
     current_user_id: Annotated[str, Depends(get_current_user_id)],
 ) -> PracticeDetail:
-    """Aggregato pratica per la vista albero + tab dettaglio."""
+    """Detail completo con joined names — una sola GET per la pagina."""
     practice = await practice_repo.get(str(practice_id))
     if practice is None:
         raise HTTPException(status_code=404, detail=f"Practice {practice_id} non trovata")
 
+    # Indice users per evitare N+1 sui lookup (1 listata, poi dict)
+    users_index = await _load_users_index(user_repo)
+
     client = await client_repo.get(str(practice.client_id))
-    phases = sorted(
+    category = await category_repo.get(str(practice.category_id))
+    responsible_user = (
+        users_index.get(str(practice.responsible_id)) if practice.responsible_id else None
+    )
+
+    # Labels: join via bridge PracticeLabel
+    practice_label_links = await practice_label_repo.list(practice_id=practice.id)
+    label_ids = {str(link.label_id) for link in practice_label_links}
+    labels: list[LabelSummary] = []
+    for lid in label_ids:
+        lbl = await label_repo.get(lid)
+        if lbl is not None:
+            labels.append(_label_to_summary(lbl))
+
+    # Phases
+    raw_phases = sorted(
         await phase_repo.list(practice_id=practice.id),
         key=lambda p: p.order_index,
     )
-    events = sorted(
+    phases = [
+        PhaseEnriched(
+            phase=p,
+            assignee=_user_to_summary(
+                users_index.get(str(p.assignee_id)) if p.assignee_id else None
+            ),
+        )
+        for p in raw_phases
+    ]
+
+    # Events
+    raw_events = sorted(
         await event_repo.list(practice_id=practice.id),
         key=lambda e: (e.event_date, e.event_time or ""),
     )
-    notes = await note_repo.list(practice_id=practice.id)
-    attachments = await attachment_repo.list(practice_id=practice.id)
-
-    collaborator_ids = [
-        UUID(uid) for (pid, uid, _) in collaborators_bridge if pid == str(practice.id)
+    events = [
+        EventEnriched(event=e, author=_user_to_summary(users_index.get(str(e.author_id))))
+        for e in raw_events
     ]
 
-    svc = PracticeService(
-        practice_repo,
-        template_repo,
-        phase_repo,
-        ActivityService(activity_repo),
+    # Notes
+    raw_notes = sorted(
+        await note_repo.list(practice_id=practice.id),
+        key=lambda n: n.created_at,
+        reverse=True,
     )
+    notes = [
+        NoteEnriched(note=n, author=_user_to_summary(users_index.get(str(n.author_id))))
+        for n in raw_notes
+    ]
+
+    # Attachments
+    raw_attachments = sorted(
+        await attachment_repo.list(practice_id=practice.id),
+        key=lambda a: a.created_at,
+        reverse=True,
+    )
+    attachments = [
+        AttachmentEnriched(
+            attachment=a,
+            uploaded_by_user=_user_to_summary(users_index.get(str(a.uploaded_by))),
+        )
+        for a in raw_attachments
+    ]
+
+    # Collaborators
+    collaborator_users = [
+        _user_to_summary(users_index.get(uid))
+        for (pid, uid, _) in collaborators_bridge
+        if pid == str(practice.id)
+    ]
+    collaborators = [c for c in collaborator_users if c is not None]
+
+    # Progress %
+    svc = PracticeService(practice_repo, template_repo, phase_repo, ActivityService(activity_repo))
     progress_pct = await svc.progress_percentage(practice.id)
 
-    # Log viewed_l1 perché esponiamo i dati cliente
+    counts = {
+        "phases": len(phases),
+        "events": len(events),
+        "notes": len(notes),
+        "attachments": len(attachments),
+        "labels": len(labels),
+        "collaborators": len(collaborators),
+    }
+
+    # Audit: L1 viewed (cliente)
     await ActivityService(activity_repo).log(
         actor_id=current_user_id,
         action="viewed_l1",
@@ -157,12 +341,16 @@ async def get_practice_detail(
     return PracticeDetail(
         practice=practice,
         client=client,
-        phases=list(phases),
-        events=list(events),
+        category=_category_to_summary(category),
+        responsible=_user_to_summary(responsible_user),
+        labels=labels,
+        phases=phases,
+        events=events,
         notes=notes,
         attachments=attachments,
-        collaborators=collaborator_ids,
+        collaborators=collaborators,
         progress_pct=progress_pct,
+        counts=counts,
     )
 
 
@@ -184,7 +372,9 @@ async def list_practice_events(
     return sorted(events, key=lambda e: (e.event_date, e.event_time or ""))
 
 
-# ----- CREATE -----
+# ---------------------------------------------------------------------------
+# CREATE
+# ---------------------------------------------------------------------------
 
 
 @router.post("", response_model=CreatePracticeResponse, status_code=status.HTTP_201_CREATED)
@@ -200,22 +390,18 @@ async def create_practice(
     current_user_id: Annotated[str, Depends(get_current_user_id)],
 ) -> CreatePracticeResponse:
     """Wizard creazione pratica: genera Practice + instanzia fasi dal template."""
-    svc = PracticeService(
-        practice_repo,
-        template_repo,
-        phase_repo,
-        ActivityService(activity_repo),
-    )
+    svc = PracticeService(practice_repo, template_repo, phase_repo, ActivityService(activity_repo))
     response = await svc.create_with_template(body, current_user_id)
 
-    # Registra collaboratori opzionali nel bridge M:N
     for collab_uid in body.collaborator_ids:
         collaborators_bridge.add((str(response.practice_id), str(collab_uid), "editor"))
 
     return response
 
 
-# ----- ARCHIVE -----
+# ---------------------------------------------------------------------------
+# ARCHIVE
+# ---------------------------------------------------------------------------
 
 
 @router.post("/{practice_id}/archive", response_model=Practice)
@@ -227,10 +413,25 @@ async def archive_practice(
     activity_repo: Annotated[Repository[ActivityLog], Depends(get_activity_log_repo)],
     current_user_id: Annotated[str, Depends(get_current_user_id)],
 ) -> Practice:
-    svc = PracticeService(
-        practice_repo,
-        template_repo,
-        phase_repo,
-        ActivityService(activity_repo),
-    )
+    svc = PracticeService(practice_repo, template_repo, phase_repo, ActivityService(activity_repo))
     return await svc.archive(practice_id, current_user_id)
+
+
+# ---------------------------------------------------------------------------
+# LABELS attach/detach (drop-ready per chip etichette)
+# ---------------------------------------------------------------------------
+
+
+@router.get("/{practice_id}/labels", response_model=list[LabelSummary])
+async def list_practice_labels(
+    practice_id: UUID,
+    practice_label_repo: Annotated[InMemoryRepository[Any], Depends(get_practice_label_repo)],
+    label_repo: Annotated[Repository[Label], Depends(get_label_repo)],
+) -> list[LabelSummary]:
+    links = await practice_label_repo.list(practice_id=practice_id)
+    out: list[LabelSummary] = []
+    for link in links:
+        lbl = await label_repo.get(str(link.label_id))
+        if lbl is not None:
+            out.append(_label_to_summary(lbl))
+    return out

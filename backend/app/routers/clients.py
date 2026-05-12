@@ -195,3 +195,45 @@ async def list_client_practices(
 ) -> list[Practice]:
     """Lista pratiche del cliente (per scheda cliente)."""
     return await practice_repo.list(client_id=client_id)
+
+
+@router.delete("/{client_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_client(
+    client_id: UUID,
+    client_repo: Annotated[Repository[Client], Depends(get_client_repo)],
+    practice_repo: Annotated[Repository[Practice], Depends(get_practice_repo)],
+    activity_repo: Annotated[Repository[ActivityLog], Depends(get_activity_log_repo)],
+    current_user_id: Annotated[str, Depends(get_current_user_id)],
+) -> None:
+    """Soft delete cliente. 409 se ha pratiche aperte (status != chiusa/archiviata).
+
+    Setta `status='archiviato'` (status enum V0: attivo|sospeso|archiviato) +
+    `deleted_at=now`. Activity log 'deleted'.
+    """
+    existing = await client_repo.get(str(client_id))
+    if existing is None:
+        raise HTTPException(status_code=404, detail=f"Client {client_id} non trovato")
+
+    open_practices = [
+        p
+        for p in await practice_repo.list(client_id=client_id)
+        if p.status not in ("chiusa", "archiviata")
+    ]
+    if open_practices:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                f"Client {client_id} ha {len(open_practices)} pratiche aperte. "
+                "Chiudere o archiviare le pratiche prima di eliminare il cliente."
+            ),
+        )
+
+    now = datetime.now(UTC)
+    await client_repo.update(str(client_id), status="archiviato", deleted_at=now, updated_at=now)
+    await ActivityService(activity_repo).log(
+        actor_id=current_user_id,
+        action="deleted",
+        entity_type="client",
+        entity_id=existing.id,
+        metadata={"soft_delete": True},
+    )
