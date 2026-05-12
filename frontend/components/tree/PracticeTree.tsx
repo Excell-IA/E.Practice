@@ -160,7 +160,7 @@ export function PracticeTree({ practice, phases, events }: PracticeTreeProps) {
                 return (
                   <g key={month.label}>
                     <line
-                      className="stroke-electric/18 stroke-[1] [stroke-dasharray:1_10]"
+                      className="stroke-electric stroke-[1] opacity-30 [stroke-dasharray:2_8]"
                       x1={x}
                       x2={x}
                       y1="96"
