@@ -4,9 +4,19 @@
 
 :root {
   --surface: #f7f9fb;
+  --surface-container-lowest: #ffffff;
+  --surface-container-low: #f2f4f6;
+  --surface-container: #edeff2;
+  --surface-container-high: #e6e8ea;
+  --surface-container-highest: #dcdfe3;
   --on-surface: #191c1e;
   --on-surface-variant: #42474e;
   --on-surface-muted: #6b7279;
+  --primary: #006688;
+  --primary-container: #00c2ff;
+  --on-primary: #ffffff;
+  --secondary: #00c2ff;
+  --outline-variant: rgba(25, 28, 30, 0.1);
 }
 
 * {
