@@ -41,3 +41,12 @@ frontend/
 - **Fase 3 — Manutenzione**: workspace VS Code multi-root.
 
 Dettaglio: [Architettura Codice](https://www.notion.so/35a04286090381c783e4f6ad46467882) su Notion.
+
+## Come avviare in locale
+
+```bash
+npm install
+npm run dev
+```
+
+Apri `http://localhost:3000/pratiche/PR-2026-042` per vedere il dettaglio pratica con vista albero.
