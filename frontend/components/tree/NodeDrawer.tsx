@@ -1,10 +1,12 @@
 "use client";
 
-import { CalendarDays, Check, FileText, Paperclip, SkipForward, UserRound } from "lucide-react";
+import { CalendarDays, Check, FileText, Lock, Paperclip, RotateCcw, SkipForward, UserRound } from "lucide-react";
+import { useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { useDemoStore } from "@/lib/demo-state";
 import type { TreeSelection } from "@/lib/types";
 
 type NodeDrawerProps = {
@@ -14,18 +16,33 @@ type NodeDrawerProps = {
 };
 
 export function NodeDrawer({ selection, open, onOpenChange }: NodeDrawerProps) {
+  const [noteBody, setNoteBody] = useState("");
+  const activeUser = useDemoStore((state) => state.activeUser);
+  const users = useDemoStore((state) => state.users);
+  const notes = useDemoStore((state) => state.notes);
+  const applyAction = useDemoStore((state) => state.applyAction);
+
   const isPhase = selection?.kind === "phase";
   const title = isPhase ? selection.item.title : selection?.item.title;
   const description = isPhase ? selection.item.description : selection?.item.description;
   const assignee = isPhase ? selection.item.assignee : selection?.item.author;
   const date = isPhase ? selection.item.dueDate : selection?.item.occurredAt;
+  const canEdit = activeUser.permission !== "viewer";
+  const isAdmin = activeUser.permission === "admin";
+  const phaseNotes = isPhase ? notes.filter((note) => note.phaseId === selection.item.id) : [];
+
+  function addNote() {
+    if (!isPhase || !noteBody.trim()) return;
+    applyAction({ type: "add_note", phaseId: selection.item.id, body: noteBody.trim() });
+    setNoteBody("");
+  }
 
   return (
     <Sheet onOpenChange={onOpenChange} open={open}>
       <SheetContent>
         <SheetHeader>
           <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-electric">
-            {isPhase ? `Fase ${selection.item.order} di 10 · Bilancio` : `Evento · ${selection?.phase.title}`}
+            {isPhase ? `Fase ${selection.item.order} di 10 - Bilancio` : `Evento - ${selection?.phase.title}`}
           </p>
           <SheetTitle>{title ?? "Dettaglio nodo"}</SheetTitle>
           <SheetDescription>{description ?? "Seleziona una fase o un evento per vedere i dettagli."}</SheetDescription>
@@ -38,6 +55,27 @@ export function NodeDrawer({ selection, open, onOpenChange }: NodeDrawerProps) {
               <span className="h-2 w-2 rounded-full bg-current" />
               {isPhase ? selection.item.status.replace("_", " ") : selection?.item.type}
             </Badge>
+            {isPhase ? (
+              <select
+                className="h-10 w-full rounded-xl border border-border bg-surface-low px-3 text-sm text-foreground outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={!canEdit}
+                onChange={(event) =>
+                  applyAction({
+                    type: "set_phase_status",
+                    phaseId: selection.item.id,
+                    status: event.target.value as typeof selection.item.status,
+                  })
+                }
+                title={canEdit ? "Cambia stato fase" : "Permesso non disponibile per utente viewer"}
+                value={selection.item.status}
+              >
+                <option value="pending">Da fare</option>
+                <option value="in_progress">In corso</option>
+                <option value="done">Completata</option>
+                <option value="skipped">Saltata</option>
+                <option value="blocked">Bloccata</option>
+              </select>
+            ) : null}
           </section>
 
           <section className="space-y-3">
@@ -53,6 +91,21 @@ export function NodeDrawer({ selection, open, onOpenChange }: NodeDrawerProps) {
                 <p className="text-xs text-muted">{assignee?.role}</p>
               </div>
             </div>
+            {isPhase ? (
+              <select
+                className="h-10 w-full rounded-xl border border-border bg-surface-low px-3 text-sm text-foreground outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={!isAdmin}
+                onChange={(event) => applyAction({ type: "assign_phase", phaseId: selection.item.id, userId: event.target.value })}
+                title={isAdmin ? "Assegna fase" : "Solo l'admin puo assegnare le fasi"}
+                value={selection.item.assignee.id}
+              >
+                {users.map((user) => (
+                  <option className="bg-surface text-foreground" key={user.id} value={user.id}>
+                    {user.name}
+                  </option>
+                ))}
+              </select>
+            ) : null}
           </section>
 
           <section className="space-y-3">
@@ -94,15 +147,80 @@ export function NodeDrawer({ selection, open, onOpenChange }: NodeDrawerProps) {
           </section>
 
           {isPhase ? (
-            <div className="mt-auto flex gap-2 border-t border-border pt-4">
-              <Button className="flex-1" type="button">
-                <Check className="h-4 w-4" />
-                Completa fase
+            <section className="space-y-3">
+              <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
+                Note salvate in locale
+              </p>
+              <div className="space-y-2">
+                {phaseNotes.map((note) => (
+                  <div className="rounded-2xl border border-border bg-surface-low p-3" key={note.id}>
+                    <div className="mb-1 flex items-center justify-between gap-2">
+                      <span className="font-label text-xs font-semibold text-foreground">{note.author.name}</span>
+                      <span className="text-[11px] text-muted">
+                        {new Intl.DateTimeFormat("it-IT", {
+                          day: "2-digit",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                          month: "2-digit",
+                        }).format(new Date(note.createdAt))}
+                      </span>
+                    </div>
+                    <p className="text-sm leading-5 text-foreground-variant">{note.body}</p>
+                  </div>
+                ))}
+              </div>
+              <textarea
+                className="min-h-20 w-full resize-none rounded-2xl border border-border bg-surface-low p-3 text-sm text-foreground outline-none placeholder:text-muted disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={!canEdit}
+                onChange={(event) => setNoteBody(event.target.value)}
+                placeholder={canEdit ? "Aggiungi una nota operativa..." : "Permesso non disponibile per utente viewer"}
+                title={canEdit ? "Nota locale demo" : "Permesso non disponibile per utente viewer"}
+                value={noteBody}
+              />
+              <Button disabled={!canEdit || !noteBody.trim()} onClick={addNote} type="button" variant="outline">
+                <FileText className="h-4 w-4" />
+                Salva nota
               </Button>
-              <Button title="Salta fase (registra motivazione)" type="button" variant="warning">
+            </section>
+          ) : null}
+
+          {isPhase ? (
+            <div className="mt-auto grid gap-2 border-t border-border pt-4 sm:grid-cols-3">
+              <Button
+                disabled={!canEdit}
+                onClick={() => applyAction({ type: "complete_phase", phaseId: selection.item.id })}
+                title={canEdit ? "Completa fase in locale" : "Permesso non disponibile per utente viewer"}
+                type="button"
+              >
+                <Check className="h-4 w-4" />
+                Completa
+              </Button>
+              <Button
+                disabled={!canEdit}
+                onClick={() => applyAction({ type: "reopen_phase", phaseId: selection.item.id })}
+                title={canEdit ? "Riapri fase in locale" : "Permesso non disponibile per utente viewer"}
+                type="button"
+                variant="outline"
+              >
+                <RotateCcw className="h-4 w-4" />
+                Riapri
+              </Button>
+              <Button
+                disabled={!canEdit}
+                onClick={() => applyAction({ type: "skip_phase", phaseId: selection.item.id })}
+                title={canEdit ? "Salta fase in locale" : "Permesso non disponibile per utente viewer"}
+                type="button"
+                variant="warning"
+              >
                 <SkipForward className="h-4 w-4" />
                 Salta
               </Button>
+              {!canEdit ? (
+                <p className="col-span-full flex items-center gap-2 text-xs text-muted">
+                  <Lock className="h-3.5 w-3.5" />
+                  Utente viewer: azioni disponibili solo in lettura.
+                </p>
+              ) : null}
             </div>
           ) : null}
         </div>

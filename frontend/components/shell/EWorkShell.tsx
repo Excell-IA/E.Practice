@@ -1,3 +1,5 @@
+"use client";
+
 import {
   Bell,
   CalendarDays,
@@ -13,6 +15,7 @@ import {
 } from "lucide-react";
 import type { ReactNode } from "react";
 
+import { useDemoStore } from "@/lib/demo-state";
 import { cn } from "@/lib/utils";
 
 type EWorkShellProps = {
@@ -41,7 +44,18 @@ function LogoMark() {
   );
 }
 
+function avatarClass(userId: string) {
+  if (userId.endsWith("0001")) return "bg-[#14532d]";
+  if (userId.endsWith("0002")) return "bg-[#0f766e]";
+  if (userId.endsWith("0003")) return "bg-[#ea580c]";
+  return "bg-[#6b7280]";
+}
+
 export function EWorkShell({ children, code }: EWorkShellProps) {
+  const activeUser = useDemoStore((state) => state.activeUser);
+  const users = useDemoStore((state) => state.users);
+  const applyAction = useDemoStore((state) => state.applyAction);
+
   return (
     <div className="min-h-screen bg-surface text-foreground">
       <aside className="fixed inset-y-[60px] left-0 z-40 hidden w-60 flex-col overflow-y-auto bg-surface-low px-3 py-5 lg:flex">
@@ -161,13 +175,29 @@ export function EWorkShell({ children, code }: EWorkShellProps) {
             <div className="hidden h-8 items-center rounded-full bg-surface-container px-3 font-label text-xs font-semibold text-foreground md:flex">
               IT
             </div>
-            <div className="flex items-center gap-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-surface-high font-display text-xs font-semibold text-foreground ring-0 transition-shadow hover:ring-2 hover:ring-primary/40">
-                MB
+            <div className="flex items-center gap-3" title="Cambia utente demo">
+              <div
+                className={cn(
+                  "flex h-8 w-8 items-center justify-center rounded-full font-display text-xs font-semibold text-white ring-0 transition-shadow hover:ring-2 hover:ring-primary/40",
+                  avatarClass(activeUser.id),
+                )}
+              >
+                {activeUser.initials}
               </div>
               <div className="hidden leading-tight sm:block">
-                <p className="font-label text-xs font-semibold text-foreground">Mario Bonometti</p>
-                <p className="text-[11px] text-muted">Titolare</p>
+                <select
+                  aria-label="Utente demo"
+                  className="w-36 bg-transparent font-label text-xs font-semibold text-foreground outline-none"
+                  onChange={(event) => applyAction({ type: "set_user", userId: event.target.value })}
+                  value={activeUser.id}
+                >
+                  {users.map((user) => (
+                    <option className="bg-surface text-foreground" key={user.id} value={user.id}>
+                      {user.name}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-[11px] text-muted">{activeUser.role}</p>
               </div>
             </div>
           </div>

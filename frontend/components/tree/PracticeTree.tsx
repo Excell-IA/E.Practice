@@ -1,10 +1,12 @@
 "use client";
 
-import { Maximize2, Minus, MoveHorizontal, Plus } from "lucide-react";
+import { AlertTriangle, CalendarDays, Mail, Maximize2, Minus, MoveHorizontal, PhoneCall, Plus } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { useDemoStore } from "@/lib/demo-state";
 import type { Practice, PracticeEvent, PracticePhase, TreeSelection } from "@/lib/types";
 
 import { BezierEdge } from "./BezierEdge";
@@ -22,7 +24,6 @@ type PracticeTreeProps = {
 const disabledToolbar = [
   { label: "Riduci zoom", icon: Minus },
   { label: "Aumenta zoom", icon: Plus },
-  { label: "Centra", icon: MoveHorizontal },
   { label: "Adatta", icon: Maximize2 },
 ];
 
@@ -53,7 +54,13 @@ export function PracticeTree({ practice, phases, events }: PracticeTreeProps) {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [selection, setSelection] = useState<TreeSelection | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [composerType, setComposerType] = useState<PracticeEvent["type"] | null>(null);
+  const [composerTitle, setComposerTitle] = useState("");
+  const [composerDescription, setComposerDescription] = useState("");
+  const activeUser = useDemoStore((state) => state.activeUser);
+  const applyAction = useDemoStore((state) => state.applyAction);
   const orderedPhases = useMemo(() => [...phases].sort((a, b) => a.order - b.order), [phases]);
+  const currentPhase = orderedPhases.find((phase) => phase.status === "in_progress") ?? orderedPhases[0];
   const phasePositions = useMemo(() => {
     return new Map(orderedPhases.map((phase) => [phase.id, { x: dateToX(phase.plannedDate), y: timeline.y }]));
   }, [orderedPhases]);
@@ -79,14 +86,36 @@ export function PracticeTree({ practice, phases, events }: PracticeTreeProps) {
     setDrawerOpen(true);
   }
 
-  useEffect(() => {
+  function scrollToTimelineX(x: number) {
     const scrollArea = scrollAreaRef.current;
     if (!scrollArea) return;
-
-    const todayX = dateToX(timeline.todayDate);
     const svgWidth = 1600;
-    const targetLeft = (todayX / svgWidth) * scrollArea.scrollWidth - scrollArea.clientWidth / 2;
-    scrollArea.scrollLeft = Math.max(targetLeft, 0);
+    const targetLeft = (x / svgWidth) * scrollArea.scrollWidth - scrollArea.clientWidth / 2;
+    scrollArea.scrollTo({ behavior: "smooth", left: Math.max(targetLeft, 0) });
+  }
+
+  function openComposer(eventType: PracticeEvent["type"]) {
+    const defaultTitle = eventType === "call" ? "Telefonata cliente" : eventType === "mail" ? "Email integrativa" : "Attesa cliente";
+    setComposerType(eventType);
+    setComposerTitle(defaultTitle);
+    setComposerDescription("");
+  }
+
+  function createEvent() {
+    if (!composerType || !composerTitle.trim() || !currentPhase) return;
+    applyAction({
+      type: "create_event",
+      description: composerDescription.trim() || "Evento demo creato durante walkthrough.",
+      eventType: composerType,
+      occurredAt: "2026-03-16",
+      phaseId: currentPhase.id,
+      title: composerTitle.trim(),
+    });
+    setComposerType(null);
+  }
+
+  useEffect(() => {
+    scrollToTimelineX(dateToX(timeline.todayDate));
   }, []);
 
   return (
@@ -99,7 +128,54 @@ export function PracticeTree({ practice, phases, events }: PracticeTreeProps) {
             </p>
             <h2 className="font-display text-xl font-semibold text-foreground">{practice.title}</h2>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <Button onClick={() => scrollToTimelineX(dateToX(timeline.todayDate))} size="sm" title="Centra su oggi" type="button" variant="outline">
+              <CalendarDays className="h-4 w-4" />
+              Oggi
+            </Button>
+            <Button
+              onClick={() => currentPhase && scrollToTimelineX(dateToX(currentPhase.plannedDate))}
+              size="sm"
+              title="Centra sulla fase corrente"
+              type="button"
+              variant="outline"
+            >
+              <MoveHorizontal className="h-4 w-4" />
+              Fase corrente
+            </Button>
+            <Button
+              disabled={activeUser.permission === "viewer"}
+              onClick={() => openComposer("call")}
+              size="sm"
+              title={activeUser.permission === "viewer" ? "Permesso non disponibile per utente viewer" : "Crea telefonata demo"}
+              type="button"
+              variant="outline"
+            >
+              <PhoneCall className="h-4 w-4" />
+              Telefonata
+            </Button>
+            <Button
+              disabled={activeUser.permission === "viewer"}
+              onClick={() => openComposer("mail")}
+              size="sm"
+              title={activeUser.permission === "viewer" ? "Permesso non disponibile per utente viewer" : "Crea mail demo"}
+              type="button"
+              variant="outline"
+            >
+              <Mail className="h-4 w-4" />
+              Mail
+            </Button>
+            <Button
+              disabled={activeUser.permission === "viewer"}
+              onClick={() => openComposer("warning")}
+              size="sm"
+              title={activeUser.permission === "viewer" ? "Permesso non disponibile per utente viewer" : "Crea warning demo"}
+              type="button"
+              variant="warning"
+            >
+              <AlertTriangle className="h-4 w-4" />
+              Warning
+            </Button>
             {disabledToolbar.map((item) => {
               const Icon = item.icon;
               return (
@@ -121,6 +197,41 @@ export function PracticeTree({ practice, phases, events }: PracticeTreeProps) {
         </div>
 
         <CardContent className="p-0">
+          {composerType ? (
+            <div className="border-b border-border bg-surface-container px-5 py-4">
+              <div className="grid gap-3 md:grid-cols-[180px_1fr_1.4fr_auto] md:items-end">
+                <div>
+                  <p className="mb-1 text-xs text-muted">Tipo evento</p>
+                  <Badge variant={composerType === "warning" ? "warning" : "info"}>{composerType}</Badge>
+                </div>
+                <label className="text-sm text-muted">
+                  Titolo
+                  <input
+                    className="mt-1 h-10 w-full rounded-xl border border-border bg-surface-low px-3 text-foreground outline-none"
+                    onChange={(event) => setComposerTitle(event.target.value)}
+                    value={composerTitle}
+                  />
+                </label>
+                <label className="text-sm text-muted">
+                  Descrizione
+                  <input
+                    className="mt-1 h-10 w-full rounded-xl border border-border bg-surface-low px-3 text-foreground outline-none"
+                    onChange={(event) => setComposerDescription(event.target.value)}
+                    placeholder={`Collegato a ${currentPhase?.title ?? "fase corrente"}`}
+                    value={composerDescription}
+                  />
+                </label>
+                <div className="flex gap-2">
+                  <Button disabled={!composerTitle.trim()} onClick={createEvent} type="button">
+                    Crea
+                  </Button>
+                  <Button onClick={() => setComposerType(null)} type="button" variant="ghost">
+                    Annulla
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ) : null}
           <div className="overflow-x-auto" ref={scrollAreaRef}>
             <svg
               aria-label="Albero della pratica"
