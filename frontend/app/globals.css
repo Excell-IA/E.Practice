@@ -1,0 +1,25 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --surface: #f7f9fb;
+  --on-surface: #191c1e;
+  --on-surface-variant: #42474e;
+  --on-surface-muted: #6b7279;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  color: var(--on-surface);
+  background: var(--surface);
+}
