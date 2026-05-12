@@ -1,0 +1,13 @@
+# Mirror delle dipendenze runtime di pyproject.toml.
+# Mantenuto per fallback su deploy Render (che preferisce requirements.txt).
+# In dev sviluppo `pip install -e ".[dev]"` invece di usare questo file.
+#
+# Quando aggiorni una versione qui aggiornala anche in pyproject.toml.
+
+fastapi==0.115.*
+uvicorn[standard]==0.32.*
+pydantic==2.10.*
+pydantic-settings==2.7.*
+structlog==24.4.*
+python-multipart==0.0.20
+httpx==0.28.*
