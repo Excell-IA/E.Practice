@@ -1,0 +1,1508 @@
+<!DOCTYPE html>
+<html lang="it" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1440">
+<title>E.Practice · PR-2026-042 · Bilancio Acciaierie Valgobbia</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Manrope:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+/* ============================================================
+   Tokens — three themes inline (self-contained)
+============================================================ */
+:root[data-theme="excellia"] {
+  --surface:                    #0F131C;
+  --surface-container-lowest:   #0A0D14;
+  --surface-container-low:      #181C24;
+  --surface-container:          #1C2028;
+  --surface-container-high:     #262A33;
+  --surface-container-highest:  #2F3540;
+  --on-surface:                 #DAE2FD;
+  --on-surface-variant:         #A8B2CC;
+  --on-surface-muted:           #6E7A96;
+  --primary:                    #92D9FF;
+  --primary-container:           #00C2FF;
+  --on-primary:                 #004C66;
+  --secondary:                  #00C2FF;
+  --electric:                   #92D9FF;
+  --outline-variant:            rgba(146, 217, 255, 0.18);
+  --success:                    #6DD3A8;
+  --warning:                    #FFCF7A;
+  --danger:                     #FF9A94;
+  --info:                       #92D9FF;
+  --shadow-electric-sm: 0 4px 16px 0 rgba(146, 217, 255, 0.06);
+  --shadow-electric-md: 0 8px 32px 0 rgba(146, 217, 255, 0.08);
+  --shadow-electric-lg: 0 16px 64px 0 rgba(146, 217, 255, 0.12);
+  --gradient-brand:    linear-gradient(135deg, #92D9FF 0%, #00C2FF 100%);
+  --gradient-atmosphere: radial-gradient(1200px 800px at 20% -10%, rgba(0,194,255,0.18) 0%, transparent 60%),
+                          radial-gradient(900px 700px at 90% 110%, rgba(146,217,255,0.10) 0%, transparent 60%),
+                          linear-gradient(180deg, #131824 0%, #0F131C 60%, #0A0D14 100%);
+}
+
+:root,
+:root[data-theme="light"] {
+  --surface:                    #F7F9FB;
+  --surface-container-lowest:   #FFFFFF;
+  --surface-container-low:      #F2F4F6;
+  --surface-container:          #EDEFF2;
+  --surface-container-high:     #E6E8EA;
+  --surface-container-highest:  #DCDFE3;
+  --on-surface:                 #191C1E;
+  --on-surface-variant:         #42474E;
+  --on-surface-muted:           #6B7279;
+  --primary:                    #006688;
+  --primary-container:          #00C2FF;
+  --on-primary:                 #FFFFFF;
+  --secondary:                  #00C2FF;
+  --electric:                   #006688;
+  --outline-variant:            rgba(25, 28, 30, 0.10);
+  --success:                    #1F7A52;
+  --warning:                    #B5730A;
+  --danger:                     #B3261E;
+  --info:                       #006688;
+  --shadow-electric-sm: 0 4px 16px 0 rgba(0, 102, 136, 0.06);
+  --shadow-electric-md: 0 8px 32px 0 rgba(0, 102, 136, 0.08);
+  --shadow-electric-lg: 0 16px 64px 0 rgba(0, 102, 136, 0.10);
+  --gradient-brand: linear-gradient(135deg, #006688 0%, #00C2FF 100%);
+  --gradient-atmosphere: linear-gradient(180deg, #F7F9FB 0%, #F7F9FB 100%);
+}
+
+:root[data-theme="dark"] {
+  --surface:                    #08090b;
+  --surface-container-lowest:   #050608;
+  --surface-container-low:      #0F1115;
+  --surface-container:          #14171c;
+  --surface-container-high:     #1c1f25;
+  --surface-container-highest:  #262a31;
+  --on-surface:                 #DAE2FD;
+  --on-surface-variant:         #A8B2CC;
+  --on-surface-muted:           #6E7A96;
+  --primary:                    #92D9FF;
+  --primary-container:          #00C2FF;
+  --on-primary:                 #00334A;
+  --secondary:                  #00C2FF;
+  --electric:                   #92D9FF;
+  --outline-variant:            rgba(218, 226, 253, 0.12);
+  --success:                    #6DD3A8;
+  --warning:                    #FFCF7A;
+  --danger:                     #FF9A94;
+  --info:                       #92D9FF;
+  --shadow-electric-sm: 0 4px 16px 0 rgba(146, 217, 255, 0.06);
+  --shadow-electric-md: 0 8px 32px 0 rgba(146, 217, 255, 0.08);
+  --shadow-electric-lg: 0 16px 64px 0 rgba(146, 217, 255, 0.10);
+  --gradient-brand: linear-gradient(135deg, #92D9FF 0%, #00C2FF 100%);
+  --gradient-atmosphere: linear-gradient(180deg, #08090b 0%, #08090b 100%);
+}
+
+:root {
+  --font-display: 'Space Grotesk', system-ui, sans-serif;
+  --font-body:    'Manrope', system-ui, sans-serif;
+  --font-label:   'Inter', system-ui, sans-serif;
+  --ease: cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 100%; min-height: 100vh; }
+body {
+  background: var(--surface);
+  background-image: var(--gradient-atmosphere);
+  background-attachment: fixed;
+  color: var(--on-surface);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+button { font: inherit; color: inherit; background: none; border: none; cursor: pointer; }
+input, textarea { font: inherit; color: inherit; background: none; border: none; outline: none; }
+a { color: inherit; text-decoration: none; }
+
+/* ============================================================
+   Reusable atoms
+============================================================ */
+.hud {
+  font-family: var(--font-display);
+  font-size: 11px; font-weight: 500; line-height: 1;
+  text-transform: uppercase; letter-spacing: 0.12em;
+  color: var(--on-surface-muted);
+}
+.data-pulse {
+  position: relative; display: inline-block;
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--gradient-brand);
+  flex-shrink: 0;
+}
+.data-pulse::after {
+  content: ""; position: absolute; inset: 0; border-radius: 50%;
+  background: var(--primary); opacity: 0.5;
+  animation: data-pulse 2s var(--ease) infinite;
+}
+@keyframes data-pulse {
+  0%   { transform: scale(1);    opacity: 0.5; }
+  80%  { transform: scale(2.8);  opacity: 0; }
+  100% { transform: scale(2.8);  opacity: 0; }
+}
+
+.chip {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 5px 12px; border-radius: 999px;
+  font-family: var(--font-body); font-weight: 600; font-size: 12px;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+.chip i { width: 12px; height: 12px; }
+.chip-neutral { background: var(--surface-container-high); color: var(--on-surface-muted); }
+.chip-info    { background: color-mix(in oklab, var(--electric) 12%, transparent); color: var(--electric); }
+.chip-info-strong { background: color-mix(in oklab, var(--electric) 18%, transparent); color: var(--electric); }
+.chip-success { background: color-mix(in oklab, var(--success) 14%, transparent); color: var(--success); }
+.chip-warning { background: color-mix(in oklab, var(--warning) 14%, transparent); color: var(--warning); }
+.chip-status  {
+  background: color-mix(in oklab, var(--electric) 14%, transparent);
+  color: var(--electric);
+  padding-left: 10px;
+}
+
+.btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: var(--font-display); font-weight: 500; font-size: 13px; letter-spacing: 0.005em;
+  border-radius: 12px; padding: 10px 16px;
+  transition: all 160ms var(--ease);
+  white-space: nowrap;
+}
+.btn i { width: 14px; height: 14px; }
+.btn-primary {
+  background: var(--gradient-brand);
+  color: var(--on-primary);
+  box-shadow: var(--shadow-electric-sm);
+  font-weight: 600;
+}
+.btn-primary:hover { box-shadow: var(--shadow-electric-lg), 0 0 0 5px color-mix(in oklab, var(--electric) 14%, transparent); }
+.btn-primary:active { transform: scale(0.98); }
+.btn-secondary {
+  background: color-mix(in oklab, var(--surface-container-highest) 50%, transparent);
+  color: var(--on-surface);
+  backdrop-filter: blur(8px);
+}
+.btn-secondary:hover { background: color-mix(in oklab, var(--surface-container-highest) 80%, transparent); }
+.btn-ghost { background: transparent; color: var(--on-surface-variant); padding: 10px 12px; }
+.btn-ghost:hover { color: var(--on-surface); background: var(--surface-container); }
+.btn-warning {
+  background: color-mix(in oklab, var(--warning) 14%, transparent);
+  color: var(--warning);
+}
+.btn-warning:hover { background: color-mix(in oklab, var(--warning) 22%, transparent); }
+.btn-icon { padding: 8px; border-radius: 10px; color: var(--on-surface-variant); }
+.btn-icon:hover { background: var(--surface-container); color: var(--on-surface); }
+.btn-icon i { width: 16px; height: 16px; }
+
+.avatar {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; border-radius: 50%;
+  background: var(--surface-container-high);
+  font-family: var(--font-display); font-size: 11px; font-weight: 600;
+  color: var(--on-surface);
+  flex-shrink: 0;
+}
+.avatar-lg { width: 36px; height: 36px; font-size: 12px; }
+.avatar-gradient {
+  background: var(--gradient-brand); color: var(--on-primary);
+}
+
+/* ============================================================
+   Topbar (V0 — glassmorphic, sticky)
+============================================================ */
+.topbar {
+  position: sticky; top: 0; z-index: 50;
+  height: 56px;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 24px;
+  background: color-mix(in oklab, var(--surface-container) 60%, transparent);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+}
+.topbar-left { display: flex; align-items: center; gap: 16px; }
+.brand-mark { display: inline-flex; align-items: center; color: var(--on-surface); height: 28px; }
+.brand-mark svg { height: 24px; width: auto; display: block; }
+.breadcrumb {
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--font-display); font-size: 13px; font-weight: 500;
+  color: var(--on-surface-muted);
+}
+.breadcrumb .crumb-sep { opacity: 0.4; }
+.breadcrumb .crumb-cur { color: var(--on-surface); }
+.breadcrumb .crumb-pr  {
+  color: var(--electric);
+  font-family: var(--font-display);
+  font-feature-settings: 'tnum' 1;
+}
+
+.topbar-right { display: flex; align-items: center; gap: 10px; }
+.search-btn, .bell-btn, .flag-btn {
+  position: relative;
+  width: 36px; height: 36px; border-radius: 10px;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--on-surface-variant);
+  transition: all 160ms var(--ease);
+}
+.search-btn:hover, .bell-btn:hover, .flag-btn:hover {
+  background: var(--surface-container);
+  color: var(--on-surface);
+}
+.search-btn i, .bell-btn i { width: 16px; height: 16px; }
+.bell-badge {
+  position: absolute; top: 6px; right: 6px;
+  min-width: 16px; height: 16px; padding: 0 4px;
+  border-radius: 8px;
+  background: var(--gradient-brand);
+  color: var(--on-primary);
+  font-family: var(--font-display); font-size: 9px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 0 0 2px var(--surface-container);
+}
+.flag-btn {
+  font-family: var(--font-display); font-size: 11px; font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--on-surface-variant);
+  gap: 4px;
+}
+.flag-pill {
+  display: inline-block; width: 18px; height: 12px; border-radius: 2px; overflow: hidden;
+  background: linear-gradient(to right, #009246 0 33%, #FFF 33% 66%, #CE2B37 66% 100%);
+}
+
+.theme-switcher {
+  display: inline-flex; align-items: center; gap: 0;
+  background: var(--surface-container);
+  border-radius: 999px;
+  padding: 3px;
+}
+.theme-switcher button {
+  width: 30px; height: 28px; border-radius: 999px;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--on-surface-muted);
+  font-family: var(--font-display); font-size: 10px; font-weight: 700; letter-spacing: 0.08em;
+  transition: all 160ms var(--ease);
+}
+.theme-switcher button i { width: 13px; height: 13px; }
+.theme-switcher button.is-active {
+  background: var(--surface-container-highest);
+  color: var(--electric);
+}
+
+.avatar-button {
+  width: 32px; height: 32px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--surface-container-high);
+  font-family: var(--font-display); font-size: 11px; font-weight: 700;
+  color: var(--on-surface);
+  margin-left: 4px;
+  position: relative;
+}
+.avatar-button::after {
+  content: ""; position: absolute;
+  bottom: 1px; right: 1px;
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--success);
+  box-shadow: 0 0 0 2px var(--surface);
+}
+
+/* ============================================================
+   Shell — sidebar + main
+============================================================ */
+.shell {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  min-height: calc(100vh - 56px);
+  transition: grid-template-columns 240ms var(--ease);
+}
+.shell.is-collapsed { grid-template-columns: 64px 1fr; }
+
+.sidebar {
+  background: var(--surface-container-low);
+  padding: 16px 12px;
+  position: sticky;
+  top: 56px;
+  height: calc(100vh - 56px);
+  overflow-y: auto;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.sidebar-group { display: flex; flex-direction: column; gap: 2px; }
+.sidebar-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 12px; border-radius: 10px;
+  font-family: var(--font-body); font-weight: 500; font-size: 14px;
+  color: var(--on-surface-variant);
+  transition: all 160ms var(--ease);
+  width: 100%;
+  text-align: left;
+  position: relative;
+}
+.sidebar-item i { width: 18px; height: 18px; flex-shrink: 0; }
+.sidebar-item:hover { background: var(--surface-container); color: var(--on-surface); }
+.sidebar-item.is-active {
+  background: color-mix(in oklab, var(--electric) 10%, transparent);
+  color: var(--electric);
+  font-weight: 600;
+}
+.sidebar-item.is-active::before {
+  content: ""; position: absolute; left: -12px; top: 8px; bottom: 8px;
+  width: 3px; border-radius: 0 2px 2px 0;
+  background: var(--gradient-brand);
+}
+.sidebar-divider { height: 1px; background: var(--outline-variant); margin: 12px 4px; }
+.sidebar-label {
+  padding: 14px 12px 6px;
+  color: var(--on-surface-muted);
+}
+.sidebar-count {
+  margin-left: auto;
+  background: var(--surface-container-high);
+  color: var(--on-surface-muted);
+  font-family: var(--font-display); font-size: 10px; font-weight: 600;
+  padding: 2px 7px; border-radius: 999px;
+}
+.sidebar-item.is-active .sidebar-count {
+  background: color-mix(in oklab, var(--electric) 20%, transparent);
+  color: var(--electric);
+}
+.shell.is-collapsed .sidebar-item span,
+.shell.is-collapsed .sidebar-item .sidebar-count,
+.shell.is-collapsed .sidebar-label,
+.shell.is-collapsed .sidebar-divider { display: none; }
+.shell.is-collapsed .sidebar-item { justify-content: center; padding: 10px 0; }
+
+.sidebar-footer {
+  margin-top: auto;
+  padding: 12px;
+  display: flex; align-items: center; gap: 10px;
+  border-radius: 12px;
+  background: var(--surface-container);
+}
+.sidebar-footer-name { font-family: var(--font-display); font-size: 13px; font-weight: 600; color: var(--on-surface); }
+.sidebar-footer-role { font-family: var(--font-label); font-size: 11px; color: var(--on-surface-muted); }
+
+/* ============================================================
+   Main
+============================================================ */
+.main {
+  display: flex; flex-direction: column;
+  min-width: 0;
+  padding: 0;
+}
+
+/* Practice header */
+.practice-header {
+  position: sticky; top: 56px; z-index: 30;
+  padding: 24px 32px 18px;
+  background: color-mix(in oklab, var(--surface) 80%, transparent);
+  backdrop-filter: blur(20px) saturate(120%);
+  -webkit-backdrop-filter: blur(20px) saturate(120%);
+}
+.ph-grid {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 32px;
+  align-items: start;
+}
+.ph-left { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.ph-prid {
+  display: inline-flex; align-items: center; gap: 10px;
+}
+.ph-prid-tag {
+  font-family: var(--font-display);
+  font-size: 11px; font-weight: 500;
+  text-transform: uppercase; letter-spacing: 0.18em;
+  color: var(--on-surface-muted);
+}
+.ph-prid-number {
+  font-family: var(--font-display);
+  font-size: 22px; font-weight: 600;
+  letter-spacing: -0.005em;
+  color: var(--electric);
+  font-feature-settings: 'tnum' 1;
+}
+.ph-prid-dot {
+  width: 4px; height: 4px; border-radius: 50%;
+  background: var(--on-surface-muted);
+}
+.ph-title {
+  font-family: var(--font-display);
+  font-size: 32px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  color: var(--on-surface);
+  max-width: 760px;
+}
+.ph-title em {
+  font-style: normal;
+  background: var(--gradient-brand);
+  -webkit-background-clip: text; background-clip: text;
+  color: transparent;
+}
+.ph-chips { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 2px; }
+
+.ph-right {
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 22px 24px;
+  align-items: center;
+}
+.gauge-wrap { grid-row: 1 / 3; }
+.gauge {
+  position: relative;
+  width: 88px; height: 88px;
+}
+.gauge svg { display: block; }
+.gauge-text {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 0;
+}
+.gauge-val {
+  font-family: var(--font-display); font-size: 22px; font-weight: 600;
+  color: var(--success);
+  line-height: 1;
+}
+.gauge-lbl {
+  font-family: var(--font-display); font-size: 9px; font-weight: 500;
+  text-transform: uppercase; letter-spacing: 0.16em;
+  color: var(--on-surface-muted);
+  margin-top: 3px;
+}
+
+.meta-stack { display: flex; flex-direction: column; gap: 12px; min-width: 200px; }
+.meta-row { display: flex; flex-direction: column; gap: 3px; }
+.meta-label {
+  font-family: var(--font-display); font-size: 10px; font-weight: 500;
+  text-transform: uppercase; letter-spacing: 0.14em;
+  color: var(--on-surface-muted);
+}
+.meta-val {
+  font-family: var(--font-body); font-size: 14px; font-weight: 600;
+  color: var(--on-surface);
+  display: flex; align-items: center; gap: 8px;
+}
+.meta-val .avatar { width: 24px; height: 24px; font-size: 10px; }
+
+.ph-actions {
+  grid-column: 1 / -1;
+  display: flex; gap: 8px; justify-content: flex-end;
+  margin-top: 4px;
+}
+
+/* Tab bar */
+.tab-bar {
+  position: sticky; top: 232px;
+  z-index: 25;
+  display: flex; align-items: stretch;
+  gap: 0;
+  padding: 0 32px;
+  background: color-mix(in oklab, var(--surface) 88%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: inset 0 -1px 0 0 var(--outline-variant);
+}
+.tab {
+  position: relative;
+  padding: 14px 20px 16px;
+  font-family: var(--font-display); font-size: 13px; font-weight: 500;
+  letter-spacing: 0.005em;
+  color: var(--on-surface-muted);
+  display: inline-flex; align-items: center; gap: 8px;
+  transition: color 160ms var(--ease);
+}
+.tab i { width: 15px; height: 15px; }
+.tab:hover { color: var(--on-surface-variant); }
+.tab.is-active { color: var(--on-surface); font-weight: 600; }
+.tab.is-active::after {
+  content: ""; position: absolute; left: 12px; right: 12px; bottom: -1px;
+  height: 2px; border-radius: 2px;
+  background: var(--gradient-brand);
+}
+.tab-badge {
+  background: var(--surface-container-high);
+  color: var(--on-surface-muted);
+  font-family: var(--font-display); font-size: 10px; font-weight: 600;
+  padding: 1px 7px; border-radius: 999px;
+  margin-left: 2px;
+}
+
+/* ============================================================
+   Tree view area
+============================================================ */
+.tree-area {
+  position: relative;
+  padding: 24px 32px 40px;
+  display: grid;
+  grid-template-columns: 1fr 400px;
+  gap: 24px;
+  align-items: start;
+}
+.tree-area.drawer-closed { grid-template-columns: 1fr 0; }
+.tree-area.drawer-closed .drawer { display: none; }
+
+.tree-card {
+  background: var(--surface-container-low);
+  border-radius: 16px;
+  padding: 28px 24px 20px;
+  position: relative;
+  min-height: 540px;
+  overflow: hidden;
+}
+.tree-toolbar {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 18px;
+}
+.tree-toolbar-left { display: flex; align-items: center; gap: 14px; }
+.tree-toolbar-title {
+  font-family: var(--font-display);
+  font-size: 16px; font-weight: 600;
+  color: var(--on-surface);
+  letter-spacing: -0.005em;
+}
+.tree-legend {
+  display: flex; align-items: center; gap: 16px;
+  font-family: var(--font-label); font-size: 11px;
+  color: var(--on-surface-muted);
+}
+.legend-item { display: inline-flex; align-items: center; gap: 6px; }
+.legend-dot { width: 9px; height: 9px; border-radius: 50%; }
+.legend-dot.done { background: var(--success); }
+.legend-dot.progress { background: var(--electric); box-shadow: 0 0 0 3px color-mix(in oklab, var(--electric) 22%, transparent); }
+.legend-dot.pending { background: transparent; border: 1.5px dashed var(--on-surface-muted); }
+.legend-dot.event-call { background: var(--warning); }
+.legend-dot.event-mail { background: #C193FF; }
+
+.tree-zoom {
+  display: inline-flex; gap: 2px;
+  background: var(--surface-container);
+  border-radius: 10px;
+  padding: 3px;
+}
+.tree-zoom button {
+  width: 28px; height: 26px; border-radius: 8px;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--on-surface-muted);
+}
+.tree-zoom button:hover { background: var(--surface-container-high); color: var(--on-surface); }
+.tree-zoom button i { width: 14px; height: 14px; }
+.tree-zoom .zoom-level {
+  display: inline-flex; align-items: center;
+  padding: 0 8px;
+  font-family: var(--font-display); font-size: 11px; font-weight: 600;
+  color: var(--on-surface-variant);
+  letter-spacing: 0.04em;
+  min-width: 38px; justify-content: center;
+}
+
+.tree-scroll {
+  position: relative;
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 8px;
+}
+.tree-svg {
+  display: block;
+  min-width: 1500px;
+  width: 1500px;
+  height: 460px;
+}
+
+/* SVG element classes */
+.axis-line { stroke: var(--outline-variant); stroke-width: 2; }
+.axis-tick { stroke: var(--outline-variant); stroke-width: 1; stroke-dasharray: 2 4; }
+.axis-month-label {
+  font-family: var(--font-display); font-size: 11px; font-weight: 500;
+  text-transform: uppercase; letter-spacing: 0.14em;
+  fill: var(--on-surface-muted);
+}
+.today-line {
+  stroke: var(--electric); stroke-width: 1.5;
+  stroke-dasharray: 4 6;
+  opacity: 0.7;
+}
+.today-label {
+  font-family: var(--font-display); font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.18em;
+  fill: var(--electric);
+}
+.today-dot { fill: var(--electric); }
+
+.phase-node-done { fill: var(--success); }
+.phase-node-done-stroke { fill: none; stroke: color-mix(in oklab, var(--success) 30%, transparent); stroke-width: 1; }
+.phase-node-progress { fill: var(--electric); }
+.phase-node-progress-glow { fill: var(--electric); opacity: 0.18; }
+.phase-node-pending {
+  fill: var(--surface-container);
+  stroke: var(--on-surface-muted); stroke-width: 1.4;
+  stroke-dasharray: 3 4;
+  opacity: 0.8;
+}
+.phase-node-active-ring {
+  fill: none; stroke: var(--electric); stroke-width: 2;
+  opacity: 0.9;
+}
+.phase-num {
+  font-family: var(--font-display); font-size: 18px; font-weight: 600;
+  text-anchor: middle; dominant-baseline: central;
+}
+.phase-num-done { fill: #0F2A1F; }
+.phase-num-progress { fill: var(--on-primary); }
+.phase-num-pending { fill: var(--on-surface-muted); }
+.phase-date {
+  font-family: var(--font-display); font-size: 11px; font-weight: 600;
+  letter-spacing: 0.02em; text-anchor: middle;
+  fill: var(--on-surface);
+}
+.phase-name {
+  font-family: var(--font-body); font-size: 12px; font-weight: 500;
+  text-anchor: middle;
+  fill: var(--on-surface-variant);
+}
+.phase-name-active {
+  fill: var(--electric); font-weight: 700;
+}
+.phase-name-pending { fill: var(--on-surface-muted); }
+
+.event-curve { fill: none; stroke-width: 1.4; stroke-dasharray: 3 3; opacity: 0.55; }
+.event-curve-call { stroke: var(--warning); }
+.event-curve-mail { stroke: #C193FF; }
+.event-curve-warn { stroke: var(--warning); }
+
+.event-node-call { fill: color-mix(in oklab, var(--warning) 22%, var(--surface-container-low)); stroke: var(--warning); stroke-width: 1.5; }
+.event-node-mail { fill: color-mix(in oklab, #C193FF 22%, var(--surface-container-low)); stroke: #C193FF; stroke-width: 1.5; }
+.event-node-warn { fill: color-mix(in oklab, var(--warning) 22%, var(--surface-container-low)); stroke: var(--warning); stroke-width: 1.5; }
+
+.event-label-bg { fill: var(--surface-container); }
+.event-label-date {
+  font-family: var(--font-display); font-size: 10px; font-weight: 600;
+  letter-spacing: 0.04em; text-anchor: middle;
+  fill: var(--on-surface-muted);
+}
+.event-label-text {
+  font-family: var(--font-body); font-size: 11px; font-weight: 600;
+  text-anchor: middle;
+  fill: var(--on-surface);
+}
+
+.phase-clickable { cursor: pointer; transition: transform 160ms var(--ease); transform-origin: center; transform-box: fill-box; }
+.phase-clickable:hover { transform: scale(1.05); }
+.phase-clickable.is-selected .phase-node-active-ring {
+  stroke-width: 3;
+  filter: drop-shadow(0 0 8px color-mix(in oklab, var(--electric) 60%, transparent));
+}
+
+@keyframes node-pulse {
+  0%, 100% { opacity: 0.18; r: 38; }
+  50% { opacity: 0.32; r: 44; }
+}
+.phase-node-progress-glow { animation: node-pulse 2.4s var(--ease) infinite; }
+
+/* Tree footer — scroll hint + summary */
+.tree-footer {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-top: 18px;
+  padding: 14px 18px;
+  background: var(--surface-container);
+  border-radius: 12px;
+}
+.tree-footer-stat { display: flex; flex-direction: column; gap: 2px; }
+.tree-footer-stat-val {
+  font-family: var(--font-display); font-size: 18px; font-weight: 600;
+  color: var(--on-surface);
+  font-feature-settings: 'tnum' 1;
+}
+.tree-footer-stat-lbl {
+  font-family: var(--font-display); font-size: 10px; font-weight: 500;
+  text-transform: uppercase; letter-spacing: 0.14em;
+  color: var(--on-surface-muted);
+}
+.tree-footer-sep { width: 1px; height: 28px; background: var(--outline-variant); }
+.tree-footer .accent { color: var(--electric); }
+.tree-footer .success { color: var(--success); }
+.tree-footer .warn { color: var(--warning); }
+
+/* ============================================================
+   Drawer
+============================================================ */
+.drawer {
+  background: var(--surface-container);
+  border-radius: 16px;
+  padding: 20px;
+  display: flex; flex-direction: column;
+  position: sticky;
+  top: 290px;
+  max-height: calc(100vh - 320px);
+  overflow-y: auto;
+}
+.drawer-header {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  margin-bottom: 16px;
+}
+.drawer-title-stack { display: flex; flex-direction: column; gap: 4px; }
+.drawer-eyebrow {
+  font-family: var(--font-display); font-size: 10px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.16em;
+  color: var(--electric);
+}
+.drawer-title {
+  font-family: var(--font-display); font-size: 20px; font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--on-surface);
+  line-height: 1.2;
+}
+.drawer-close {
+  width: 32px; height: 32px; border-radius: 10px;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--on-surface-muted);
+  transition: all 160ms var(--ease);
+}
+.drawer-close:hover { background: var(--surface-container-high); color: var(--on-surface); }
+.drawer-close i { width: 16px; height: 16px; }
+
+.drawer-section { margin-bottom: 20px; }
+.drawer-section-label {
+  font-family: var(--font-display); font-size: 10px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.16em;
+  color: var(--on-surface-muted);
+  margin-bottom: 10px;
+}
+
+.drawer-status-row {
+  display: flex; align-items: center; gap: 10px;
+}
+.status-pill-lg {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 8px 14px; border-radius: 999px;
+  background: color-mix(in oklab, var(--electric) 14%, transparent);
+  color: var(--electric);
+  font-family: var(--font-body); font-weight: 600; font-size: 13px;
+}
+.status-pill-lg i { width: 12px; height: 12px; opacity: 0.8; }
+
+.drawer-assignee {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px;
+  background: var(--surface-container-low);
+  border-radius: 12px;
+}
+.assignee-name { font-family: var(--font-body); font-size: 14px; font-weight: 600; color: var(--on-surface); }
+.assignee-role { font-family: var(--font-label); font-size: 11px; color: var(--on-surface-muted); }
+
+.dates-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 1px;
+  background: var(--surface-container-lowest);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.date-cell {
+  background: var(--surface-container-low);
+  padding: 12px 14px;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.date-cell.full { grid-column: 1 / -1; }
+.date-cell-lbl {
+  font-family: var(--font-display); font-size: 9px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.14em;
+  color: var(--on-surface-muted);
+}
+.date-cell-val {
+  font-family: var(--font-display); font-size: 14px; font-weight: 600;
+  color: var(--on-surface);
+  font-feature-settings: 'tnum' 1;
+  display: flex; align-items: center; gap: 6px;
+}
+.date-cell-val.is-actual { color: var(--electric); }
+.date-cell-val i { width: 12px; height: 12px; opacity: 0.6; }
+
+.note-card {
+  background: var(--surface-container-low);
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex; flex-direction: column; gap: 8px;
+  margin-bottom: 8px;
+}
+.note-header {
+  display: flex; align-items: center; gap: 8px;
+}
+.note-author { font-family: var(--font-body); font-size: 12px; font-weight: 600; color: var(--on-surface); }
+.note-time   { font-family: var(--font-label); font-size: 11px; color: var(--on-surface-muted); margin-left: auto; }
+.note-body   { font-family: var(--font-body); font-size: 13px; line-height: 1.55; color: var(--on-surface-variant); }
+.note-add {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--font-display); font-size: 12px; font-weight: 500;
+  color: var(--electric);
+  margin-top: 4px;
+  padding: 6px 0;
+}
+.note-add i { width: 13px; height: 13px; }
+.note-add:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+.attachment {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 12px;
+  background: var(--surface-container-low);
+  border-radius: 10px;
+  margin-bottom: 6px;
+  cursor: pointer;
+  transition: background 160ms var(--ease);
+}
+.attachment:hover { background: var(--surface-container-high); }
+.attach-icon {
+  width: 32px; height: 36px; border-radius: 6px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-family: var(--font-display); font-size: 9px; font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--on-primary);
+  flex-shrink: 0;
+}
+.attach-icon.pdf { background: linear-gradient(135deg, #FF6B6B 0%, #C9302C 100%); }
+.attach-icon.xls { background: linear-gradient(135deg, #6DD3A8 0%, #1F7A52 100%); }
+.attach-name { font-family: var(--font-body); font-size: 13px; font-weight: 600; color: var(--on-surface); }
+.attach-meta { font-family: var(--font-label); font-size: 11px; color: var(--on-surface-muted); }
+.attach-chev { margin-left: auto; color: var(--on-surface-muted); }
+.attach-chev i { width: 14px; height: 14px; }
+
+.drawer-cta {
+  display: flex; gap: 8px;
+  padding-top: 16px;
+  margin-top: 4px;
+  border-top: 1px solid var(--outline-variant);
+}
+.drawer-cta .btn-primary { flex: 1; justify-content: center; }
+
+/* Scrollbars */
+*::-webkit-scrollbar { width: 8px; height: 8px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb { background: var(--surface-container-high); border-radius: 4px; }
+*::-webkit-scrollbar-thumb:hover { background: var(--surface-container-highest); }
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     TOPBAR — V0
+============================================================ -->
+<header class="topbar" data-screen-label="Top bar">
+  <div class="topbar-left">
+    <button class="search-btn" id="sidebarToggle" title="Sidebar" aria-label="Comprimi sidebar">
+      <i data-lucide="panel-left-close"></i>
+    </button>
+    <a href="#" class="brand-mark" aria-label="ExcellIA Work">
+      <svg viewBox="0 0 220 48" fill="none" aria-hidden="true">
+        <defs>
+          <linearGradient id="ex-brand" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#92D9FF"></stop>
+            <stop offset="100%" stop-color="#00C2FF"></stop>
+          </linearGradient>
+        </defs>
+        <g>
+          <rect x="4" y="8" width="4" height="32" rx="1" fill="currentColor"/>
+          <rect x="8" y="8" width="22" height="4" rx="1" fill="currentColor"/>
+          <rect x="8" y="22" width="16" height="4" rx="1" fill="currentColor"/>
+          <rect x="8" y="36" width="22" height="4" rx="1" fill="currentColor"/>
+          <rect x="32" y="22" width="8" height="4" rx="1" fill="url(#ex-brand)"/>
+        </g>
+        <g font-family="'Space Grotesk',system-ui,sans-serif" font-weight="600" font-size="22" letter-spacing="-0.02em" fill="currentColor">
+          <text x="50" y="32">ExcellIA</text>
+        </g>
+      </svg>
+    </a>
+    <nav class="breadcrumb" aria-label="Breadcrumb">
+      <span>ExcellIA Work</span>
+      <span class="crumb-sep">/</span>
+      <span>E.Practice</span>
+      <span class="crumb-sep">/</span>
+      <span>Pratiche</span>
+      <span class="crumb-sep">/</span>
+      <span class="crumb-pr">PR-2026-042</span>
+    </nav>
+  </div>
+
+  <div class="topbar-right">
+    <button class="search-btn" title="Cerca (⌘K)" aria-label="Cerca">
+      <i data-lucide="search"></i>
+    </button>
+    <button class="bell-btn" title="Notifiche" aria-label="Notifiche">
+      <i data-lucide="bell"></i>
+      <span class="bell-badge">3</span>
+    </button>
+    <div class="theme-switcher" role="tablist" aria-label="Tema">
+      <button title="Light" data-theme-go="light" aria-label="Tema chiaro"><i data-lucide="sun"></i></button>
+      <button title="Excellia" data-theme-go="excellia" aria-label="Tema Excellia">E</button>
+      <button class="is-active" title="Dark" data-theme-go="dark" aria-label="Tema scuro"><i data-lucide="moon"></i></button>
+    </div>
+    <button class="flag-btn" title="Italiano" aria-label="Lingua">
+      <span class="flag-pill"></span>
+      <span>IT</span>
+    </button>
+    <button class="avatar-button" aria-label="Profilo utente Mario Bonometti">MB</button>
+  </div>
+</header>
+
+<!-- ============================================================
+     SHELL — Module sidebar + main
+============================================================ -->
+<div class="shell" id="shell" data-screen-label="E.Practice — Dettaglio pratica">
+
+  <aside class="sidebar" aria-label="Navigazione modulo E.Practice">
+    <div class="sidebar-label hud">E.Practice</div>
+    <div class="sidebar-group">
+      <button class="sidebar-item">
+        <i data-lucide="layout-dashboard"></i><span>Dashboard</span>
+      </button>
+      <button class="sidebar-item">
+        <i data-lucide="users-round"></i><span>Rubrica clienti</span>
+      </button>
+      <button class="sidebar-item is-active" aria-current="page">
+        <i data-lucide="folder-open"></i><span>Pratiche</span>
+        <span class="sidebar-count">142</span>
+      </button>
+      <button class="sidebar-item">
+        <i data-lucide="calendar-days"></i><span>Agenda</span>
+      </button>
+      <button class="sidebar-item">
+        <i data-lucide="alarm-clock"></i><span>Scadenze</span>
+        <span class="sidebar-count">7</span>
+      </button>
+    </div>
+
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-label hud">Admin</div>
+    <div class="sidebar-group">
+      <button class="sidebar-item">
+        <i data-lucide="user-cog"></i><span>Utenti studio</span>
+      </button>
+      <button class="sidebar-item">
+        <i data-lucide="settings"></i><span>Configurazione</span>
+      </button>
+    </div>
+
+    <div class="sidebar-footer">
+      <span class="avatar avatar-gradient">SL</span>
+      <div>
+        <div class="sidebar-footer-name">Studio Leali</div>
+        <div class="sidebar-footer-role">Piano Plus · 8 utenti</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ============================================================
+       MAIN
+  ============================================================ -->
+  <main class="main">
+
+    <!-- Practice header -->
+    <section class="practice-header" data-screen-label="Header pratica">
+      <div class="ph-grid">
+        <div class="ph-left">
+          <div class="ph-prid">
+            <span class="ph-prid-tag">Pratica</span>
+            <span class="ph-prid-number">PR-2026-042</span>
+            <span class="ph-prid-dot"></span>
+            <span class="hud">Aperta il 15/01/2026</span>
+          </div>
+          <h1 class="ph-title">Bilancio esercizio 2025 — <em>Acciaierie Valgobbia SRL</em></h1>
+          <div class="ph-chips">
+            <span class="chip chip-info-strong"><i data-lucide="folder"></i>Bilancio d'esercizio</span>
+            <span class="chip chip-info"><i data-lucide="tag"></i>Bilancio</span>
+            <span class="chip chip-neutral"><i data-lucide="external-link"></i>Lavorazione esterna</span>
+            <span class="chip chip-status"><span class="data-pulse"></span>In corso</span>
+          </div>
+        </div>
+
+        <div class="ph-right">
+          <div class="gauge-wrap">
+            <div class="gauge">
+              <svg viewBox="0 0 88 88" width="88" height="88">
+                <circle cx="44" cy="44" r="38" fill="none" stroke="var(--surface-container-high)" stroke-width="6"></circle>
+                <circle cx="44" cy="44" r="38" fill="none"
+                        stroke="var(--success)" stroke-width="6" stroke-linecap="round"
+                        stroke-dasharray="119.38 238.76"
+                        transform="rotate(-90 44 44)"></circle>
+              </svg>
+              <div class="gauge-text">
+                <span class="gauge-val">50%</span>
+                <span class="gauge-lbl">Avanzamento</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="meta-stack">
+            <div class="meta-row">
+              <span class="meta-label">Durata</span>
+              <span class="meta-val">
+                <i data-lucide="hourglass" style="width:14px;height:14px;opacity:.6"></i>
+                3 mesi 13 giorni
+              </span>
+            </div>
+            <div class="meta-row">
+              <span class="meta-label">Responsabile</span>
+              <span class="meta-val">
+                <span class="avatar avatar-gradient">MB</span>
+                Mario Bonometti
+              </span>
+            </div>
+          </div>
+
+          <div class="ph-actions">
+            <button class="btn btn-primary"><i data-lucide="plus"></i>Nodo-evento</button>
+            <button class="btn btn-secondary"><i data-lucide="check-check"></i>Completa fase corrente</button>
+            <button class="btn btn-ghost" aria-label="Modifica"><i data-lucide="pencil"></i>Modifica</button>
+            <button class="btn btn-ghost" aria-label="Archivia"><i data-lucide="archive"></i>Archivia</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tab bar -->
+    <nav class="tab-bar" role="tablist" aria-label="Sezioni pratica">
+      <button class="tab" role="tab"><i data-lucide="info"></i>Info</button>
+      <button class="tab is-active" role="tab" aria-selected="true"><i data-lucide="git-fork"></i>Albero<span class="tab-badge">10+3</span></button>
+      <button class="tab" role="tab"><i data-lucide="list-ordered"></i>Timeline</button>
+      <button class="tab" role="tab"><i data-lucide="paperclip"></i>Allegati<span class="tab-badge">14</span></button>
+      <button class="tab" role="tab"><i data-lucide="sticky-note"></i>Note<span class="tab-badge">6</span></button>
+      <button class="tab" role="tab"><i data-lucide="building-2"></i>Anagrafica cliente</button>
+    </nav>
+
+    <!-- Tree + Drawer -->
+    <section class="tree-area" id="treeArea" data-screen-label="Vista albero">
+
+      <!-- Tree card -->
+      <div class="tree-card">
+        <div class="tree-toolbar">
+          <div class="tree-toolbar-left">
+            <div class="tree-toolbar-title">Vista albero della pratica</div>
+            <div class="tree-legend" aria-label="Legenda nodi">
+              <span class="legend-item"><span class="legend-dot done"></span>Completata</span>
+              <span class="legend-item"><span class="legend-dot progress"></span>In corso</span>
+              <span class="legend-item"><span class="legend-dot pending"></span>Pianificata</span>
+              <span class="legend-item"><span class="legend-dot event-call"></span>Evento ad-hoc</span>
+            </div>
+          </div>
+          <div class="tree-zoom" aria-label="Zoom vista albero">
+            <button title="Centra su oggi" aria-label="Centra"><i data-lucide="locate-fixed"></i></button>
+            <button title="Zoom out" aria-label="Zoom out"><i data-lucide="minus"></i></button>
+            <span class="zoom-level">100%</span>
+            <button title="Zoom in" aria-label="Zoom in"><i data-lucide="plus"></i></button>
+            <button title="Adatta" aria-label="Adatta"><i data-lucide="maximize-2"></i></button>
+          </div>
+        </div>
+
+        <!-- Horizontal scrollable tree -->
+        <div class="tree-scroll" id="treeScroll">
+          <svg class="tree-svg" viewBox="0 0 1500 460" preserveAspectRatio="xMinYMid meet" aria-label="Albero pratica">
+            <defs>
+              <linearGradient id="lineGrad" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stop-color="var(--success)"/>
+                <stop offset="40%" stop-color="var(--success)"/>
+                <stop offset="44%" stop-color="var(--electric)"/>
+                <stop offset="48%" stop-color="var(--electric)"/>
+                <stop offset="52%" stop-color="var(--on-surface-muted)" stop-opacity="0.5"/>
+                <stop offset="100%" stop-color="var(--on-surface-muted)" stop-opacity="0.4"/>
+              </linearGradient>
+              <radialGradient id="todayGlow" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stop-color="var(--electric)" stop-opacity="0.18"/>
+                <stop offset="100%" stop-color="var(--electric)" stop-opacity="0"/>
+              </radialGradient>
+            </defs>
+
+            <!-- Today glow band -->
+            <rect x="565" y="20" width="115" height="380" fill="url(#todayGlow)"/>
+
+            <!-- Main horizontal axis line -->
+            <line class="axis-line" x1="60" y1="240" x2="1440" y2="240"
+                  style="stroke: url(#lineGrad); stroke-width: 3"/>
+
+            <!-- Month axis ticks + labels -->
+            <g>
+              <line class="axis-tick" x1="80"   y1="390" x2="80"   y2="400"/>
+              <line class="axis-tick" x1="320"  y1="390" x2="320"  y2="400"/>
+              <line class="axis-tick" x1="620"  y1="390" x2="620"  y2="400"/>
+              <line class="axis-tick" x1="930"  y1="390" x2="930"  y2="400"/>
+              <line class="axis-tick" x1="1240" y1="390" x2="1240" y2="400"/>
+              <line class="axis-tick" x1="1440" y1="390" x2="1440" y2="400"/>
+
+              <text class="axis-month-label" x="180"  y="418" text-anchor="middle">Gennaio 2026</text>
+              <text class="axis-month-label" x="470"  y="418" text-anchor="middle">Febbraio</text>
+              <text class="axis-month-label" x="775"  y="418" text-anchor="middle">Marzo</text>
+              <text class="axis-month-label" x="1085" y="418" text-anchor="middle">Aprile</text>
+
+              <text class="axis-month-label" x="80"   y="436" text-anchor="middle" style="font-size:9px; opacity:.7">15/01 · apertura</text>
+              <text class="axis-month-label" x="1440" y="436" text-anchor="middle" style="font-size:9px; opacity:.7">30/04 · scadenza</text>
+            </g>
+
+            <!-- OGGI vertical line -->
+            <g>
+              <line class="today-line" x1="622" y1="40" x2="622" y2="395"/>
+              <rect x="595" y="22" width="54" height="20" rx="10" fill="var(--surface-container-high)"/>
+              <circle class="today-dot" cx="608" cy="32" r="3"/>
+              <text class="today-label" x="638" y="36" text-anchor="middle">OGGI</text>
+              <text class="phase-date" x="622" y="408" style="fill: var(--electric); font-size: 10px;">17/03</text>
+            </g>
+
+            <!-- ============================================================
+                 EVENT NODES (drawn behind phase nodes for connector layering)
+            ============================================================ -->
+            <!-- Event 1: Telefonata cliente — sopra Fase 2 (05/02 @ x=300) — date 03/02 -->
+            <g>
+              <!-- Bezier from event center (270, 140) down to phase 2 ring (300, 215) -->
+              <path class="event-curve event-curve-call" d="M 270 158 C 270 200, 290 200, 300 215"/>
+              <circle class="event-node-call" cx="270" cy="140" r="18"/>
+              <g transform="translate(270, 140)">
+                <foreignObject x="-9" y="-9" width="18" height="18">
+                  <i xmlns="http://www.w3.org/1999/xhtml" data-lucide="phone" style="width:18px;height:18px;color:var(--warning);display:block"></i>
+                </foreignObject>
+              </g>
+              <text class="event-label-date" x="270" y="98">03/02 · 10:24</text>
+              <text class="event-label-text" x="270" y="82">Telefonata cliente</text>
+              <text class="event-label-text" x="270" y="66" style="font-weight: 400; font-size: 10px; fill: var(--on-surface-muted);">9 min · Galli (CFO)</text>
+            </g>
+
+            <!-- Event 2: Email integrativa — sotto Fase 3 (12/02 @ x=440) — date 08/02 -->
+            <g>
+              <path class="event-curve event-curve-mail" d="M 400 340 C 400 290, 420 290, 440 265"/>
+              <circle class="event-node-mail" cx="400" cy="340" r="18"/>
+              <g transform="translate(400, 340)">
+                <foreignObject x="-9" y="-9" width="18" height="18">
+                  <i xmlns="http://www.w3.org/1999/xhtml" data-lucide="mail" style="width:18px;height:18px;color:#C193FF;display:block"></i>
+                </foreignObject>
+              </g>
+              <text class="event-label-date" x="400" y="376">08/02 · 16:50</text>
+              <text class="event-label-text" x="400" y="392">Email integrativa</text>
+              <text class="event-label-text" x="400" y="408" style="font-weight: 400; font-size: 10px; fill: var(--on-surface-muted);">2 allegati · DDT mancanti</text>
+            </g>
+
+            <!-- Event 3: Attesa documento — sopra Fase 4 (15/03 @ x=720) — date 12/03 -->
+            <g>
+              <path class="event-curve event-curve-warn" d="M 680 158 C 680 200, 700 200, 720 215"/>
+              <circle class="event-node-warn" cx="680" cy="140" r="18"/>
+              <g transform="translate(680, 140)">
+                <foreignObject x="-9" y="-9" width="18" height="18">
+                  <i xmlns="http://www.w3.org/1999/xhtml" data-lucide="alert-triangle" style="width:18px;height:18px;color:var(--warning);display:block"></i>
+                </foreignObject>
+              </g>
+              <text class="event-label-date" x="680" y="98">12/03 · in attesa</text>
+              <text class="event-label-text" x="680" y="82">Attesa documento</text>
+              <text class="event-label-text" x="680" y="66" style="font-weight: 400; font-size: 10px; fill: var(--warning);">Inventario magazzino · cliente</text>
+            </g>
+
+            <!-- ============================================================
+                 PHASE NODES — 10 fasi
+            ============================================================ -->
+
+            <!-- Fase 1: Raccolta scritture — 22/01 @ x=160 — done -->
+            <g class="phase-clickable">
+              <circle class="phase-node-done-stroke" cx="160" cy="240" r="34"/>
+              <circle class="phase-node-done" cx="160" cy="240" r="28"/>
+              <g transform="translate(160, 240)">
+                <foreignObject x="-11" y="-11" width="22" height="22">
+                  <i xmlns="http://www.w3.org/1999/xhtml" data-lucide="check" style="width:22px;height:22px;color:#0F2A1F;stroke-width:3;display:block"></i>
+                </foreignObject>
+              </g>
+              <text class="phase-num" x="160" y="218" style="fill: var(--success); font-size: 10px; font-weight: 700;">01</text>
+              <text class="phase-date" x="160" y="295">22/01</text>
+              <text class="phase-name" x="160" y="315">Raccolta scritture</text>
+            </g>
+
+            <!-- Fase 2: Riconciliazione conti — 05/02 @ x=300 — done -->
+            <g class="phase-clickable">
+              <circle class="phase-node-done-stroke" cx="300" cy="240" r="34"/>
+              <circle class="phase-node-done" cx="300" cy="240" r="28"/>
+              <g transform="translate(300, 240)">
+                <foreignObject x="-11" y="-11" width="22" height="22">
+                  <i xmlns="http://www.w3.org/1999/xhtml" data-lucide="check" style="width:22px;height:22px;color:#0F2A1F;stroke-width:3;display:block"></i>
+                </foreignObject>
+              </g>
+              <text class="phase-num" x="300" y="218" style="fill: var(--success); font-size: 10px; font-weight: 700;">02</text>
+              <text class="phase-date" x="300" y="295">05/02</text>
+              <text class="phase-name" x="300" y="315">Riconciliazione conti</text>
+            </g>
+
+            <!-- Fase 3: Scritture assestamento — 12/02 @ x=440 — done -->
+            <g class="phase-clickable">
+              <circle class="phase-node-done-stroke" cx="440" cy="240" r="34"/>
+              <circle class="phase-node-done" cx="440" cy="240" r="28"/>
+              <g transform="translate(440, 240)">
+                <foreignObject x="-11" y="-11" width="22" height="22">
+                  <i xmlns="http://www.w3.org/1999/xhtml" data-lucide="check" style="width:22px;height:22px;color:#0F2A1F;stroke-width:3;display:block"></i>
+                </foreignObject>
+              </g>
+              <text class="phase-num" x="440" y="218" style="fill: var(--success); font-size: 10px; font-weight: 700;">03</text>
+              <text class="phase-date" x="440" y="295">12/02</text>
+              <text class="phase-name" x="440" y="315">Scritture assestamento</text>
+            </g>
+
+            <!-- Fase 4: Redazione bozza — 15/03 @ x=720 — in_progress, selected -->
+            <g class="phase-clickable is-selected">
+              <circle class="phase-node-progress-glow" cx="720" cy="240" r="42"/>
+              <circle class="phase-node-active-ring" cx="720" cy="240" r="34"/>
+              <circle class="phase-node-progress" cx="720" cy="240" r="28"/>
+              <text class="phase-num phase-num-progress" x="720" y="241">4</text>
+              <text class="phase-num" x="720" y="218" style="fill: var(--electric); font-size: 10px; font-weight: 700;">04</text>
+              <text class="phase-date" x="720" y="295" style="fill: var(--electric);">15/03 → 25/03</text>
+              <text class="phase-name phase-name-active" x="720" y="315">Redazione bozza</text>
+              <text class="phase-name" x="720" y="332" style="font-size: 10.5px; fill: var(--on-surface-muted);">Sara Salvi · 50%</text>
+            </g>
+
+            <!-- Fase 5: Verifica quadrature — 25/03 @ x=830 — pending -->
+            <g class="phase-clickable">
+              <circle class="phase-node-pending" cx="830" cy="240" r="28"/>
+              <text class="phase-num phase-num-pending" x="830" y="241">5</text>
+              <text class="phase-date" x="830" y="295" style="fill: var(--on-surface-muted);">25/03</text>
+              <text class="phase-name phase-name-pending" x="830" y="315">Verifica quadrature</text>
+            </g>
+
+            <!-- Fase 6: Revisione titolare — 02/04 @ x=940 — pending -->
+            <g class="phase-clickable">
+              <circle class="phase-node-pending" cx="940" cy="240" r="28"/>
+              <text class="phase-num phase-num-pending" x="940" y="241">6</text>
+              <text class="phase-date" x="940" y="295" style="fill: var(--on-surface-muted);">02/04</text>
+              <text class="phase-name phase-name-pending" x="940" y="315">Revisione titolare</text>
+            </g>
+
+            <!-- Fase 7: Documenti assembleari — 10/04 @ x=1050 — pending -->
+            <g class="phase-clickable">
+              <circle class="phase-node-pending" cx="1050" cy="240" r="28"/>
+              <text class="phase-num phase-num-pending" x="1050" y="241">7</text>
+              <text class="phase-date" x="1050" y="295" style="fill: var(--on-surface-muted);">10/04</text>
+              <text class="phase-name phase-name-pending" x="1050" y="315">Documenti assembleari</text>
+            </g>
+
+            <!-- Fase 8: Approvazione soci — 18/04 @ x=1160 — pending -->
+            <g class="phase-clickable">
+              <circle class="phase-node-pending" cx="1160" cy="240" r="28"/>
+              <text class="phase-num phase-num-pending" x="1160" y="241">8</text>
+              <text class="phase-date" x="1160" y="295" style="fill: var(--on-surface-muted);">18/04</text>
+              <text class="phase-name phase-name-pending" x="1160" y="315">Approvazione soci</text>
+            </g>
+
+            <!-- Fase 9: Deposito CCIAA — 25/04 @ x=1270 — pending -->
+            <g class="phase-clickable">
+              <circle class="phase-node-pending" cx="1270" cy="240" r="28"/>
+              <text class="phase-num phase-num-pending" x="1270" y="241">9</text>
+              <text class="phase-date" x="1270" y="295" style="fill: var(--on-surface-muted);">25/04</text>
+              <text class="phase-name phase-name-pending" x="1270" y="315">Deposito CCIAA</text>
+            </g>
+
+            <!-- Fase 10: Archiviazione — 30/04 @ x=1380 — pending + flag scadenza -->
+            <g class="phase-clickable">
+              <circle class="phase-node-pending" cx="1380" cy="240" r="28"/>
+              <text class="phase-num phase-num-pending" x="1380" y="241">10</text>
+              <g transform="translate(1404, 218)">
+                <circle r="9" fill="color-mix(in oklab, var(--warning) 22%, transparent)"/>
+                <foreignObject x="-6" y="-6" width="12" height="12">
+                  <i xmlns="http://www.w3.org/1999/xhtml" data-lucide="flag" style="width:12px;height:12px;color:var(--warning);display:block"></i>
+                </foreignObject>
+              </g>
+              <text class="phase-date" x="1380" y="295" style="fill: var(--warning);">30/04 · scadenza</text>
+              <text class="phase-name phase-name-pending" x="1380" y="315">Archiviazione</text>
+            </g>
+
+          </svg>
+        </div>
+
+        <!-- Tree footer KPIs -->
+        <div class="tree-footer">
+          <div class="tree-footer-stat">
+            <span class="tree-footer-stat-val success">3 / 10</span>
+            <span class="tree-footer-stat-lbl">Fasi completate</span>
+          </div>
+          <div class="tree-footer-sep"></div>
+          <div class="tree-footer-stat">
+            <span class="tree-footer-stat-val accent">1</span>
+            <span class="tree-footer-stat-lbl">Fase in corso</span>
+          </div>
+          <div class="tree-footer-sep"></div>
+          <div class="tree-footer-stat">
+            <span class="tree-footer-stat-val">3</span>
+            <span class="tree-footer-stat-lbl">Eventi ad-hoc</span>
+          </div>
+          <div class="tree-footer-sep"></div>
+          <div class="tree-footer-stat">
+            <span class="tree-footer-stat-val warn">44 gg</span>
+            <span class="tree-footer-stat-lbl">Alla scadenza</span>
+          </div>
+          <div class="tree-footer-sep"></div>
+          <div class="tree-footer-stat">
+            <span class="tree-footer-stat-val">14,5 h</span>
+            <span class="tree-footer-stat-lbl">Tempo registrato</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Drawer -->
+      <aside class="drawer" id="drawer" aria-label="Dettaglio Fase 4">
+        <div class="drawer-header">
+          <div class="drawer-title-stack">
+            <span class="drawer-eyebrow">Fase 4 di 10 · Bilancio</span>
+            <h2 class="drawer-title">Redazione bozza</h2>
+          </div>
+          <button class="drawer-close" id="drawerClose" aria-label="Chiudi pannello">
+            <i data-lucide="x"></i>
+          </button>
+        </div>
+
+        <div class="drawer-section">
+          <div class="drawer-status-row">
+            <span class="status-pill-lg"><span class="data-pulse"></span>In corso<i data-lucide="chevron-down"></i></span>
+          </div>
+        </div>
+
+        <div class="drawer-section">
+          <div class="drawer-section-label">Assegnatario</div>
+          <div class="drawer-assignee">
+            <span class="avatar avatar-lg" style="background: linear-gradient(135deg, #C193FF, #7B5CFF); color: #1A0F2E;">SS</span>
+            <div>
+              <div class="assignee-name">Sara Salvi</div>
+              <div class="assignee-role">Commercialista junior · Studio Leali</div>
+            </div>
+            <button class="btn-icon" style="margin-left:auto" aria-label="Cambia assegnatario"><i data-lucide="pencil"></i></button>
+          </div>
+        </div>
+
+        <div class="drawer-section">
+          <div class="drawer-section-label">Date</div>
+          <div class="dates-grid">
+            <div class="date-cell">
+              <span class="date-cell-lbl">Inizio previsto</span>
+              <span class="date-cell-val">12/03/2026</span>
+            </div>
+            <div class="date-cell">
+              <span class="date-cell-lbl">Fine prevista</span>
+              <span class="date-cell-val">25/03/2026</span>
+            </div>
+            <div class="date-cell full">
+              <span class="date-cell-lbl">Inizio effettivo</span>
+              <span class="date-cell-val is-actual">
+                <i data-lucide="play"></i>
+                12/03/2026 · 09:14
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="drawer-section">
+          <div class="drawer-section-label">Note <span style="float:right; color:var(--on-surface-muted); font-weight:500;">2</span></div>
+
+          <div class="note-card">
+            <div class="note-header">
+              <span class="avatar" style="background:var(--surface-container-high)">SS</span>
+              <span class="note-author">Sara Salvi</span>
+              <span class="note-time">12/03 · 14:32</span>
+            </div>
+            <p class="note-body">Bozza CE e SP impostate. Manca dettaglio rimanenze inventario — segnalata richiesta al cliente (vedi nodo Attesa documento).</p>
+          </div>
+
+          <div class="note-card">
+            <div class="note-header">
+              <span class="avatar avatar-gradient">MB</span>
+              <span class="note-author">Mario Bonometti</span>
+              <span class="note-time">15/03 · 08:50</span>
+            </div>
+            <p class="note-body">Sara, prima di andare in revisione verifica anche la nota integrativa par. 7 (operazioni con parti correlate). Galli mi ha segnalato un caso nuovo.</p>
+          </div>
+
+          <button class="note-add">
+            <i data-lucide="plus-circle"></i>
+            Aggiungi nota
+          </button>
+        </div>
+
+        <div class="drawer-section">
+          <div class="drawer-section-label">Allegati <span style="float:right; color:var(--on-surface-muted); font-weight:500;">2</span></div>
+
+          <div class="attachment">
+            <div class="attach-icon pdf">PDF</div>
+            <div style="flex:1; min-width:0;">
+              <div class="attach-name">Bozza_Bilancio_AVB_2025_v3.pdf</div>
+              <div class="attach-meta">2,4 MB · caricato da Sara Salvi · 15/03</div>
+            </div>
+            <span class="attach-chev"><i data-lucide="chevron-right"></i></span>
+          </div>
+
+          <div class="attachment">
+            <div class="attach-icon xls">XLS</div>
+            <div style="flex:1; min-width:0;">
+              <div class="attach-name">Riclassificato_CE_SP_2025.xlsx</div>
+              <div class="attach-meta">186 KB · caricato da Sara Salvi · 14/03</div>
+            </div>
+            <span class="attach-chev"><i data-lucide="chevron-right"></i></span>
+          </div>
+        </div>
+
+        <div class="drawer-cta">
+          <button class="btn btn-primary"><i data-lucide="check"></i>Completa fase</button>
+          <button class="btn btn-warning" title="Salta fase (registra motivazione)"><i data-lucide="skip-forward"></i>Salta</button>
+          <button class="btn btn-ghost" aria-label="Modifica fase"><i data-lucide="pencil"></i></button>
+        </div>
+
+      </aside>
+
+    </section>
+
+  </main>
+</div>
+
+<script>
+  // Init lucide icons
+  if (window.lucide) lucide.createIcons();
+
+  // Sidebar collapse toggle
+  const shell = document.getElementById('shell');
+  document.getElementById('sidebarToggle').addEventListener('click', () => {
+    shell.classList.toggle('is-collapsed');
+  });
+
+  // Drawer close (re-opens on click again if you re-click a node)
+  const drawer = document.getElementById('drawer');
+  const treeArea = document.getElementById('treeArea');
+  document.getElementById('drawerClose').addEventListener('click', () => {
+    treeArea.classList.add('drawer-closed');
+  });
+
+  // Tab switching (visual only)
+  document.querySelectorAll('.tab').forEach(t => {
+    t.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(x => x.classList.remove('is-active'));
+      t.classList.add('is-active');
+    });
+  });
+
+  // Theme switcher — navigate to file
+  document.querySelectorAll('[data-theme-go]').forEach(b => {
+    b.addEventListener('click', () => {
+      const t = b.dataset.themeGo;
+      if (t === 'excellia') location.href = 'pratica-excellia.html';
+      if (t === 'light')    location.href = 'pratica-light.html';
+      if (t === 'dark')     location.href = 'pratica-dark.html';
+    });
+  });
+
+  // Center tree on OGGI on load
+  const treeScroll = document.getElementById('treeScroll');
+  if (treeScroll) {
+    requestAnimationFrame(() => {
+      const target = (1500 * 622/1500) - treeScroll.clientWidth / 2;
+      treeScroll.scrollLeft = Math.max(0, target);
+    });
+  }
+
+  // Phase node click → reopen drawer & swap selection
+  document.querySelectorAll('.phase-clickable').forEach(g => {
+    g.addEventListener('click', () => {
+      document.querySelectorAll('.phase-clickable').forEach(x => x.classList.remove('is-selected'));
+      g.classList.add('is-selected');
+      treeArea.classList.remove('drawer-closed');
+    });
+  });
+
+  // Re-init icons after any DOM updates (for foreignObjects)
+  setTimeout(() => { if (window.lucide) lucide.createIcons(); }, 50);
+</script>
+</body>
+</html>

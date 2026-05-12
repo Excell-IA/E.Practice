@@ -1,0 +1,1873 @@
+<!doctype html>
+<html lang="it" data-theme="excellia">
+<head>
+<meta charset="utf-8" />
+<title>E.Practice — Modal Nuova Pratica · Excellia</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Manrope:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" />
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+/* ============================================================
+   ExcellIA tokens — inlined for self-containment
+   ============================================================ */
+:root,
+:root[data-theme="light"] {
+  --surface:                    #F7F9FB;
+  --surface-container-lowest:   #FFFFFF;
+  --surface-container-low:      #F2F4F6;
+  --surface-container:          #EDEFF2;
+  --surface-container-high:     #E6E8EA;
+  --surface-container-highest:  #DCDFE3;
+  --on-surface:                 #191C1E;
+  --on-surface-variant:         #42474E;
+  --on-surface-muted:           #6B7279;
+  --primary:                    #006688;
+  --primary-container:          #00C2FF;
+  --on-primary:                 #FFFFFF;
+  --on-primary-container:       #00334A;
+  --secondary:                  #00C2FF;
+  --electric:                   #92D9FF;
+  --outline-variant:            rgba(25, 28, 30, 0.15);
+  --success:                    #1F7A52;
+  --warning:                    #B5730A;
+  --danger:                     #B3261E;
+  --info:                       #006688;
+  --shadow-electric-sm: 0 4px 16px 0 rgba(0, 102, 136, 0.06);
+  --shadow-electric-md: 0 8px 32px 0 rgba(0, 102, 136, 0.08);
+  --shadow-electric-lg: 0 16px 64px 0 rgba(0, 102, 136, 0.10);
+  --gradient-brand: linear-gradient(135deg, #006688 0%, #00C2FF 100%);
+  --gradient-electric: linear-gradient(135deg, #92D9FF 0%, #00C2FF 100%);
+  /* category accent tints */
+  --acc-1: 31, 122, 82;   /* success green */
+  --acc-2: 0, 194, 255;   /* electric blue (adempimenti) */
+  --acc-3: 0, 102, 136;   /* primary deep blue (bilancio) */
+  --acc-4: 181, 115, 10;  /* amber (consulenza) */
+  --acc-5: 179, 38, 30;   /* danger red (contenzioso) */
+  --acc-6: 107, 114, 121; /* neutral grey (altro) */
+}
+:root[data-theme="dark"] {
+  --surface:                    #0B1326;
+  --surface-container-lowest:   #080F1F;
+  --surface-container-low:      #131B2E;
+  --surface-container:          #1A2336;
+  --surface-container-high:     #222A3D;
+  --surface-container-highest:  #2D3449;
+  --on-surface:                 #DAE2FD;
+  --on-surface-variant:         #A8B2CC;
+  --on-surface-muted:           #6E7A96;
+  --primary:                    #92D9FF;
+  --primary-container:          #00C2FF;
+  --on-primary:                 #00334A;
+  --on-primary-container:       #E0F3FF;
+  --secondary:                  #00C2FF;
+  --electric:                   #92D9FF;
+  --outline-variant:            rgba(218, 226, 253, 0.18);
+  --success:                    #6DD3A8;
+  --warning:                    #FFCF7A;
+  --danger:                     #FF9A94;
+  --info:                       #92D9FF;
+  --shadow-electric-sm: 0 4px 16px 0 rgba(146, 217, 255, 0.06);
+  --shadow-electric-md: 0 8px 32px 0 rgba(146, 217, 255, 0.08);
+  --shadow-electric-lg: 0 16px 64px 0 rgba(146, 217, 255, 0.10);
+  --gradient-brand: linear-gradient(135deg, #92D9FF 0%, #00C2FF 100%);
+  --gradient-electric: linear-gradient(135deg, #92D9FF 0%, #00C2FF 100%);
+  --acc-1: 109, 211, 168;
+  --acc-2: 146, 217, 255;
+  --acc-3: 0, 194, 255;
+  --acc-4: 255, 207, 122;
+  --acc-5: 255, 154, 148;
+  --acc-6: 168, 178, 204;
+}
+:root[data-theme="excellia"] {
+  --surface:                    #0F131C;
+  --surface-container-lowest:   #0A0D14;
+  --surface-container-low:      #181C24;
+  --surface-container:          #1C2028;
+  --surface-container-high:     #262A33;
+  --surface-container-highest:  #2F3540;
+  --on-surface:                 #DAE2FD;
+  --on-surface-variant:         #A8B2CC;
+  --on-surface-muted:           #6E7A96;
+  --primary:                    #92D9FF;
+  --primary-container:          #00C2FF;
+  --on-primary:                 #004C66;
+  --on-primary-container:       #004C66;
+  --secondary:                  #00C2FF;
+  --electric:                   #92D9FF;
+  --outline-variant:            rgba(146, 217, 255, 0.18);
+  --success:                    #6DD3A8;
+  --warning:                    #FFCF7A;
+  --danger:                     #FF9A94;
+  --info:                       #92D9FF;
+  --shadow-electric-sm: 0 4px 16px 0 rgba(146, 217, 255, 0.06);
+  --shadow-electric-md: 0 8px 32px 0 rgba(146, 217, 255, 0.08);
+  --shadow-electric-lg: 0 16px 64px 0 rgba(146, 217, 255, 0.12);
+  --gradient-brand: linear-gradient(135deg, #92D9FF 0%, #00C2FF 100%);
+  --gradient-electric: linear-gradient(135deg, #92D9FF 0%, #00C2FF 100%);
+  --acc-1: 109, 211, 168;
+  --acc-2: 146, 217, 255;
+  --acc-3: 0, 194, 255;
+  --acc-4: 255, 207, 122;
+  --acc-5: 255, 154, 148;
+  --acc-6: 168, 178, 204;
+}
+
+:root {
+  --font-display: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+  --font-body:    'Manrope', 'Inter', system-ui, sans-serif;
+  --font-label:   'Inter', 'Manrope', system-ui, sans-serif;
+  --space-1:.25rem; --space-2:.5rem; --space-3:.75rem; --space-4:1rem;
+  --space-5:1.25rem; --space-6:1.5rem; --space-7:2rem; --space-8:2.5rem;
+  --space-9:3rem; --space-10:4rem;
+  --radius-sm:.5rem; --radius-md:.75rem; --radius-lg:1rem; --radius-xl:1.5rem;
+  --radius-full:999px;
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --dur-fast: 120ms; --dur-base: 200ms; --dur-slow: 320ms;
+}
+
+/* ============================================================
+   Base
+   ============================================================ */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 100%; }
+body {
+  background: var(--surface);
+  color: var(--on-surface);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+}
+button { font: inherit; color: inherit; background: none; border: none; cursor: pointer; }
+input, textarea { font: inherit; color: inherit; background: none; border: none; outline: none; }
+input::placeholder, textarea::placeholder { color: var(--on-surface-muted); }
+a { color: inherit; }
+
+.hud {
+  font-family: var(--font-display);
+  font-size: 11px; font-weight: 500;
+  text-transform: uppercase; letter-spacing: 0.16em;
+  color: var(--on-surface-muted);
+}
+
+/* ============================================================
+   Review canvas — page chrome
+   ============================================================ */
+.review-shell {
+  position: relative;
+  min-height: 100vh;
+  padding: 24px 24px 80px;
+  background:
+    radial-gradient(1200px 600px at 10% -10%, rgba(146,217,255,0.06), transparent 60%),
+    radial-gradient(900px 500px at 110% 30%, rgba(0,194,255,0.04), transparent 60%),
+    var(--surface);
+  background-attachment: fixed;
+}
+:root[data-theme="light"] .review-shell {
+  background:
+    radial-gradient(1200px 600px at 10% -10%, rgba(0,102,136,0.05), transparent 60%),
+    radial-gradient(900px 500px at 110% 30%, rgba(0,194,255,0.04), transparent 60%),
+    var(--surface);
+  background-attachment: fixed;
+}
+
+/* faint dashboard ghost behind everything to suggest the modal-over-app context */
+.ghost-bg {
+  position: fixed; inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  grid-template-rows: 56px 1fr;
+  opacity: 0.55;
+  filter: blur(2px);
+  mask-image: linear-gradient(180deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.10) 60%, transparent 100%);
+}
+.ghost-bg .gh-topnav {
+  grid-column: 1 / -1; grid-row: 1;
+  background: color-mix(in oklab, var(--surface-container) 60%, transparent);
+  backdrop-filter: blur(20px);
+  display: flex; align-items: center; gap: 14px;
+  padding: 0 20px;
+}
+.ghost-bg .gh-side {
+  grid-column: 1; grid-row: 2;
+  background: var(--surface-container-low);
+  padding: 18px 12px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.ghost-bg .gh-main {
+  grid-column: 2; grid-row: 2;
+  padding: 24px 32px;
+}
+.ghost-bg .gh-row {
+  height: 12px; border-radius: 6px;
+  background: var(--surface-container-high);
+  margin-bottom: 10px;
+}
+.ghost-bg .gh-row.short { width: 40%; }
+.ghost-bg .gh-row.med   { width: 70%; }
+.ghost-bg .gh-card {
+  background: var(--surface-container);
+  border-radius: 16px;
+  height: 110px; margin-bottom: 12px;
+}
+.ghost-bg .gh-pill {
+  width: 100%; height: 36px; border-radius: 10px;
+  background: var(--surface-container);
+}
+.ghost-bg .gh-dim {
+  position: absolute; inset: 0;
+  background: rgba(0,0,0,0.60);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+:root[data-theme="light"] .ghost-bg .gh-dim {
+  background: rgba(15, 19, 28, 0.35);
+}
+
+/* review header */
+.review-header {
+  position: relative;
+  z-index: 2;
+  display: flex; align-items: flex-end; justify-content: space-between;
+  gap: 24px;
+  max-width: 1080px; margin: 8px auto 48px;
+  padding-bottom: 18px;
+}
+.review-title h1 {
+  font-family: var(--font-display);
+  font-size: 36px; font-weight: 600; letter-spacing: -0.02em;
+  line-height: 1.05;
+  color: var(--on-surface);
+}
+.review-title p {
+  margin-top: 8px;
+  font-size: 15px; color: var(--on-surface-variant);
+  max-width: 560px; line-height: 1.55;
+}
+.review-meta {
+  display: flex; flex-direction: column; align-items: flex-end; gap: 10px;
+}
+.review-brand {
+  display: flex; align-items: center; gap: 10px;
+  font-family: var(--font-display); font-weight: 500;
+  font-size: 14px;
+  color: var(--on-surface-variant);
+}
+.review-brand .mark {
+  width: 22px; height: 22px; border-radius: 6px;
+  background: var(--gradient-brand);
+  display: grid; place-items: center;
+  font-size: 11px; color: var(--on-primary); font-weight: 700;
+}
+.review-pills { display: flex; gap: 8px; }
+.review-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 10px;
+  font-family: var(--font-display);
+  font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--on-surface-muted);
+  background: color-mix(in oklab, var(--surface-container-high) 65%, transparent);
+  border-radius: 999px;
+}
+.review-pill.is-current {
+  color: var(--electric);
+  background: color-mix(in oklab, var(--electric) 12%, transparent);
+}
+
+/* Data Pulse */
+.data-pulse {
+  display: inline-block;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--gradient-brand);
+  position: relative; flex-shrink: 0;
+}
+.data-pulse::after {
+  content: ""; position: absolute; inset: 0; border-radius: 50%;
+  background: var(--primary); opacity: 0.5;
+  animation: data-pulse 2s var(--ease-out-quart) infinite;
+}
+@keyframes data-pulse {
+  0%   { transform: scale(1);    opacity: 0.5; }
+  80%  { transform: scale(2.8);  opacity: 0; }
+  100% { transform: scale(2.8);  opacity: 0; }
+}
+
+/* ============================================================
+   State block — labelled wrapper around each modal
+   ============================================================ */
+.state-stack {
+  position: relative;
+  z-index: 2;
+  display: flex; flex-direction: column;
+  gap: 64px;
+  align-items: center;
+  max-width: 1080px; margin: 0 auto;
+}
+.state-block {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 200px minmax(0, 720px) 1fr;
+  gap: 48px;
+  align-items: flex-start;
+}
+.state-tag {
+  padding-top: 32px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.state-tag .step-num {
+  font-family: var(--font-display);
+  font-size: 56px; font-weight: 500;
+  letter-spacing: -0.02em; line-height: 0.9;
+  color: var(--on-surface);
+}
+.state-tag .step-num em {
+  font-style: normal;
+  background: var(--gradient-brand);
+  -webkit-background-clip: text; background-clip: text;
+  color: transparent;
+}
+.state-tag .step-kicker {
+  font-family: var(--font-display);
+  font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--on-surface-muted);
+}
+.state-tag .step-name {
+  font-family: var(--font-display);
+  font-size: 18px; font-weight: 500;
+  color: var(--on-surface);
+  margin-top: -2px;
+}
+.state-tag .step-desc {
+  font-size: 13px; line-height: 1.55;
+  color: var(--on-surface-variant);
+}
+.state-tag .step-meta {
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--font-display);
+  font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--on-surface-muted);
+  margin-top: 4px;
+}
+
+/* ============================================================
+   Modal — the core artifact
+   ============================================================ */
+.modal {
+  position: relative;
+  width: 720px;
+  background: var(--surface-container);
+  border-radius: 16px;
+  padding: 32px;
+  box-shadow: var(--shadow-electric-lg),
+              0 1px 0 0 color-mix(in oklab, var(--electric) 14%, transparent) inset;
+  animation: slide-up 480ms var(--ease-out-quart) both;
+}
+@keyframes slide-up {
+  from { transform: translateY(12px); opacity: 0; }
+  to   { transform: translateY(0); opacity: 1; }
+}
+
+.modal-close {
+  position: absolute; top: 20px; right: 20px;
+  width: 36px; height: 36px;
+  display: grid; place-items: center;
+  border-radius: 10px;
+  color: var(--on-surface-muted);
+  transition: all var(--dur-fast) var(--ease-out-quart);
+}
+.modal-close:hover {
+  color: var(--on-surface);
+  background: var(--surface-container-high);
+}
+
+.modal-header { padding-right: 44px; }
+.modal-header .h-eyebrow {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: var(--font-display);
+  font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--electric);
+  margin-bottom: 12px;
+}
+.modal-header h2 {
+  font-family: var(--font-display);
+  font-size: 36px; font-weight: 600;
+  letter-spacing: -0.02em; line-height: 1.05;
+  color: var(--on-surface);
+}
+.modal-header p {
+  margin-top: 8px;
+  font-size: 15px; line-height: 1.55;
+  color: var(--on-surface-variant);
+  max-width: 480px;
+}
+
+/* ============================================================
+   Progress indicator (3 steps)
+   ============================================================ */
+.progress {
+  margin: 28px 0 8px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  position: relative;
+}
+.progress::before,
+.progress::after {
+  content: "";
+  position: absolute; top: 18px; height: 2px;
+  background: var(--outline-variant);
+  z-index: 0;
+}
+.progress::before { left: 16.66%; right: 50%; }
+.progress::after  { left: 50%; right: 16.66%; }
+
+.progress[data-active="1"]::before { background: var(--outline-variant); }
+.progress[data-active="2"]::before { background: linear-gradient(90deg, var(--success), color-mix(in oklab, var(--primary) 50%, var(--success))); }
+.progress[data-active="2"]::after  { background: var(--outline-variant); }
+.progress[data-active="3"]::before { background: var(--success); }
+.progress[data-active="3"]::after  { background: linear-gradient(90deg, var(--success), color-mix(in oklab, var(--primary) 50%, var(--success))); }
+
+.prog-step {
+  position: relative; z-index: 1;
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+}
+.prog-dot {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  display: grid; place-items: center;
+  font-family: var(--font-display);
+  font-size: 14px; font-weight: 600;
+  background: var(--surface-container);
+  border: 2px solid var(--outline-variant);
+  color: var(--on-surface-muted);
+  transition: all var(--dur-base) var(--ease-out-quart);
+}
+.prog-step[data-state="done"] .prog-dot {
+  background: var(--success);
+  border-color: var(--success);
+  color: #0F1B14;
+}
+.prog-step[data-state="active"] .prog-dot {
+  background: var(--gradient-brand);
+  border-color: transparent;
+  color: var(--on-primary);
+  box-shadow: 0 0 0 6px color-mix(in oklab, var(--electric) 18%, transparent),
+              var(--shadow-electric-sm);
+}
+.prog-step[data-state="active"] .prog-dot .pulse-ring {
+  position: absolute; inset: -2px; border-radius: 50%;
+  border: 2px solid var(--electric);
+  animation: ring-pulse 2s var(--ease-out-quart) infinite;
+}
+@keyframes ring-pulse {
+  0%   { transform: scale(1);    opacity: 0.6; }
+  100% { transform: scale(1.6);  opacity: 0; }
+}
+.prog-label {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+}
+.prog-label .kicker {
+  font-family: var(--font-display);
+  font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--on-surface-muted);
+}
+.prog-label .name {
+  font-family: var(--font-display);
+  font-size: 13px; font-weight: 500;
+  color: var(--on-surface-muted);
+}
+.prog-step[data-state="done"] .prog-label .name { color: var(--on-surface-variant); }
+.prog-step[data-state="active"] .prog-label .name { color: var(--on-surface); }
+.prog-step[data-state="active"] .prog-label .kicker { color: var(--electric); }
+
+/* ============================================================
+   Form primitives
+   ============================================================ */
+.field { display: flex; flex-direction: column; gap: 8px; margin-top: 24px; }
+.field-label {
+  font-family: var(--font-display);
+  font-size: 11px; font-weight: 500;
+  text-transform: uppercase; letter-spacing: 0.14em;
+  color: var(--on-surface-muted);
+  display: flex; align-items: center; gap: 8px;
+}
+.field-label .opt {
+  font-family: var(--font-body); text-transform: none; letter-spacing: 0;
+  font-size: 11px; color: var(--on-surface-muted); font-weight: 400;
+}
+.field-label .help {
+  margin-left: auto; font-family: var(--font-body);
+  text-transform: none; letter-spacing: 0; font-size: 11px;
+  color: var(--on-surface-muted); font-weight: 400;
+}
+
+.input-shell {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--surface-container-lowest);
+  border-radius: 12px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--outline-variant);
+  transition: all var(--dur-base) var(--ease-out-quart);
+}
+.input-shell:focus-within,
+.input-shell.is-active {
+  border-bottom: 2px solid var(--electric);
+  box-shadow: 0 8px 28px -10px rgba(146, 217, 255, 0.30);
+  padding-bottom: 11px;
+}
+.input-shell > i { width: 16px; height: 16px; color: var(--on-surface-muted); flex-shrink: 0; }
+.input-shell > input,
+.input-shell > textarea {
+  flex: 1; min-width: 0;
+  font-family: var(--font-body); font-size: 15px;
+  color: var(--on-surface);
+}
+.input-shell .kbd {
+  font-family: var(--font-display); font-size: 10px; font-weight: 500;
+  letter-spacing: 0.08em;
+  color: var(--on-surface-muted);
+  padding: 3px 7px;
+  border-radius: 6px;
+  background: var(--surface-container-high);
+}
+
+textarea.input-bare {
+  width: 100%;
+  font-family: var(--font-body); font-size: 15px; line-height: 1.55;
+  color: var(--on-surface); resize: none; min-height: 48px;
+}
+
+.hint {
+  margin-top: 4px;
+  font-size: 12px; color: var(--on-surface-muted);
+  display: flex; align-items: center; gap: 6px;
+}
+.hint a {
+  color: var(--electric);
+  text-decoration: none; font-weight: 500;
+  display: inline-flex; align-items: center; gap: 4px;
+  transition: color var(--dur-fast);
+}
+.hint a:hover { color: var(--primary-container); }
+.hint a i { width: 13px; height: 13px; }
+
+/* ---- Autocomplete dropdown (Step 1) ---- */
+.combo {
+  position: relative;
+}
+.combo .input-shell { cursor: text; }
+.combo-dropdown {
+  position: absolute;
+  top: calc(100% + 6px); left: 0; right: 0;
+  background: var(--surface-container-lowest);
+  border-radius: 12px;
+  padding: 6px;
+  box-shadow: var(--shadow-electric-lg),
+              0 0 0 1px color-mix(in oklab, var(--electric) 22%, transparent);
+  z-index: 5;
+  display: flex; flex-direction: column; gap: 2px;
+  max-height: 280px; overflow-y: auto;
+}
+.combo-row {
+  display: grid; grid-template-columns: 32px 1fr auto;
+  align-items: center; gap: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background var(--dur-fast);
+}
+.combo-row:hover { background: var(--surface-container-high); }
+.combo-row.is-selected { background: color-mix(in oklab, var(--electric) 10%, transparent); }
+.combo-row.is-selected .combo-name { color: var(--on-surface); }
+.combo-avatar {
+  width: 32px; height: 32px; border-radius: 8px;
+  background: var(--surface-container-high);
+  display: grid; place-items: center;
+  font-family: var(--font-display); font-size: 11px; font-weight: 600;
+  color: var(--electric);
+}
+.combo-name {
+  font-family: var(--font-body); font-size: 14px; font-weight: 500;
+  color: var(--on-surface);
+  display: flex; flex-direction: column; gap: 2px;
+}
+.combo-name small {
+  font-size: 11px; color: var(--on-surface-muted); font-weight: 400;
+  font-family: var(--font-label);
+}
+.combo-name mark {
+  background: color-mix(in oklab, var(--electric) 22%, transparent);
+  color: var(--on-surface);
+  padding: 0 2px; border-radius: 3px;
+}
+.combo-meta {
+  font-family: var(--font-display); font-size: 10px;
+  letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--on-surface-muted);
+}
+
+/* ---- Category cards (Step 1) ---- */
+.cat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-top: 14px;
+}
+.cat-card {
+  position: relative;
+  background: var(--surface-container-lowest);
+  border-radius: 14px;
+  padding: 18px 16px 16px;
+  cursor: pointer;
+  transition: all var(--dur-base) var(--ease-out-quart);
+  text-align: left;
+  display: flex; flex-direction: column; gap: 10px;
+  min-height: 124px;
+  overflow: hidden;
+  isolation: isolate;
+}
+.cat-card::before {
+  content: "";
+  position: absolute; inset: 0;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(var(--acc), 0.10) 0%, rgba(var(--acc), 0.02) 60%, transparent 100%);
+  z-index: -1;
+  opacity: 0.7;
+}
+.cat-card::after {
+  /* radio dot top-right */
+  content: "";
+  position: absolute; top: 14px; right: 14px;
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  border: 1.5px solid var(--outline-variant);
+  background: transparent;
+  transition: all var(--dur-fast);
+}
+.cat-card:hover {
+  background: var(--surface-container-low);
+  transform: translateY(-1px);
+}
+.cat-card:hover::before { opacity: 1; }
+
+.cat-card.is-selected {
+  background: var(--surface-container-low);
+  box-shadow: 0 0 0 2px rgba(var(--acc), 0.55),
+              0 12px 32px -16px rgba(var(--acc), 0.40);
+}
+.cat-card.is-selected::after {
+  border-color: rgb(var(--acc));
+  background: rgb(var(--acc));
+  box-shadow: 0 0 0 4px rgba(var(--acc), 0.20),
+              inset 0 0 0 3px var(--surface-container-low);
+}
+
+.cat-icon {
+  width: 38px; height: 38px;
+  border-radius: 10px;
+  display: grid; place-items: center;
+  background: rgba(var(--acc), 0.14);
+  color: rgb(var(--acc));
+}
+.cat-icon i { width: 19px; height: 19px; }
+.cat-card.is-selected .cat-icon {
+  background: rgba(var(--acc), 0.22);
+}
+.cat-title {
+  font-family: var(--font-display);
+  font-size: 14px; font-weight: 500;
+  color: var(--on-surface);
+  line-height: 1.25;
+}
+.cat-sub {
+  font-family: var(--font-body);
+  font-size: 11.5px;
+  color: var(--on-surface-muted);
+  line-height: 1.45;
+  margin-top: -2px;
+}
+.cat-card-c1 { --acc: var(--acc-1); }
+.cat-card-c2 { --acc: var(--acc-2); }
+.cat-card-c3 { --acc: var(--acc-3); }
+.cat-card-c4 { --acc: var(--acc-4); }
+.cat-card-c5 { --acc: var(--acc-5); }
+.cat-card-c6 { --acc: var(--acc-6); }
+
+/* ============================================================
+   Footer (modal)
+   ============================================================ */
+.modal-footer {
+  margin-top: 28px;
+  padding-top: 20px;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px;
+  position: relative;
+}
+.modal-footer::before {
+  content: "";
+  position: absolute; left: -32px; right: -32px; top: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--outline-variant) 12%, var(--outline-variant) 88%, transparent);
+}
+.footer-meta {
+  display: flex; align-items: center; gap: 10px;
+  font-family: var(--font-display);
+  font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--on-surface-muted);
+}
+.footer-cta { display: flex; align-items: center; gap: 10px; }
+
+/* ============================================================
+   Buttons
+   ============================================================ */
+.btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: var(--font-display); font-weight: 500;
+  font-size: 14px; letter-spacing: 0.01em;
+  border-radius: 12px;
+  padding: 11px 18px;
+  transition: all var(--dur-base) var(--ease-out-quart);
+  white-space: nowrap;
+}
+.btn i { width: 15px; height: 15px; }
+.btn-primary {
+  background: var(--gradient-brand);
+  color: var(--on-primary);
+  box-shadow: var(--shadow-electric-sm);
+}
+.btn-primary:hover {
+  box-shadow: var(--shadow-electric-lg),
+              0 0 0 6px color-mix(in oklab, var(--electric) 14%, transparent);
+}
+.btn-primary:active { transform: scale(0.98); }
+.btn-primary[disabled] {
+  opacity: 0.4; cursor: not-allowed;
+  box-shadow: none;
+}
+.btn-primary.is-large {
+  font-size: 15px; padding: 14px 22px; gap: 10px;
+}
+.btn-ghost {
+  background: transparent;
+  color: var(--on-surface-variant);
+  padding: 11px 14px;
+}
+.btn-ghost:hover {
+  color: var(--on-surface);
+  background: var(--surface-container-high);
+}
+.btn-secondary {
+  background: color-mix(in oklab, var(--surface-container-highest) 60%, transparent);
+  color: var(--on-surface);
+  backdrop-filter: blur(8px);
+}
+.btn-secondary:hover {
+  background: color-mix(in oklab, var(--surface-container-highest) 90%, transparent);
+}
+
+/* ============================================================
+   Step 2 — split, datepicker, priority, etichette
+   ============================================================ */
+.two-col {
+  margin-top: 24px;
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+.date-display {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 12px; align-items: center;
+  background: var(--surface-container-lowest);
+  border-radius: 12px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--outline-variant);
+  transition: all var(--dur-base) var(--ease-out-quart);
+}
+.date-display .d-mini {
+  width: 38px; height: 38px;
+  background: rgba(var(--acc-2), 0.12);
+  border-radius: 9px;
+  display: grid;
+  grid-template-rows: 12px 1fr;
+  overflow: hidden;
+  text-align: center;
+}
+.date-display .d-mini .d-mini-top {
+  font-family: var(--font-display);
+  font-size: 7px; line-height: 12px;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--on-primary);
+  background: var(--electric);
+}
+.date-display .d-mini .d-mini-num {
+  font-family: var(--font-display);
+  font-size: 16px; font-weight: 600;
+  color: var(--on-surface);
+  display: grid; place-items: center;
+  line-height: 1;
+}
+.date-display .d-text {
+  display: flex; flex-direction: column; gap: 2px;
+}
+.date-display .d-text strong {
+  font-family: var(--font-body); font-weight: 600;
+  font-size: 14px; color: var(--on-surface);
+}
+.date-display .d-text small {
+  font-family: var(--font-label); font-size: 11px;
+  color: var(--on-surface-muted);
+}
+.date-display .d-chev {
+  color: var(--on-surface-muted);
+}
+
+.date-display.is-computed {
+  background: color-mix(in oklab, var(--electric) 6%, var(--surface-container-lowest));
+}
+.date-display.is-computed .d-text small {
+  color: var(--electric);
+  display: flex; align-items: center; gap: 4px;
+}
+.date-display.is-computed .d-text small i {
+  width: 11px; height: 11px;
+}
+
+/* priority radios */
+.priority-row {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  background: var(--surface-container-lowest);
+  padding: 5px;
+  border-radius: 12px;
+}
+.prio {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 10px 8px;
+  border-radius: 9px;
+  font-family: var(--font-display); font-size: 13px; font-weight: 500;
+  color: var(--on-surface-muted);
+  cursor: pointer;
+  transition: all var(--dur-fast);
+  position: relative;
+}
+.prio .dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  border: 1.5px solid var(--outline-variant);
+  background: transparent;
+}
+.prio:hover { color: var(--on-surface-variant); }
+.prio.is-selected {
+  background: var(--surface-container-high);
+  color: var(--on-surface);
+}
+.prio.is-selected .dot {
+  border-color: transparent;
+  background: var(--gradient-brand);
+}
+.prio.tone-low.is-selected .dot { background: var(--success); }
+.prio.tone-high.is-selected .dot { background: var(--warning); }
+
+/* etichette pillole */
+.tags-wrap {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  padding: 12px;
+  background: var(--surface-container-lowest);
+  border-radius: 12px;
+  min-height: 56px;
+}
+.tag-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 10px 5px 10px;
+  border-radius: 999px;
+  font-family: var(--font-body); font-size: 12px; font-weight: 500;
+  background: var(--surface-container-high);
+  color: var(--on-surface-variant);
+  cursor: pointer;
+  transition: all var(--dur-fast);
+}
+.tag-pill:hover { background: var(--surface-container-highest); }
+.tag-pill.is-selected {
+  background: color-mix(in oklab, var(--electric) 18%, transparent);
+  color: var(--electric);
+}
+.tag-pill .x {
+  width: 12px; height: 12px;
+  opacity: 0.7;
+}
+.tag-add {
+  padding: 5px 10px; border-radius: 999px;
+  border: 1px dashed var(--outline-variant);
+  color: var(--on-surface-muted);
+  font-family: var(--font-body); font-size: 12px; font-weight: 500;
+  cursor: pointer;
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.tag-add i { width: 11px; height: 11px; }
+.tag-add:hover {
+  color: var(--electric); border-color: var(--electric);
+}
+
+/* ============================================================
+   Step 3 — assegnazioni
+   ============================================================ */
+.user-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 12px; align-items: center;
+  padding: 12px 14px;
+  background: var(--surface-container-lowest);
+  border-radius: 12px;
+  border-bottom: 1px solid var(--outline-variant);
+  transition: all var(--dur-fast);
+}
+.user-row .avatar {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  display: grid; place-items: center;
+  font-family: var(--font-display); font-size: 12px; font-weight: 600;
+  color: var(--on-surface);
+}
+.user-row .av-1 { background: linear-gradient(135deg, #92D9FF, #00C2FF); color: #004C66; }
+.user-row .av-2 { background: linear-gradient(135deg, #6DD3A8, #1F7A52); color: #0F1B14; }
+.user-row .av-3 { background: linear-gradient(135deg, #FFCF7A, #B5730A); color: #2B1A03; }
+.user-row .av-4 { background: linear-gradient(135deg, #C8B6FF, #8A7DD1); color: #1C123A; }
+.user-row .av-5 { background: linear-gradient(135deg, #FFA8C0, #B33F66); color: #2B0E18; }
+
+.user-row .u-info { display: flex; flex-direction: column; gap: 2px; min-width: 0;}
+.user-row .u-info strong {
+  font-family: var(--font-body); font-weight: 600; font-size: 14px;
+  color: var(--on-surface);
+}
+.user-row .u-info small {
+  font-family: var(--font-label); font-size: 11px;
+  color: var(--on-surface-muted);
+}
+.user-row .u-meta {
+  display: flex; align-items: center; gap: 10px;
+  font-family: var(--font-display); font-size: 10px;
+  letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--on-surface-muted);
+}
+.u-load {
+  display: flex; align-items: center; gap: 6px;
+}
+.u-load-bar {
+  width: 56px; height: 4px;
+  border-radius: 2px;
+  background: var(--surface-container-high);
+  overflow: hidden;
+}
+.u-load-bar > span {
+  display: block; height: 100%;
+  background: var(--gradient-brand);
+  border-radius: 2px;
+}
+.user-row .chevron {
+  color: var(--on-surface-muted);
+}
+
+/* selected users chip stack */
+.collab-stack {
+  display: flex; flex-direction: column;
+  background: var(--surface-container-lowest);
+  border-radius: 12px;
+  padding: 8px;
+  gap: 4px;
+  border-bottom: 1px solid var(--outline-variant);
+}
+.collab-pill {
+  display: grid; grid-template-columns: auto 1fr auto;
+  gap: 10px; align-items: center;
+  padding: 8px 10px;
+  border-radius: 9px;
+  background: color-mix(in oklab, var(--electric) 8%, transparent);
+}
+.collab-pill .avatar {
+  width: 28px; height: 28px; border-radius: 50%;
+  display: grid; place-items: center;
+  font-family: var(--font-display); font-size: 10px; font-weight: 600;
+}
+.collab-pill strong {
+  font-family: var(--font-body); font-size: 13px; font-weight: 600;
+  color: var(--on-surface);
+}
+.collab-pill small {
+  font-family: var(--font-label); font-size: 11px;
+  color: var(--on-surface-muted); margin-left: 6px;
+}
+.collab-pill button {
+  width: 22px; height: 22px; border-radius: 6px;
+  display: grid; place-items: center;
+  color: var(--on-surface-muted);
+}
+.collab-pill button:hover {
+  background: var(--surface-container-high);
+  color: var(--on-surface);
+}
+.collab-add {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 10px;
+  font-family: var(--font-display); font-size: 12px; font-weight: 500;
+  color: var(--on-surface-muted);
+  cursor: pointer;
+  border-radius: 9px;
+}
+.collab-add:hover { color: var(--electric); }
+.collab-add i { width: 13px; height: 13px; }
+.collab-add .max {
+  margin-left: auto;
+  font-size: 10px; letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+/* phases info box */
+.phases-box {
+  margin-top: 24px;
+  background: var(--surface-container-lowest);
+  border-radius: 14px;
+  padding: 18px 20px;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+.phases-box::before {
+  content: "";
+  position: absolute; inset: 0;
+  background: linear-gradient(135deg, rgba(146,217,255,0.08) 0%, transparent 40%);
+  z-index: -1;
+}
+.phases-head {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 14px;
+}
+.phases-head .glyph {
+  width: 30px; height: 30px;
+  border-radius: 8px;
+  background: color-mix(in oklab, var(--electric) 16%, transparent);
+  display: grid; place-items: center;
+  color: var(--electric);
+}
+.phases-head .glyph i { width: 16px; height: 16px; }
+.phases-head .ph-title {
+  display: flex; flex-direction: column; gap: 0;
+}
+.phases-head .ph-title strong {
+  font-family: var(--font-display); font-weight: 500;
+  font-size: 14px; color: var(--on-surface);
+  display: flex; align-items: center; gap: 8px;
+}
+.phases-head .ph-title strong em {
+  font-style: normal;
+  font-family: var(--font-display);
+  font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--electric);
+  padding: 2px 6px; border-radius: 4px;
+  background: color-mix(in oklab, var(--electric) 14%, transparent);
+}
+.phases-head .ph-title small {
+  font-family: var(--font-body); font-size: 11.5px;
+  color: var(--on-surface-muted);
+}
+.phases-head .ph-total {
+  margin-left: auto;
+  text-align: right;
+  display: flex; flex-direction: column; align-items: flex-end;
+}
+.phases-head .ph-total .num {
+  font-family: var(--font-display);
+  font-size: 22px; font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--on-surface);
+  line-height: 1;
+}
+.phases-head .ph-total .lbl {
+  font-family: var(--font-display); font-size: 9px;
+  letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--on-surface-muted);
+  margin-top: 4px;
+}
+
+.phases-list {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 18px;
+}
+.phase-row {
+  display: grid;
+  grid-template-columns: 22px 22px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 0;
+  font-size: 13px;
+  color: var(--on-surface-variant);
+  border-radius: 6px;
+  position: relative;
+}
+.phase-row .n {
+  font-family: var(--font-display);
+  font-size: 11px; font-weight: 500;
+  color: var(--on-surface-muted);
+  text-align: right;
+}
+.phase-row .ic {
+  width: 22px; height: 22px;
+  display: grid; place-items: center;
+  border-radius: 6px;
+  background: var(--surface-container-high);
+  color: var(--on-surface-variant);
+}
+.phase-row .ic i { width: 12px; height: 12px; }
+.phase-row .nm {
+  font-family: var(--font-body); font-size: 13px;
+  color: var(--on-surface);
+  font-weight: 500;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.phase-row .dur {
+  font-family: var(--font-display); font-size: 11px; font-weight: 500;
+  letter-spacing: 0.06em;
+  color: var(--on-surface-muted);
+}
+
+/* checkbox row */
+.check-row {
+  margin-top: 18px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 14px;
+  align-items: flex-start;
+  padding: 14px 16px;
+  background: var(--surface-container-lowest);
+  border-radius: 12px;
+  cursor: pointer;
+}
+.check-box {
+  width: 22px; height: 22px;
+  border-radius: 7px;
+  background: var(--gradient-brand);
+  display: grid; place-items: center;
+  color: var(--on-primary);
+  flex-shrink: 0;
+  box-shadow: 0 0 0 4px color-mix(in oklab, var(--electric) 14%, transparent);
+}
+.check-box i { width: 14px; height: 14px; }
+.check-box.is-off {
+  background: transparent;
+  border: 1.5px solid var(--outline-variant);
+  color: transparent;
+  box-shadow: none;
+}
+.check-row .ck-text strong {
+  font-family: var(--font-body); font-weight: 600; font-size: 14px;
+  color: var(--on-surface); display: block;
+}
+.check-row .ck-text small {
+  font-family: var(--font-body); font-size: 12px;
+  color: var(--on-surface-muted); display: block;
+  margin-top: 2px;
+}
+
+/* prefill banner Step 2 */
+.prefill-banner {
+  margin-top: 6px;
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--font-body); font-size: 12px;
+  color: var(--on-surface-muted);
+}
+.prefill-banner .data-pulse { width: 6px; height: 6px; }
+.prefill-banner i { width: 13px; height: 13px; color: var(--electric); }
+.prefill-banner em {
+  font-style: normal; color: var(--electric); font-weight: 500;
+}
+
+/* ============================================================
+   Responsive — collapse state-tag below 1100px
+   ============================================================ */
+@media (max-width: 1100px) {
+  .state-block {
+    grid-template-columns: 1fr;
+    gap: 18px;
+    justify-items: center;
+  }
+  .state-tag {
+    width: 720px; max-width: 100%;
+    padding-top: 0;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 16px; align-items: center;
+  }
+  .state-tag .step-num {
+    font-size: 32px;
+  }
+  .state-tag .step-desc { display: none; }
+  .modal { max-width: 100%; }
+}
+@media (max-width: 760px) {
+  .review-shell { padding: 16px 12px 60px; }
+  .modal { padding: 24px 18px; width: 100%; }
+  .modal-header h2 { font-size: 28px; }
+  .cat-grid { grid-template-columns: 1fr 1fr; }
+  .two-col { grid-template-columns: 1fr; }
+  .phases-list { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body data-screen-label="E.Practice Modal Nuova Pratica (Excellia)">
+
+<!-- =========================================================
+     Ghost behind-the-modal context (dashboard hint)
+     ========================================================= -->
+<div class="ghost-bg" aria-hidden="true">
+  <div class="gh-topnav">
+    <div style="width:22px;height:22px;border-radius:6px;background:var(--gradient-brand);"></div>
+    <div style="width:80px;height:10px;border-radius:5px;background:var(--surface-container-high);"></div>
+    <div style="width:6px;height:6px;border-radius:50%;background:var(--on-surface-muted);opacity:0.5;"></div>
+    <div style="width:140px;height:10px;border-radius:5px;background:var(--surface-container-high);"></div>
+  </div>
+  <div class="gh-side">
+    <div class="gh-row med"></div>
+    <div class="gh-row short"></div>
+    <div class="gh-pill"></div>
+    <div class="gh-pill"></div>
+    <div class="gh-pill" style="background:var(--surface-container-high);"></div>
+    <div class="gh-pill"></div>
+    <div class="gh-pill"></div>
+    <div class="gh-pill"></div>
+    <div class="gh-pill"></div>
+  </div>
+  <div class="gh-main">
+    <div class="gh-row" style="width:35%;height:24px;"></div>
+    <div style="height:8px;"></div>
+    <div class="gh-row med"></div>
+    <div style="height:24px;"></div>
+    <div class="gh-card"></div>
+    <div class="gh-card"></div>
+    <div class="gh-card"></div>
+    <div class="gh-card"></div>
+    <div class="gh-card"></div>
+  </div>
+  <div class="gh-dim"></div>
+</div>
+
+<!-- =========================================================
+     Review shell — header + 3 stacked states
+     ========================================================= -->
+<div class="review-shell">
+
+  <header class="review-header">
+    <div class="review-title">
+      <div class="hud" style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+        <span class="data-pulse"></span>
+        E.Practice · Wizard
+      </div>
+      <h1>Nuova pratica — 3 stati del wizard</h1>
+      <p>Il flusso più usato dell'applicazione. Modal centrato, 720&nbsp;px, overlay scuro 60% + blur 8&nbsp;px. Le fasi vengono create dal template in base alla categoria.</p>
+    </div>
+    <div class="review-meta">
+      <div class="review-brand">
+        <span class="mark">E</span>
+        ExcellIA · E.Practice
+      </div>
+      <div class="review-pills">
+        <span class="review-pill is-current">Tema Excellia</span>
+        <span class="review-pill">Dark</span>
+        <span class="review-pill">Light</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="state-stack">
+
+    <!-- ============================================================
+         STATE 1 — Cliente e categoria
+         ============================================================ -->
+    <section class="state-block" data-screen-label="01 Step 1 — Cliente">
+      <aside class="state-tag">
+        <div class="step-kicker">Stato</div>
+        <div class="step-num"><em>01</em></div>
+        <div class="step-name">Cliente e categoria</div>
+        <p class="step-desc">L'utente sceglie il cliente dalla rubrica o ne crea uno nuovo, poi seleziona la categoria della pratica.</p>
+        <div class="step-meta">
+          <i data-lucide="keyboard" style="width:11px;height:11px;"></i>
+          <span>⌘+K · ricerca</span>
+        </div>
+      </aside>
+
+      <div class="modal" role="dialog" aria-labelledby="modal-title-1">
+        <button class="modal-close" aria-label="Chiudi"><i data-lucide="x" style="width:18px;height:18px;"></i></button>
+
+        <div class="modal-header">
+          <div class="h-eyebrow">
+            <span class="data-pulse"></span>
+            Nuova pratica
+          </div>
+          <h2 id="modal-title-1">Da quale cliente partiamo?</h2>
+          <p>Compila i dati base. Le fasi verranno create automaticamente dal template di categoria.</p>
+        </div>
+
+        <!-- progress -->
+        <div class="progress" data-active="1">
+          <div class="prog-step" data-state="active">
+            <div class="prog-dot">1<span class="pulse-ring"></span></div>
+            <div class="prog-label">
+              <span class="kicker">Step 01</span>
+              <span class="name">Cliente</span>
+            </div>
+          </div>
+          <div class="prog-step" data-state="future">
+            <div class="prog-dot">2</div>
+            <div class="prog-label">
+              <span class="kicker">Step 02</span>
+              <span class="name">Dettagli</span>
+            </div>
+          </div>
+          <div class="prog-step" data-state="future">
+            <div class="prog-dot">3</div>
+            <div class="prog-label">
+              <span class="kicker">Step 03</span>
+              <span class="name">Assegnazioni</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- cliente combo -->
+        <div class="field combo">
+          <label class="field-label">
+            Cliente
+            <span class="help">Rubrica · 247 clienti</span>
+          </label>
+          <div class="input-shell is-active">
+            <i data-lucide="search"></i>
+            <input type="text" value="acciaier" placeholder="Cerca cliente per nominativo, P.IVA, codice…" />
+            <span class="kbd">⌘K</span>
+          </div>
+          <!-- dropdown -->
+          <div class="combo-dropdown">
+            <div class="combo-row is-selected">
+              <div class="combo-avatar">AV</div>
+              <div class="combo-name">
+                <span><mark>Acciaier</mark>ie Valgobbia SRL</span>
+                <small>P.IVA 02384710987 · Brescia · Cliente dal 2019</small>
+              </div>
+              <span class="combo-meta">12 pratiche</span>
+            </div>
+            <div class="combo-row">
+              <div class="combo-avatar">AB</div>
+              <div class="combo-name">
+                <span><mark>Acciaier</mark>ia Bresciana SPA</span>
+                <small>P.IVA 01827364521 · Brescia</small>
+              </div>
+              <span class="combo-meta">8 pratiche</span>
+            </div>
+            <div class="combo-row">
+              <div class="combo-avatar">AN</div>
+              <div class="combo-name">
+                <span><mark>Acciaier</mark>ia del Nord SAS</span>
+                <small>P.IVA 03928471652 · Milano</small>
+              </div>
+              <span class="combo-meta">3 pratiche</span>
+            </div>
+          </div>
+          <p class="hint">
+            Cliente non in rubrica?
+            <a href="#"><i data-lucide="plus"></i>Crea nuovo cliente</a>
+          </p>
+        </div>
+
+        <!-- categoria -->
+        <div class="field" style="margin-top: 96px;">
+          <label class="field-label">
+            Categoria pratica
+            <span class="help">Determina il template di fasi</span>
+          </label>
+          <div class="cat-grid">
+            <button class="cat-card cat-card-c1">
+              <div class="cat-icon"><i data-lucide="scroll-text"></i></div>
+              <div class="cat-title">Costituzione e variazioni</div>
+              <div class="cat-sub">Atti societari, modifiche statuto</div>
+            </button>
+            <button class="cat-card cat-card-c2">
+              <div class="cat-icon"><i data-lucide="landmark"></i></div>
+              <div class="cat-title">Adempimenti fiscali</div>
+              <div class="cat-sub">F24, IVA, dichiarazioni</div>
+            </button>
+            <button class="cat-card cat-card-c3 is-selected">
+              <div class="cat-icon"><i data-lucide="calculator"></i></div>
+              <div class="cat-title">Bilancio e contabilità</div>
+              <div class="cat-sub">CE/SP, nota integrativa, deposito</div>
+            </button>
+            <button class="cat-card cat-card-c4">
+              <div class="cat-icon"><i data-lucide="compass"></i></div>
+              <div class="cat-title">Consulenza straordinaria</div>
+              <div class="cat-sub">M&amp;A, perizie, riorganizzazioni</div>
+            </button>
+            <button class="cat-card cat-card-c5">
+              <div class="cat-icon"><i data-lucide="scale"></i></div>
+              <div class="cat-title">Contenzioso tributario</div>
+              <div class="cat-sub">Ricorsi, accertamenti, mediazioni</div>
+            </button>
+            <button class="cat-card cat-card-c6">
+              <div class="cat-icon"><i data-lucide="more-horizontal"></i></div>
+              <div class="cat-title">Altro / personalizzata</div>
+              <div class="cat-sub">Template vuoto, fasi custom</div>
+            </button>
+          </div>
+        </div>
+
+        <!-- footer -->
+        <div class="modal-footer">
+          <div class="footer-meta">
+            <span class="data-pulse"></span>
+            Step 01 di 03
+          </div>
+          <div class="footer-cta">
+            <button class="btn btn-ghost">Annulla</button>
+            <button class="btn btn-primary">
+              Avanti
+              <i data-lucide="arrow-right"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         STATE 2 — Dettagli pratica
+         ============================================================ -->
+    <section class="state-block" data-screen-label="02 Step 2 — Dettagli">
+      <aside class="state-tag">
+        <div class="step-kicker">Stato</div>
+        <div class="step-num"><em>02</em></div>
+        <div class="step-name">Dettagli pratica</div>
+        <p class="step-desc">Titolo pre-compilato da categoria, anno e cliente. Scadenza calcolata sommando le durate del template.</p>
+        <div class="step-meta">
+          <span class="data-pulse"></span>
+          <span>Auto · prefill</span>
+        </div>
+      </aside>
+
+      <div class="modal" role="dialog" aria-labelledby="modal-title-2">
+        <button class="modal-close" aria-label="Chiudi"><i data-lucide="x" style="width:18px;height:18px;"></i></button>
+
+        <div class="modal-header">
+          <div class="h-eyebrow">
+            <span class="data-pulse"></span>
+            Nuova pratica · Bilancio e contabilità
+          </div>
+          <h2 id="modal-title-2">I dettagli della pratica.</h2>
+          <p>Abbiamo pre-compilato titolo e scadenza in base al template. Tu controlla, modifica e vai avanti.</p>
+        </div>
+
+        <!-- progress -->
+        <div class="progress" data-active="2">
+          <div class="prog-step" data-state="done">
+            <div class="prog-dot"><i data-lucide="check" style="width:16px;height:16px;"></i></div>
+            <div class="prog-label">
+              <span class="kicker">Step 01</span>
+              <span class="name">Cliente</span>
+            </div>
+          </div>
+          <div class="prog-step" data-state="active">
+            <div class="prog-dot">2<span class="pulse-ring"></span></div>
+            <div class="prog-label">
+              <span class="kicker">Step 02</span>
+              <span class="name">Dettagli</span>
+            </div>
+          </div>
+          <div class="prog-step" data-state="future">
+            <div class="prog-dot">3</div>
+            <div class="prog-label">
+              <span class="kicker">Step 03</span>
+              <span class="name">Assegnazioni</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- titolo -->
+        <div class="field">
+          <label class="field-label">
+            Titolo pratica
+            <span class="help">Modificabile</span>
+          </label>
+          <div class="input-shell">
+            <i data-lucide="file-text"></i>
+            <input type="text" value="Bilancio 2025 — Acciaierie Valgobbia SRL" />
+          </div>
+          <p class="prefill-banner">
+            <i data-lucide="sparkles"></i>
+            Suggerito da <em>categoria · anno · cliente</em>
+          </p>
+        </div>
+
+        <!-- descrizione -->
+        <div class="field">
+          <label class="field-label">
+            Descrizione breve
+            <span class="opt">opzionale</span>
+          </label>
+          <div class="input-shell">
+            <textarea class="input-bare" rows="2" placeholder="Es. Chiusura esercizio fiscale 2025, redazione CE/SP, nota integrativa e deposito CCIAA entro 30 aprile.">Chiusura esercizio fiscale 2025, redazione CE/SP, nota integrativa e deposito CCIAA.</textarea>
+          </div>
+        </div>
+
+        <!-- due cols -->
+        <div class="two-col">
+          <!-- left -->
+          <div>
+            <div class="field" style="margin-top:0;">
+              <label class="field-label">Data apertura</label>
+              <div class="date-display">
+                <div class="d-mini">
+                  <div class="d-mini-top">Mag</div>
+                  <div class="d-mini-num">12</div>
+                </div>
+                <div class="d-text">
+                  <strong>Martedì, 12 maggio 2026</strong>
+                  <small>Oggi</small>
+                </div>
+                <i data-lucide="chevron-down" class="d-chev" style="width:16px;height:16px;"></i>
+              </div>
+            </div>
+
+            <div class="field">
+              <label class="field-label">
+                Scadenza
+                <span class="help">Auto-calcolata</span>
+              </label>
+              <div class="date-display is-computed">
+                <div class="d-mini">
+                  <div class="d-mini-top">Ago</div>
+                  <div class="d-mini-num">10</div>
+                </div>
+                <div class="d-text">
+                  <strong>Lunedì, 10 agosto 2026</strong>
+                  <small><i data-lucide="zap"></i>+90 giorni dal template</small>
+                </div>
+                <i data-lucide="chevron-down" class="d-chev" style="width:16px;height:16px;"></i>
+              </div>
+            </div>
+          </div>
+
+          <!-- right -->
+          <div>
+            <div class="field" style="margin-top:0;">
+              <label class="field-label">Priorità</label>
+              <div class="priority-row">
+                <button class="prio tone-low">
+                  <span class="dot"></span>
+                  Bassa
+                </button>
+                <button class="prio is-selected">
+                  <span class="dot"></span>
+                  Media
+                </button>
+                <button class="prio tone-high">
+                  <span class="dot"></span>
+                  Alta
+                </button>
+              </div>
+            </div>
+
+            <div class="field">
+              <label class="field-label">
+                Etichette
+                <span class="opt">multi-select</span>
+              </label>
+              <div class="tags-wrap">
+                <span class="tag-pill is-selected">
+                  Scadenza fiscale
+                  <i data-lucide="x" class="x"></i>
+                </span>
+                <span class="tag-pill is-selected">
+                  Cliente VIP
+                  <i data-lucide="x" class="x"></i>
+                </span>
+                <span class="tag-pill">Ricorrente</span>
+                <span class="tag-pill">Urgente</span>
+                <span class="tag-pill">Audit</span>
+                <span class="tag-pill">Revisione</span>
+                <span class="tag-pill">Nuovo cliente</span>
+                <button class="tag-add"><i data-lucide="plus"></i>Crea</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- footer -->
+        <div class="modal-footer">
+          <div class="footer-meta">
+            <span class="data-pulse"></span>
+            Step 02 di 03
+          </div>
+          <div class="footer-cta">
+            <button class="btn btn-ghost">
+              <i data-lucide="arrow-left"></i>
+              Indietro
+            </button>
+            <button class="btn btn-primary">
+              Avanti
+              <i data-lucide="arrow-right"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         STATE 3 — Assegnazioni
+         ============================================================ -->
+    <section class="state-block" data-screen-label="03 Step 3 — Assegnazioni">
+      <aside class="state-tag">
+        <div class="step-kicker">Stato</div>
+        <div class="step-num"><em>03</em></div>
+        <div class="step-name">Assegnazioni</div>
+        <p class="step-desc">Si scelgono responsabile e collaboratori, si conferma il piano di 10 fasi e si crea la pratica.</p>
+        <div class="step-meta">
+          <i data-lucide="check-check" style="width:11px;height:11px;"></i>
+          <span>Ultimo step</span>
+        </div>
+      </aside>
+
+      <div class="modal" role="dialog" aria-labelledby="modal-title-3">
+        <button class="modal-close" aria-label="Chiudi"><i data-lucide="x" style="width:18px;height:18px;"></i></button>
+
+        <div class="modal-header">
+          <div class="h-eyebrow">
+            <span class="data-pulse"></span>
+            Nuova pratica · Bilancio 2025 — Acciaierie Valgobbia
+          </div>
+          <h2 id="modal-title-3">Chi se ne occupa?</h2>
+          <p>Assegna responsabile e team. Le 10 fasi del template saranno create automaticamente con i loro promemoria.</p>
+        </div>
+
+        <!-- progress -->
+        <div class="progress" data-active="3">
+          <div class="prog-step" data-state="done">
+            <div class="prog-dot"><i data-lucide="check" style="width:16px;height:16px;"></i></div>
+            <div class="prog-label">
+              <span class="kicker">Step 01</span>
+              <span class="name">Cliente</span>
+            </div>
+          </div>
+          <div class="prog-step" data-state="done">
+            <div class="prog-dot"><i data-lucide="check" style="width:16px;height:16px;"></i></div>
+            <div class="prog-label">
+              <span class="kicker">Step 02</span>
+              <span class="name">Dettagli</span>
+            </div>
+          </div>
+          <div class="prog-step" data-state="active">
+            <div class="prog-dot">3<span class="pulse-ring"></span></div>
+            <div class="prog-label">
+              <span class="kicker">Step 03</span>
+              <span class="name">Assegnazioni</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- responsabile -->
+        <div class="field">
+          <label class="field-label">
+            Responsabile
+            <span class="help">4 commercialisti dello studio</span>
+          </label>
+          <div class="user-row">
+            <div class="avatar av-1">DT</div>
+            <div class="u-info">
+              <strong>Davide Torchio</strong>
+              <small>Senior partner · Commercialista · Iscr. 1284</small>
+            </div>
+            <div class="u-meta">
+              <div class="u-load" title="Carico settimanale 62%">
+                <div class="u-load-bar"><span style="width:62%;"></span></div>
+                <span>62%</span>
+              </div>
+              <i data-lucide="chevron-down" class="chevron" style="width:16px;height:16px;"></i>
+            </div>
+          </div>
+        </div>
+
+        <!-- collaboratori -->
+        <div class="field">
+          <label class="field-label">
+            Collaboratori
+            <span class="opt">opzionale · max 5</span>
+            <span class="help">2 selezionati</span>
+          </label>
+          <div class="collab-stack">
+            <div class="collab-pill">
+              <div class="avatar av-2">AR</div>
+              <div>
+                <strong>Anna Riva</strong>
+                <small>Commercialista</small>
+              </div>
+              <button aria-label="Rimuovi"><i data-lucide="x" style="width:13px;height:13px;"></i></button>
+            </div>
+            <div class="collab-pill">
+              <div class="avatar av-3">MB</div>
+              <div>
+                <strong>Marco Belluzzi</strong>
+                <small>Associato</small>
+              </div>
+              <button aria-label="Rimuovi"><i data-lucide="x" style="width:13px;height:13px;"></i></button>
+            </div>
+            <button class="collab-add">
+              <i data-lucide="plus"></i>
+              Aggiungi collaboratore
+              <span class="max">3 posti rimasti</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- phases box -->
+        <div class="phases-box">
+          <div class="phases-head">
+            <div class="glyph"><i data-lucide="list-checks"></i></div>
+            <div class="ph-title">
+              <strong>Template fasi <em>Auto</em></strong>
+              <small>Verranno create 10 fasi dal template <b>Bilancio &amp; contabilità</b></small>
+            </div>
+            <div class="ph-total">
+              <div class="num">90<span style="font-size:13px;color:var(--on-surface-muted);font-weight:500;">g</span></div>
+              <div class="lbl">Durata totale</div>
+            </div>
+          </div>
+          <div class="phases-list">
+            <div class="phase-row">
+              <span class="n">01</span>
+              <span class="ic"><i data-lucide="folder-input"></i></span>
+              <span class="nm">Raccolta scritture</span>
+              <span class="dur">7g</span>
+            </div>
+            <div class="phase-row">
+              <span class="n">02</span>
+              <span class="ic"><i data-lucide="git-compare"></i></span>
+              <span class="nm">Riconciliazione bancaria</span>
+              <span class="dur">5g</span>
+            </div>
+            <div class="phase-row">
+              <span class="n">03</span>
+              <span class="ic"><i data-lucide="package-search"></i></span>
+              <span class="nm">Verifica inventario</span>
+              <span class="dur">3g</span>
+            </div>
+            <div class="phase-row">
+              <span class="n">04</span>
+              <span class="ic"><i data-lucide="calendar-clock"></i></span>
+              <span class="nm">Ammortamenti e ratei</span>
+              <span class="dur">4g</span>
+            </div>
+            <div class="phase-row">
+              <span class="n">05</span>
+              <span class="ic"><i data-lucide="file-spreadsheet"></i></span>
+              <span class="nm">Bozza CE/SP</span>
+              <span class="dur">10g</span>
+            </div>
+            <div class="phase-row">
+              <span class="n">06</span>
+              <span class="ic"><i data-lucide="eye"></i></span>
+              <span class="nm">Revisione collegio</span>
+              <span class="dur">7g</span>
+            </div>
+            <div class="phase-row">
+              <span class="n">07</span>
+              <span class="ic"><i data-lucide="file-pen-line"></i></span>
+              <span class="nm">Nota integrativa</span>
+              <span class="dur">8g</span>
+            </div>
+            <div class="phase-row">
+              <span class="n">08</span>
+              <span class="ic"><i data-lucide="users-round"></i></span>
+              <span class="nm">Approvazione CDA</span>
+              <span class="dur">5g</span>
+            </div>
+            <div class="phase-row">
+              <span class="n">09</span>
+              <span class="ic"><i data-lucide="building-2"></i></span>
+              <span class="nm">Deposito CCIAA</span>
+              <span class="dur">3g</span>
+            </div>
+            <div class="phase-row">
+              <span class="n">10</span>
+              <span class="ic"><i data-lucide="archive"></i></span>
+              <span class="nm">Archiviazione</span>
+              <span class="dur">1g</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- promemoria checkbox -->
+        <div class="check-row">
+          <div class="check-box"><i data-lucide="check"></i></div>
+          <div class="ck-text">
+            <strong>Crea promemoria automatici per ogni fase</strong>
+            <small>Riceverai notifiche 2 giorni prima di ogni scadenza intermedia. Modificabile poi nella scheda pratica.</small>
+          </div>
+        </div>
+
+        <!-- footer -->
+        <div class="modal-footer">
+          <div class="footer-meta">
+            <span class="data-pulse"></span>
+            Step 03 di 03 · Pronto
+          </div>
+          <div class="footer-cta">
+            <button class="btn btn-ghost">
+              <i data-lucide="arrow-left"></i>
+              Indietro
+            </button>
+            <button class="btn btn-primary is-large">
+              <i data-lucide="sparkles"></i>
+              Crea pratica
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+</div>
+
+<script>
+  lucide.createIcons();
+
+  // light hover/selection interactivity for review
+  document.querySelectorAll('.cat-grid').forEach(grid => {
+    grid.addEventListener('click', e => {
+      const card = e.target.closest('.cat-card');
+      if (!card) return;
+      grid.querySelectorAll('.cat-card').forEach(c => c.classList.remove('is-selected'));
+      card.classList.add('is-selected');
+    });
+  });
+
+  document.querySelectorAll('.priority-row').forEach(row => {
+    row.addEventListener('click', e => {
+      const p = e.target.closest('.prio');
+      if (!p) return;
+      row.querySelectorAll('.prio').forEach(x => x.classList.remove('is-selected'));
+      p.classList.add('is-selected');
+    });
+  });
+
+  document.querySelectorAll('.tags-wrap').forEach(wrap => {
+    wrap.addEventListener('click', e => {
+      const t = e.target.closest('.tag-pill');
+      if (!t) return;
+      t.classList.toggle('is-selected');
+    });
+  });
+
+  document.querySelectorAll('.check-row').forEach(row => {
+    row.addEventListener('click', () => {
+      row.querySelector('.check-box').classList.toggle('is-off');
+    });
+  });
+</script>
+</body>
+</html>
