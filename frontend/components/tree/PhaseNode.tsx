@@ -39,6 +39,11 @@ export function PhaseNode({ phase, x, y, selected, onSelect }: PhaseNodeProps) {
   const date = new Intl.DateTimeFormat("it-IT", { day: "2-digit", month: "2-digit" }).format(
     new Date(phase.plannedDate),
   );
+  const fullDate = new Intl.DateTimeFormat("it-IT", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(new Date(phase.plannedDate));
   const isActive = phase.status === "in_progress";
   const titleLines = splitTitle(phase.title);
 
@@ -51,6 +56,13 @@ export function PhaseNode({ phase, x, y, selected, onSelect }: PhaseNodeProps) {
       tabIndex={0}
       transform={`translate(${x} ${y})`}
     >
+      <title>{`${phase.title} · ${fullDate}`}</title>
+      <g className="opacity-0 transition-opacity group-hover:opacity-100">
+        <rect className="fill-surface-high stroke-border" height="22" rx="11" width="96" x="-48" y="-62" />
+        <text className="fill-foreground text-[11px] font-semibold" textAnchor="middle" y="-47">
+          {fullDate}
+        </text>
+      </g>
       {phase.status === "done" ? <circle className="fill-success/20 stroke-success/30" r="34" /> : null}
       {isActive ? <circle className="fill-electric opacity-20" r="42" /> : null}
       {selected || isActive ? <circle className="fill-none stroke-electric stroke-2" r="34" /> : null}
