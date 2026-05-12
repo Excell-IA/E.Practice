@@ -1,7 +1,6 @@
 import {
   Bell,
   CalendarDays,
-  ChevronRight,
   Clock3,
   Gauge,
   LayoutDashboard,
@@ -22,19 +21,22 @@ type EWorkShellProps = {
 };
 
 const navItems = [
-  { label: "Dashboard", icon: LayoutDashboard },
-  { label: "Rubrica", icon: UsersRound },
-  { label: "Pratiche", icon: Gauge, active: true },
-  { label: "Agenda", icon: CalendarDays },
-  { label: "Scadenze", icon: Clock3 },
-  { label: "Utenti", icon: UserSquare2 },
-  { label: "Config", icon: Settings },
+  { label: "Dashboard", icon: LayoutDashboard, section: "Modulo" },
+  { label: "Rubrica clienti", icon: UsersRound, section: "Modulo" },
+  { label: "Pratiche", icon: Gauge, section: "Modulo", active: true, badge: 24 },
+  { label: "Agenda", icon: CalendarDays, section: "Modulo" },
+  { label: "Scadenze", icon: Clock3, section: "Modulo", badge: 7 },
+  { label: "Utenti studio", icon: UserSquare2, section: "Studio" },
+  { label: "Configurazione", icon: Settings, section: "Studio" },
 ];
 
 function LogoMark() {
   return (
-    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand shadow-[var(--shadow-electric-sm)]">
-      <span className="font-display text-sm font-bold text-[var(--on-primary)]">E</span>
+    <div className="relative flex h-10 w-10 items-center justify-center">
+      <span className="bg-gradient-to-br from-primary to-[#00C2FF] bg-clip-text font-display text-[22px] font-bold tracking-[-0.04em] text-transparent">
+        E.
+      </span>
+      <span className="absolute bottom-1 h-0.5 w-3.5 rounded-full bg-gradient-to-r from-primary to-[#00C2FF]" />
     </div>
   );
 }
@@ -42,68 +44,93 @@ function LogoMark() {
 export function EWorkShell({ children, code }: EWorkShellProps) {
   return (
     <div className="min-h-screen bg-surface text-foreground">
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 border-r border-border bg-surface-low/80 backdrop-blur-xl lg:flex lg:flex-col">
-        <div className="flex h-16 items-center gap-3 border-b border-border px-4">
+      <aside className="fixed inset-y-[60px] left-0 z-40 hidden w-60 flex-col overflow-y-auto bg-surface-low px-3 py-5 lg:flex">
+        <div className="mb-5 flex items-center gap-3 px-3">
           <LogoMark />
           <div>
-            <p className="font-display text-sm font-semibold">ExcellIA Work</p>
-            <p className="font-label text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">Studio Leali</p>
+            <p className="font-display text-sm font-semibold text-foreground">ExcellIA Work</p>
+            <p className="font-label text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">Studio Leali</p>
           </div>
         </div>
 
-        <nav className="flex-1 space-y-1 p-3">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            return (
-              <button
-                className={cn(
-                  "flex h-11 w-full items-center gap-3 rounded-xl px-3 text-left font-display text-sm font-medium text-muted transition-colors",
-                  item.active && "bg-electric/12 text-electric",
-                  !item.active && "hover:bg-surface-high hover:text-foreground",
-                )}
-                key={item.label}
-                title="In sviluppo"
-                type="button"
-              >
-                <Icon className="h-4 w-4" />
-                <span>{item.label}</span>
-              </button>
-            );
-          })}
+        <nav className="flex-1 space-y-6">
+          {["Modulo", "Studio"].map((section) => (
+            <div className="space-y-1" key={section}>
+              <p className="px-3 pb-1 font-display text-[10px] font-medium uppercase tracking-[0.16em] text-muted">
+                {section}
+              </p>
+              {navItems
+                .filter((item) => item.section === section)
+                .map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <button
+                      className={cn(
+                        "relative flex h-9 w-full items-center gap-3 rounded-lg px-3 text-left text-[13.5px] font-medium text-foreground-variant transition-colors",
+                        item.active && "bg-surface-high text-foreground",
+                        !item.active && "hover:bg-surface-container hover:text-foreground",
+                      )}
+                      key={item.label}
+                      title="In sviluppo"
+                      type="button"
+                    >
+                      {item.active ? (
+                        <span className="absolute bottom-2 left-0 top-2 w-0.5 rounded-r bg-gradient-to-b from-primary to-[#00C2FF]" />
+                      ) : null}
+                      <Icon className={cn("h-4 w-4 text-muted", item.active && "text-primary")} />
+                      <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                      {item.badge ? (
+                        <span className="rounded-full bg-primary/15 px-1.5 py-0.5 font-display text-[10px] font-semibold text-primary">
+                          {item.badge}
+                        </span>
+                      ) : null}
+                    </button>
+                  );
+                })}
+            </div>
+          ))}
         </nav>
 
-        <div className="border-t border-border p-4">
-          <div className="rounded-2xl bg-surface-container p-3">
+        <div className="border-t border-border pt-4">
+          <div className="rounded-xl bg-surface-container p-3">
             <p className="font-display text-xs font-semibold text-foreground">Demo Leali</p>
             <p className="mt-1 text-xs leading-5 text-muted">Ambiente statico V0, pronto per walkthrough prodotto.</p>
           </div>
         </div>
       </aside>
 
-      <div className="lg:pl-64">
-        <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-surface/70 px-4 backdrop-blur-xl md:px-6">
-          <div className="flex min-w-0 items-center gap-3">
+      <div className="lg:pl-60">
+        <header className="sticky top-0 z-30 flex h-[60px] items-center justify-between bg-surface-lowest/75 px-4 backdrop-blur-xl md:px-5">
+          <div className="flex min-w-0 items-center gap-4">
             <div className="lg:hidden">
               <LogoMark />
             </div>
             <div className="min-w-0">
-              <div className="flex items-center gap-1 overflow-hidden whitespace-nowrap font-label text-xs font-semibold text-muted">
-                <span>ExcellIA Work</span>
-                <ChevronRight className="h-3 w-3 shrink-0" />
-                <span>E.Practice</span>
-                <ChevronRight className="h-3 w-3 shrink-0" />
-                <span>Pratiche</span>
-                <ChevronRight className="h-3 w-3 shrink-0" />
-                <span className="text-electric">{code}</span>
+              <div className="flex items-center gap-2 overflow-hidden whitespace-nowrap text-sm">
+                <span className="font-display text-[11px] font-medium uppercase tracking-[0.14em] text-muted">
+                  ExcellIA Work
+                </span>
+                <span className="text-muted/60">/</span>
+                <span className="font-medium text-foreground-variant">E.Practice</span>
+                <span className="text-muted/60">/</span>
+                <span className="font-medium text-foreground-variant">Pratiche</span>
+                <span className="text-muted/60">/</span>
+                <span className="font-medium text-foreground">{code}</span>
               </div>
-              <p className="mt-1 truncate font-display text-sm font-semibold text-foreground">Tenant Studio Leali</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-5">
+            <div className="hidden items-center gap-2 rounded-full bg-surface-container px-3 py-1.5 md:flex">
+              <span className="font-display text-[10px] font-medium uppercase tracking-[0.14em] text-muted">AWU</span>
+              <div className="h-1 w-[60px] overflow-hidden rounded-full bg-surface-highest">
+                <div className="h-full w-[43%] rounded-full bg-gradient-to-r from-primary to-[#00C2FF] shadow-[0_0_8px_rgba(146,217,255,0.5)]" />
+              </div>
+              <span className="font-display text-[11px] font-semibold text-foreground">43%</span>
+            </div>
             <button
               aria-label="Cerca"
-              className="hidden h-9 w-9 items-center justify-center rounded-xl text-muted transition-colors hover:bg-surface-high hover:text-foreground md:inline-flex"
+              className="hidden h-8 w-8 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-high hover:text-foreground md:inline-flex"
               title="In sviluppo"
               type="button"
             >
@@ -111,29 +138,31 @@ export function EWorkShell({ children, code }: EWorkShellProps) {
             </button>
             <button
               aria-label="Notifiche"
-              className="relative hidden h-9 w-9 items-center justify-center rounded-xl text-muted transition-colors hover:bg-surface-high hover:text-foreground md:inline-flex"
+              className="relative hidden h-8 w-8 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-high hover:text-foreground md:inline-flex"
               title="In sviluppo"
               type="button"
             >
               <Bell className="h-4 w-4" />
-              <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-warning" />
+              <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-gradient-to-br from-primary to-[#00C2FF] px-1 font-display text-[10px] font-semibold text-[var(--on-primary)]">
+                3
+              </span>
             </button>
-            <div className="hidden h-9 items-center gap-1 rounded-xl border border-border bg-surface-low px-1 md:flex">
-              <button className="flex h-7 w-7 items-center justify-center rounded-lg bg-surface-high text-electric" type="button">
+            <div className="hidden h-8 items-center gap-1 rounded-full bg-surface-container px-1 md:flex">
+              <button className="flex h-6 w-6 items-center justify-center rounded-full bg-surface-high text-primary" type="button">
                 <Sun className="h-3.5 w-3.5" />
               </button>
-              <button className="flex h-7 w-7 items-center justify-center rounded-lg text-muted" type="button">
+              <button className="flex h-6 w-6 items-center justify-center rounded-full text-muted" type="button">
                 <span className="font-label text-[11px] font-bold">E</span>
               </button>
-              <button className="flex h-7 w-7 items-center justify-center rounded-lg text-muted" type="button">
+              <button className="flex h-6 w-6 items-center justify-center rounded-full text-muted" type="button">
                 <Moon className="h-3.5 w-3.5" />
               </button>
             </div>
-            <div className="hidden h-9 items-center rounded-xl border border-border bg-surface-low px-3 font-label text-xs font-semibold text-foreground md:flex">
+            <div className="hidden h-8 items-center rounded-full bg-surface-container px-3 font-label text-xs font-semibold text-foreground md:flex">
               IT
             </div>
-            <div className="flex items-center gap-3 rounded-xl border border-border bg-surface-low py-1 pl-2 pr-3">
-              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-brand font-label text-xs font-bold text-[var(--on-primary)]">
+            <div className="flex items-center gap-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-surface-high font-display text-xs font-semibold text-foreground ring-0 transition-shadow hover:ring-2 hover:ring-primary/40">
                 MB
               </div>
               <div className="hidden leading-tight sm:block">
