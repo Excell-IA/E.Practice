@@ -6,7 +6,7 @@ from datetime import UTC, datetime
 from typing import Annotated
 from uuid import UUID, uuid4
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 
 from app.deps import (
     get_activity_log_repo,
@@ -197,14 +197,14 @@ async def list_client_practices(
     return await practice_repo.list(client_id=client_id)
 
 
-@router.delete("/{client_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{client_id}", status_code=status.HTTP_204_NO_CONTENT, response_class=Response)
 async def delete_client(
     client_id: UUID,
     client_repo: Annotated[Repository[Client], Depends(get_client_repo)],
     practice_repo: Annotated[Repository[Practice], Depends(get_practice_repo)],
     activity_repo: Annotated[Repository[ActivityLog], Depends(get_activity_log_repo)],
     current_user_id: Annotated[str, Depends(get_current_user_id)],
-) -> None:
+) -> Response:
     """Soft delete cliente. 409 se ha pratiche aperte (status != chiusa/archiviata).
 
     Setta `status='archiviato'` (status enum V0: attivo|sospeso|archiviato) +
@@ -237,3 +237,4 @@ async def delete_client(
         entity_id=existing.id,
         metadata={"soft_delete": True},
     )
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
