@@ -1,7 +1,7 @@
 """Pydantic schemas for ad-hoc practice events."""
 
 from datetime import date, datetime, time
-from typing import Literal, Optional
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
@@ -27,14 +27,14 @@ class PracticeEventBase(BaseModel):
     model_config = ConfigDict(populate_by_name=True, from_attributes=True)
 
     practice_id: UUID
-    phase_id: Optional[UUID] = None
+    phase_id: UUID | None = None
     event_type: PracticeEventType
     title: str
-    description: Optional[str] = None
+    description: str | None = None
     event_date: date
-    event_time: Optional[time] = None
+    event_time: time | None = None
     author_id: UUID
-    visual_position: Optional[VisualPosition] = None
+    visual_position: VisualPosition | None = None
 
 
 # L2 OPERATIVO - esposta all'AI solo tramite view L3
@@ -50,12 +50,12 @@ class PracticeEventCreate(PracticeEventBase):
 class PracticeEventUpdate(BaseModel):
     model_config = ConfigDict(populate_by_name=True, from_attributes=True)
 
-    practice_id: Optional[UUID] = None
-    phase_id: Optional[UUID] = None
-    event_type: Optional[PracticeEventType] = None
-    title: Optional[str] = None
-    description: Optional[str] = None
-    event_date: Optional[date] = None
-    event_time: Optional[time] = None
-    author_id: Optional[UUID] = None
-    visual_position: Optional[VisualPosition] = None
+    practice_id: UUID | None = None
+    phase_id: UUID | None = None
+    event_type: PracticeEventType | None = None
+    title: str | None = None
+    description: str | None = None
+    event_date: date | None = None
+    event_time: time | None = None
+    author_id: UUID | None = None
+    visual_position: VisualPosition | None = None

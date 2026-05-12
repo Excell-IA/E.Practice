@@ -1,7 +1,7 @@
 """Pydantic schemas for immutable activity log rows."""
 
 from datetime import datetime
-from typing import Any, Literal, Optional
+from typing import Any, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -26,8 +26,8 @@ class ActivityLogBase(BaseModel):
     action: ActivityAction
     entity_type: ActivityEntityType
     entity_id: UUID
-    practice_id: Optional[UUID] = None
-    metadata: Optional[ActivityMetadata] = Field(default=None)
+    practice_id: UUID | None = None
+    metadata: ActivityMetadata | None = Field(default=None)
 
 
 # L2 OPERATIVO - esposta all'AI solo tramite view L3

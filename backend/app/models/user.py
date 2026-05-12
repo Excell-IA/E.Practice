@@ -1,7 +1,7 @@
 """Pydantic schemas for studio users."""
 
 from datetime import datetime
-from typing import Literal, Optional
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
@@ -18,14 +18,14 @@ class UserBase(BaseModel):
     cognome: str
     role: UserRole
     status: UserStatus = "attivo"
-    avatar_color: Optional[str] = None
+    avatar_color: str | None = None
 
 
 # L1 PROTETTO - PII, mai esposta all'AI
 class User(UserBase):
     id: UUID
     created_at: datetime
-    last_access_at: Optional[datetime] = None
+    last_access_at: datetime | None = None
 
 
 class UserCreate(UserBase):
@@ -35,10 +35,10 @@ class UserCreate(UserBase):
 class UserUpdate(BaseModel):
     model_config = ConfigDict(populate_by_name=True, from_attributes=True)
 
-    email: Optional[str] = None
-    nome: Optional[str] = None
-    cognome: Optional[str] = None
-    role: Optional[UserRole] = None
-    status: Optional[UserStatus] = None
-    avatar_color: Optional[str] = None
-    last_access_at: Optional[datetime] = None
+    email: str | None = None
+    nome: str | None = None
+    cognome: str | None = None
+    role: UserRole | None = None
+    status: UserStatus | None = None
+    avatar_color: str | None = None
+    last_access_at: datetime | None = None

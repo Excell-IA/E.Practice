@@ -1,7 +1,7 @@
 """Pydantic schemas for attachment metadata."""
 
 from datetime import datetime
-from typing import Literal, Optional
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
@@ -13,11 +13,11 @@ class AttachmentBase(BaseModel):
     model_config = ConfigDict(populate_by_name=True, from_attributes=True)
 
     practice_id: UUID
-    phase_id: Optional[UUID] = None
-    event_id: Optional[UUID] = None
+    phase_id: UUID | None = None
+    event_id: UUID | None = None
     filename: str
     size_bytes: int
-    mime_type: Optional[str] = None
+    mime_type: str | None = None
     storage_key: str
     source: AttachmentSource = "local"
     uploaded_by: UUID
@@ -36,12 +36,12 @@ class AttachmentCreate(AttachmentBase):
 class AttachmentUpdate(BaseModel):
     model_config = ConfigDict(populate_by_name=True, from_attributes=True)
 
-    practice_id: Optional[UUID] = None
-    phase_id: Optional[UUID] = None
-    event_id: Optional[UUID] = None
-    filename: Optional[str] = None
-    size_bytes: Optional[int] = None
-    mime_type: Optional[str] = None
-    storage_key: Optional[str] = None
-    source: Optional[AttachmentSource] = None
-    uploaded_by: Optional[UUID] = None
+    practice_id: UUID | None = None
+    phase_id: UUID | None = None
+    event_id: UUID | None = None
+    filename: str | None = None
+    size_bytes: int | None = None
+    mime_type: str | None = None
+    storage_key: str | None = None
+    source: AttachmentSource | None = None
+    uploaded_by: UUID | None = None

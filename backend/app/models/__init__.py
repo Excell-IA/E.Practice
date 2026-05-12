@@ -1,6 +1,5 @@
 """Modelli Pydantic L1/L2/L3 per E.Practice."""
 
-from app.models.client import Client, ClientBase, ClientCreate, ClientStatus, ClientType, ClientUpdate
 from app.models.activity_log import (
     ActivityAction,
     ActivityEntityType,
@@ -18,6 +17,14 @@ from app.models.attachment import (
     AttachmentUpdate,
 )
 from app.models.category import Category, CategoryBase, CategoryCreate, CategoryUpdate
+from app.models.client import (
+    Client,
+    ClientBase,
+    ClientCreate,
+    ClientStatus,
+    ClientType,
+    ClientUpdate,
+)
 from app.models.label import (
     ClientLabel,
     Label,
@@ -61,7 +68,13 @@ from app.models.practice_phase import (
     PracticePhaseStatus,
     PracticePhaseUpdate,
 )
-from app.models.reminder import Reminder, ReminderBase, ReminderCreate, ReminderStatus, ReminderUpdate
+from app.models.reminder import (
+    Reminder,
+    ReminderBase,
+    ReminderCreate,
+    ReminderStatus,
+    ReminderUpdate,
+)
 from app.models.requests import (
     AddLabelRequest,
     CompletePhaseRequest,

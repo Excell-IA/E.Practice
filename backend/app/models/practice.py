@@ -1,7 +1,7 @@
 """Pydantic schemas for practices."""
 
 from datetime import date, datetime
-from typing import Literal, Optional
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
@@ -16,17 +16,17 @@ class PracticeBase(BaseModel):
 
     code: str
     title: str
-    description: Optional[str] = None
+    description: str | None = None
     client_id: UUID
     client_token: str
     category_id: UUID
-    responsible_id: Optional[UUID] = None
+    responsible_id: UUID | None = None
     apertura: date
-    scadenza: Optional[date] = None
+    scadenza: date | None = None
     priority: PracticePriority = "media"
     status: PracticeStatus
     created_by: UUID
-    completed_at: Optional[datetime] = None
+    completed_at: datetime | None = None
 
 
 # L2 OPERATIVO - esposta all'AI solo tramite view L3
@@ -42,19 +42,19 @@ class PracticeCreate(PracticeBase):
 class PracticeUpdate(BaseModel):
     model_config = ConfigDict(populate_by_name=True, from_attributes=True)
 
-    code: Optional[str] = None
-    title: Optional[str] = None
-    description: Optional[str] = None
-    client_id: Optional[UUID] = None
-    client_token: Optional[str] = None
-    category_id: Optional[UUID] = None
-    responsible_id: Optional[UUID] = None
-    apertura: Optional[date] = None
-    scadenza: Optional[date] = None
-    priority: Optional[PracticePriority] = None
-    status: Optional[PracticeStatus] = None
-    created_by: Optional[UUID] = None
-    completed_at: Optional[datetime] = None
+    code: str | None = None
+    title: str | None = None
+    description: str | None = None
+    client_id: UUID | None = None
+    client_token: str | None = None
+    category_id: UUID | None = None
+    responsible_id: UUID | None = None
+    apertura: date | None = None
+    scadenza: date | None = None
+    priority: PracticePriority | None = None
+    status: PracticeStatus | None = None
+    created_by: UUID | None = None
+    completed_at: datetime | None = None
 
 
 class PracticeCollaboratorBase(BaseModel):
@@ -62,7 +62,7 @@ class PracticeCollaboratorBase(BaseModel):
 
     practice_id: UUID
     user_id: UUID
-    role: Optional[PracticeCollaboratorRole] = None
+    role: PracticeCollaboratorRole | None = None
 
 
 class PracticeCollaborator(PracticeCollaboratorBase):
@@ -76,4 +76,4 @@ class PracticeCollaboratorCreate(PracticeCollaboratorBase):
 class PracticeCollaboratorUpdate(BaseModel):
     model_config = ConfigDict(populate_by_name=True, from_attributes=True)
 
-    role: Optional[PracticeCollaboratorRole] = None
+    role: PracticeCollaboratorRole | None = None

@@ -1,6 +1,5 @@
 """Pydantic schemas for reusable labels and bridges."""
 
-from typing import Optional
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
@@ -11,7 +10,7 @@ class LabelBase(BaseModel):
 
     name: str
     color: str
-    description: Optional[str] = None
+    description: str | None = None
 
 
 # L2 OPERATIVO - esposta all'AI solo tramite view L3
@@ -26,9 +25,9 @@ class LabelCreate(LabelBase):
 class LabelUpdate(BaseModel):
     model_config = ConfigDict(populate_by_name=True, from_attributes=True)
 
-    name: Optional[str] = None
-    color: Optional[str] = None
-    description: Optional[str] = None
+    name: str | None = None
+    color: str | None = None
+    description: str | None = None
 
 
 class PracticeLabel(BaseModel):

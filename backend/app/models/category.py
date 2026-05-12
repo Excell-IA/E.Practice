@@ -1,6 +1,5 @@
 """Pydantic schemas for practice categories."""
 
-from typing import Optional
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
@@ -10,10 +9,10 @@ class CategoryBase(BaseModel):
     model_config = ConfigDict(populate_by_name=True, from_attributes=True)
 
     name: str
-    group_name: Optional[str] = None
-    icon: Optional[str] = None
-    color: Optional[str] = None
-    description: Optional[str] = None
+    group_name: str | None = None
+    icon: str | None = None
+    color: str | None = None
+    description: str | None = None
     active: bool = True
 
 
@@ -29,9 +28,9 @@ class CategoryCreate(CategoryBase):
 class CategoryUpdate(BaseModel):
     model_config = ConfigDict(populate_by_name=True, from_attributes=True)
 
-    name: Optional[str] = None
-    group_name: Optional[str] = None
-    icon: Optional[str] = None
-    color: Optional[str] = None
-    description: Optional[str] = None
-    active: Optional[bool] = None
+    name: str | None = None
+    group_name: str | None = None
+    icon: str | None = None
+    color: str | None = None
+    description: str | None = None
+    active: bool | None = None

@@ -1,7 +1,7 @@
 """Pydantic schemas for protected client records."""
 
 from datetime import datetime
-from typing import Literal, Optional
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
@@ -16,18 +16,18 @@ class ClientBase(BaseModel):
     code: str
     type: ClientType
     ragione_sociale: str
-    piva: Optional[str] = None
-    cf: Optional[str] = None
-    ateco: Optional[str] = None
-    indirizzo_sede: Optional[str] = None
-    email: Optional[str] = None
-    pec: Optional[str] = None
-    telefono: Optional[str] = None
-    contatto_referente: Optional[str] = None
-    note: Optional[str] = None
+    piva: str | None = None
+    cf: str | None = None
+    ateco: str | None = None
+    indirizzo_sede: str | None = None
+    email: str | None = None
+    pec: str | None = None
+    telefono: str | None = None
+    contatto_referente: str | None = None
+    note: str | None = None
     status: ClientStatus = "attivo"
-    created_by: Optional[UUID] = None
-    deleted_at: Optional[datetime] = None
+    created_by: UUID | None = None
+    deleted_at: datetime | None = None
 
 
 # L1 PROTETTO - PII, mai esposta all'AI
@@ -44,18 +44,18 @@ class ClientCreate(ClientBase):
 class ClientUpdate(BaseModel):
     model_config = ConfigDict(populate_by_name=True, from_attributes=True)
 
-    code: Optional[str] = None
-    type: Optional[ClientType] = None
-    ragione_sociale: Optional[str] = None
-    piva: Optional[str] = None
-    cf: Optional[str] = None
-    ateco: Optional[str] = None
-    indirizzo_sede: Optional[str] = None
-    email: Optional[str] = None
-    pec: Optional[str] = None
-    telefono: Optional[str] = None
-    contatto_referente: Optional[str] = None
-    note: Optional[str] = None
-    status: Optional[ClientStatus] = None
-    created_by: Optional[UUID] = None
-    deleted_at: Optional[datetime] = None
+    code: str | None = None
+    type: ClientType | None = None
+    ragione_sociale: str | None = None
+    piva: str | None = None
+    cf: str | None = None
+    ateco: str | None = None
+    indirizzo_sede: str | None = None
+    email: str | None = None
+    pec: str | None = None
+    telefono: str | None = None
+    contatto_referente: str | None = None
+    note: str | None = None
+    status: ClientStatus | None = None
+    created_by: UUID | None = None
+    deleted_at: datetime | None = None

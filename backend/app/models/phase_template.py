@@ -1,6 +1,5 @@
 """Pydantic schemas for reusable phase templates."""
 
-from typing import Optional
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
@@ -12,9 +11,9 @@ class PhaseTemplateBase(BaseModel):
     category_id: UUID
     order_index: int
     name: str
-    description: Optional[str] = None
-    duration_days: Optional[int] = None
-    default_role: Optional[str] = None
+    description: str | None = None
+    duration_days: int | None = None
+    default_role: str | None = None
 
 
 # L2 OPERATIVO - esposta all'AI solo tramite view L3
@@ -29,9 +28,9 @@ class PhaseTemplateCreate(PhaseTemplateBase):
 class PhaseTemplateUpdate(BaseModel):
     model_config = ConfigDict(populate_by_name=True, from_attributes=True)
 
-    category_id: Optional[UUID] = None
-    order_index: Optional[int] = None
-    name: Optional[str] = None
-    description: Optional[str] = None
-    duration_days: Optional[int] = None
-    default_role: Optional[str] = None
+    category_id: UUID | None = None
+    order_index: int | None = None
+    name: str | None = None
+    description: str | None = None
+    duration_days: int | None = None
+    default_role: str | None = None

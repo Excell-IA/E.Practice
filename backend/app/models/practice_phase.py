@@ -1,7 +1,7 @@
 """Pydantic schemas for instantiated practice phases."""
 
 from datetime import date, datetime
-from typing import Literal, Optional
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
@@ -13,19 +13,19 @@ class PracticePhaseBase(BaseModel):
     model_config = ConfigDict(populate_by_name=True, from_attributes=True)
 
     practice_id: UUID
-    template_id: Optional[UUID] = None
+    template_id: UUID | None = None
     order_index: int
     name: str
-    description: Optional[str] = None
-    assignee_id: Optional[UUID] = None
-    planned_start: Optional[date] = None
-    planned_end: Optional[date] = None
-    actual_start: Optional[date] = None
-    actual_end: Optional[date] = None
+    description: str | None = None
+    assignee_id: UUID | None = None
+    planned_start: date | None = None
+    planned_end: date | None = None
+    actual_start: date | None = None
+    actual_end: date | None = None
     status: PracticePhaseStatus
-    skip_reason: Optional[str] = None
-    completed_by: Optional[UUID] = None
-    completed_at: Optional[datetime] = None
+    skip_reason: str | None = None
+    completed_by: UUID | None = None
+    completed_at: datetime | None = None
 
 
 # L2 OPERATIVO - esposta all'AI solo tramite view L3
@@ -40,17 +40,17 @@ class PracticePhaseCreate(PracticePhaseBase):
 class PracticePhaseUpdate(BaseModel):
     model_config = ConfigDict(populate_by_name=True, from_attributes=True)
 
-    practice_id: Optional[UUID] = None
-    template_id: Optional[UUID] = None
-    order_index: Optional[int] = None
-    name: Optional[str] = None
-    description: Optional[str] = None
-    assignee_id: Optional[UUID] = None
-    planned_start: Optional[date] = None
-    planned_end: Optional[date] = None
-    actual_start: Optional[date] = None
-    actual_end: Optional[date] = None
-    status: Optional[PracticePhaseStatus] = None
-    skip_reason: Optional[str] = None
-    completed_by: Optional[UUID] = None
-    completed_at: Optional[datetime] = None
+    practice_id: UUID | None = None
+    template_id: UUID | None = None
+    order_index: int | None = None
+    name: str | None = None
+    description: str | None = None
+    assignee_id: UUID | None = None
+    planned_start: date | None = None
+    planned_end: date | None = None
+    actual_start: date | None = None
+    actual_end: date | None = None
+    status: PracticePhaseStatus | None = None
+    skip_reason: str | None = None
+    completed_by: UUID | None = None
+    completed_at: datetime | None = None

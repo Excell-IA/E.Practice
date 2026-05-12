@@ -1,7 +1,7 @@
 """Pydantic schemas for reminders."""
 
 from datetime import date, datetime
-from typing import Literal, Optional
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
@@ -13,7 +13,7 @@ class ReminderBase(BaseModel):
     model_config = ConfigDict(populate_by_name=True, from_attributes=True)
 
     practice_id: UUID
-    phase_id: Optional[UUID] = None
+    phase_id: UUID | None = None
     title: str
     target_date: date
     days_before: int = 0
@@ -34,10 +34,10 @@ class ReminderCreate(ReminderBase):
 class ReminderUpdate(BaseModel):
     model_config = ConfigDict(populate_by_name=True, from_attributes=True)
 
-    practice_id: Optional[UUID] = None
-    phase_id: Optional[UUID] = None
-    title: Optional[str] = None
-    target_date: Optional[date] = None
-    days_before: Optional[int] = None
-    recipient_id: Optional[UUID] = None
-    status: Optional[ReminderStatus] = None
+    practice_id: UUID | None = None
+    phase_id: UUID | None = None
+    title: str | None = None
+    target_date: date | None = None
+    days_before: int | None = None
+    recipient_id: UUID | None = None
+    status: ReminderStatus | None = None
