@@ -44,8 +44,9 @@ export function EventNode({ event, phase, timelineY, x, y, onSelect }: EventNode
       transform={`translate(${x} 0)`}
     >
       <title>{`${event.title} · ${eventDate}`}</title>
-      <circle className="fill-surface-container stroke-electric/70 stroke-2" cy={timelineY} r="7" />
-      <circle className="fill-electric/45" cy={timelineY} r="3" />
+      <circle className="fill-electric/10 stroke-electric/20 stroke-2" cy={timelineY} r="15" />
+      <circle className="fill-surface-high stroke-electric stroke-2" cy={timelineY} r="10" />
+      <circle className="fill-electric" cy={timelineY} r="4" />
       <g className="opacity-0 transition-opacity group-hover:opacity-100">
         <rect className="fill-surface-high stroke-border" height="22" rx="11" width="96" x="-48" y={dateChipY - 15} />
         <text className="fill-foreground text-[11px] font-semibold" textAnchor="middle" y={dateChipY}>

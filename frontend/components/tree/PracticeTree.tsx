@@ -1,7 +1,7 @@
 "use client";
 
 import { Maximize2, Minus, MoveHorizontal, Plus } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -50,6 +50,7 @@ function dateToX(value: string | Date) {
 }
 
 export function PracticeTree({ practice, phases, events }: PracticeTreeProps) {
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [selection, setSelection] = useState<TreeSelection | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const orderedPhases = useMemo(() => [...phases].sort((a, b) => a.order - b.order), [phases]);
@@ -77,6 +78,16 @@ export function PracticeTree({ practice, phases, events }: PracticeTreeProps) {
     setSelection({ kind: "event", item: event, phase });
     setDrawerOpen(true);
   }
+
+  useEffect(() => {
+    const scrollArea = scrollAreaRef.current;
+    if (!scrollArea) return;
+
+    const todayX = dateToX(timeline.todayDate);
+    const svgWidth = 1600;
+    const targetLeft = (todayX / svgWidth) * scrollArea.scrollWidth - scrollArea.clientWidth / 2;
+    scrollArea.scrollLeft = Math.max(targetLeft, 0);
+  }, []);
 
   return (
     <>
@@ -110,7 +121,7 @@ export function PracticeTree({ practice, phases, events }: PracticeTreeProps) {
         </div>
 
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto" ref={scrollAreaRef}>
             <svg
               aria-label="Albero della pratica"
               className="h-[470px] min-w-[1600px] text-foreground"
