@@ -29,12 +29,13 @@ export function EventNode({ event, phase, x, y, onSelect }: EventNodeProps) {
   return (
     <g
       aria-label={event.title}
-      className="cursor-pointer transition-transform duration-150 hover:scale-105"
+      className="group cursor-pointer"
       onClick={() => onSelect(event, phase)}
       role="button"
       tabIndex={0}
       transform={`translate(${x} ${y})`}
     >
+      <circle className="fill-none stroke-electric/0 stroke-2 transition-colors group-hover:stroke-electric/45" r="22" />
       <circle className={cn("stroke-[1.5]", eventToneClass[event.type])} r="18" />
       <foreignObject height="20" width="20" x="-10" y="-10">
         <div className="flex h-5 w-5 items-center justify-center text-foreground">

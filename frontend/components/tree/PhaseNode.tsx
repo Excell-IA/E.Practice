@@ -19,16 +19,13 @@ const statusLabel = {
   blocked: "Bloccata",
 };
 
-function StatusIcon({ status }: { status: PracticePhase["status"] }) {
+function StatusIcon({ phase }: { phase: PracticePhase }) {
+  const status = phase.status;
   if (status === "done") return <Check className="h-5 w-5 text-[var(--on-primary)]" />;
   if (status === "skipped") return <CircleSlash className="h-5 w-5 text-muted" />;
   if (status === "blocked") return <Lock className="h-5 w-5 text-danger" />;
   if (status === "pending") return <Minus className="h-5 w-5 text-muted" />;
-  return <span className="font-label text-base font-bold text-[var(--on-primary)]">{phaseNumber(status)}</span>;
-}
-
-function phaseNumber(status: PracticePhase["status"]) {
-  return status === "in_progress" ? "4" : "";
+  return <span className="font-label text-base font-bold text-[var(--on-primary)]">{phase.order}</span>;
 }
 
 export function PhaseNode({ phase, x, y, selected, onSelect }: PhaseNodeProps) {
@@ -40,7 +37,7 @@ export function PhaseNode({ phase, x, y, selected, onSelect }: PhaseNodeProps) {
   return (
     <g
       aria-label={`${phase.title}, ${statusLabel[phase.status]}`}
-      className="cursor-pointer outline-none transition-transform duration-150 hover:scale-105"
+      className="group cursor-pointer outline-none"
       onClick={() => onSelect(phase)}
       role="button"
       tabIndex={0}
@@ -49,6 +46,7 @@ export function PhaseNode({ phase, x, y, selected, onSelect }: PhaseNodeProps) {
       {phase.status === "done" ? <circle className="fill-success/20 stroke-success/30" r="34" /> : null}
       {isActive ? <circle className="fill-electric opacity-20" r="42" /> : null}
       {selected || isActive ? <circle className="fill-none stroke-electric stroke-2" r="34" /> : null}
+      <circle className="fill-none stroke-electric/0 stroke-2 transition-colors group-hover:stroke-electric/55" r="38" />
       <circle
         className={cn(
           "stroke-[1.4]",
@@ -65,12 +63,12 @@ export function PhaseNode({ phase, x, y, selected, onSelect }: PhaseNodeProps) {
           {phase.status === "in_progress" ? (
             <span className="font-label text-base font-bold text-[var(--on-primary)]">{phase.order}</span>
           ) : (
-            <StatusIcon status={phase.status} />
+            <StatusIcon phase={phase} />
           )}
         </div>
       </foreignObject>
       <text className="fill-muted text-[10px] font-bold tracking-[0.12em]" textAnchor="middle" y="-22">
-        {String(phase.order).padStart(2, "0")}
+        {`F${String(phase.order).padStart(2, "0")}`}
       </text>
       <text className="fill-muted text-[11px] font-semibold" textAnchor="middle" y="56">
         {date}
