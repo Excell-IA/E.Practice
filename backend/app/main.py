@@ -2,11 +2,6 @@
 
 Boot:
     uvicorn app.main:app --reload --port 8000
-
-I router del modulo vengono registrati man mano che le rispettive fasi li
-introducono (F5 — Endpoints REST). In F2 abbiamo solo:
-- GET /api/health      health probe (per docker-compose, Render, browser)
-- GET /                redirect informativo a /docs
 """
 
 from __future__ import annotations
@@ -21,13 +16,66 @@ from fastapi.responses import JSONResponse, RedirectResponse
 
 from app.config import Settings, get_settings
 from app.constants import API_PREFIX, MODULE_NAME
-from app.deps import get_settings_dep
+from app.deps import get_all_bridges, get_all_repositories, get_settings_dep
 from app.logging_setup import configure_logging, get_logger
+from app.routers._helpers import register_exception_handlers
+
+
+async def _try_load_seed() -> None:
+    """Carica il seed JSON in V0 se il loader di F4 (Codex) è disponibile.
+
+    Difensivo: l'import può fallire se il file `seed_loader.py` non è ancora
+    in repo (F4 in corso). In quel caso logga un warning e prosegue con
+    repository vuoti (utile per smoke test).
+    """
+    log = get_logger(__name__)
+    try:
+        import importlib
+
+        seed_loader = importlib.import_module("app.repositories.seed_loader")
+    except ImportError:
+        log.warning(
+            "seed_loader_not_available",
+            note="seed_loader.py non ancora in repo (F4 Codex in corso). Repo vuoti.",
+        )
+        return
+
+    cfg = get_settings()
+    repos = get_all_repositories()
+    bridges = get_all_bridges()
+
+    # Tentativo 1: API "all-in-one"
+    if hasattr(seed_loader, "load_seed_into_repositories"):
+        try:
+            seed_loader.load_seed_into_repositories(cfg.seed_path, repos, bridges)
+            log.info("seed_loaded", path=cfg.seed_path)
+            return
+        except Exception as exc:
+            log.error("seed_load_failed", err=str(exc), path=cfg.seed_path)
+            return
+
+    # Tentativo 2: API "load + populate" separati
+    if hasattr(seed_loader, "load_seed_json") and hasattr(seed_loader, "populate_repositories"):
+        try:
+            data = seed_loader.load_seed_json(cfg.seed_path)
+            seed_loader.populate_repositories(data, repos, bridges=bridges)
+            log.info("seed_loaded", path=cfg.seed_path)
+            return
+        except TypeError:
+            # firma populate_repositories(data, repos) — senza bridges kwarg
+            seed_loader.populate_repositories(data, repos)
+            log.info("seed_loaded_no_bridges", path=cfg.seed_path)
+            return
+        except Exception as exc:
+            log.error("seed_load_failed", err=str(exc), path=cfg.seed_path)
+            return
+
+    log.warning("seed_loader_unknown_api", module=seed_loader.__name__)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    """Boot/shutdown hook. In F4 carichiamo qui il seed JSON nei repository."""
+    """Boot/shutdown hook. Carica seed JSON in V0 quando F4 sarà mergiata."""
     configure_logging()
     log = get_logger(__name__)
     cfg = get_settings()
@@ -38,7 +86,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         storage_mode=cfg.storage_mode,
         version=app.version,
     )
-    # F4: load_seed_into_repositories()
+    await _try_load_seed()
     yield
     log.info("app_shutdown")
 
@@ -56,7 +104,6 @@ app = FastAPI(
     openapi_url=f"{API_PREFIX}/openapi.json",
 )
 
-
 # --- CORS: configurato da Settings ---
 _settings_boot = get_settings()
 app.add_middleware(
@@ -66,6 +113,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# --- Exception handlers (NotFound 404, AlreadyExists 409, Repository 500) ---
+register_exception_handlers(app)
 
 
 # --- Health probe ---
@@ -85,7 +135,6 @@ async def health(
     )
 
 
-# Alias /healthz richiesto dal docker-compose (PR007).
 @app.get("/healthz", include_in_schema=False)
 async def healthz() -> dict[str, str]:
     return {"status": "ok"}
@@ -97,14 +146,34 @@ async def root() -> RedirectResponse:
     return RedirectResponse(url="/docs")
 
 
-# --- Routers del modulo (registrati man mano in F5) ---
-# from app.routers import clients, practices, phases, events, notes, attachments, \
-#     reminders, labels, categories, templates, users, activity, dashboard, session
-#
-# for router in (
-#     session.router, clients.router, practices.router, phases.router, events.router,
-#     notes.router, attachments.router, reminders.router, labels.router,
-#     categories.router, templates.router, users.router, activity.router,
-#     dashboard.router,
-# ):
-#     app.include_router(router, prefix=API_PREFIX)
+# --- Routers del modulo (F5) ---
+from app.routers import (  # noqa: E402
+    activity,
+    attachments,
+    categories,
+    clients,
+    events,
+    notes,
+    phases,
+    practices,
+    reminders,
+    session,
+    templates,
+    users,
+)
+
+for router in (
+    session.router,
+    users.router,
+    clients.router,
+    categories.router,
+    templates.router,
+    practices.router,
+    phases.router,
+    events.router,
+    notes.router,
+    attachments.router,
+    reminders.router,
+    activity.router,
+):
+    app.include_router(router, prefix=API_PREFIX)
