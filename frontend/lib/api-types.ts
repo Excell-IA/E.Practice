@@ -69,6 +69,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/clients/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Search Clients
+         * @description Ricerca clienti per combobox del modal Nuova Pratica.
+         *
+         *     Match case-insensitive su code/ragione_sociale/piva/cf. Restituisce hit
+         *     arricchiti con `practice_count` totale, aperte e `cliente_dal_anno`
+         *     (estratto da `created_at`). Default top 10.
+         */
+        get: operations["search_clients_api_clients_search_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/clients": {
         parameters: {
             query?: never;
@@ -181,6 +205,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/templates/category/{category_id}/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Template Preview
+         * @description Restituisce le fasi del template con date pianificate cumulative
+         *     a partire da `apertura`, e calcola la scadenza finale.
+         *
+         *     Usato dal modal Nuova Pratica:
+         *     - Step 2 mostra la scadenza calcolata
+         *     - Step 3 mostra le N fasi con durata e anteprima date
+         */
+        get: operations["template_preview_api_templates_category__category_id__preview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/practices": {
         parameters: {
             query?: never;
@@ -194,6 +243,9 @@ export interface paths {
         /**
          * Create Practice
          * @description Wizard creazione pratica: genera Practice + instanzia fasi dal template.
+         *
+         *     Opzionale: se `create_default_reminders=True`, crea anche un Reminder per
+         *     ogni fase (days_before=2). Se `label_ids` non vuoto, aggancia le etichette.
          */
         post: operations["create_practice_api_practices_post"];
         delete?: never;
@@ -450,7 +502,7 @@ export interface paths {
         };
         /**
          * Get Dashboard
-         * @description Aggregato KPI per la home dashboard del frontend (1 sola GET).
+         * @description Aggregato KPI enriched per la home dashboard (1 sola GET = pagina pronta).
          */
         get: operations["get_dashboard_api_dashboard_get"];
         put?: never;
@@ -486,6 +538,39 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * ActivityEnriched
+         * @description Activity log row arricchita: actor + entity_label leggibile.
+         */
+        ActivityEnriched: {
+            /**
+             * Timestamp
+             * Format: date-time
+             */
+            timestamp: string;
+            /**
+             * Action
+             * @enum {string}
+             */
+            action: "created" | "updated" | "deleted" | "completed" | "uploaded" | "commented" | "viewed_l1";
+            /**
+             * Entity Type
+             * @enum {string}
+             */
+            entity_type: "practice" | "phase" | "event" | "note" | "attachment" | "client";
+            /**
+             * Entity Id
+             * Format: uuid
+             */
+            entity_id: string;
+            /** Practice Id */
+            practice_id?: string | null;
+            actor?: components["schemas"]["UserMiniSummary"] | null;
+            /** Entity Label */
+            entity_label: string;
+            /** Phase Name */
+            phase_name?: string | null;
+        };
         /** ActivityLog */
         ActivityLog: {
             /**
@@ -517,28 +602,6 @@ export interface components {
              * Format: uuid
              */
             id: string;
-            /**
-             * Timestamp
-             * Format: date-time
-             */
-            timestamp: string;
-        };
-        /** ActivitySummary */
-        ActivitySummary: {
-            /**
-             * Actor Id
-             * Format: uuid
-             */
-            actor_id: string;
-            /** Action */
-            action: string;
-            /** Entity Type */
-            entity_type: string;
-            /**
-             * Entity Id
-             * Format: uuid
-             */
-            entity_id: string;
             /**
              * Timestamp
              * Format: date-time
@@ -737,6 +800,38 @@ export interface components {
             /** Deleted At */
             deleted_at?: string | null;
         };
+        /**
+         * ClientSearchHit
+         * @description Hit per combobox 'cerca cliente' del modal Nuova Pratica.
+         */
+        ClientSearchHit: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Code */
+            code: string;
+            /** Ragione Sociale */
+            ragione_sociale: string;
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "persona_fisica" | "societa" | "altro";
+            /** Piva */
+            piva?: string | null;
+            /** Cf */
+            cf?: string | null;
+            /** Indirizzo Sede */
+            indirizzo_sede?: string | null;
+            /** Cliente Dal Anno */
+            cliente_dal_anno: number;
+            /** Practice Count */
+            practice_count: number;
+            /** Practice Count Open */
+            practice_count_open: number;
+        };
         /** ClientUpdate */
         ClientUpdate: {
             /** Code */
@@ -862,6 +957,16 @@ export interface components {
              * @default []
              */
             collaborator_ids: string[];
+            /**
+             * Label Ids
+             * @default []
+             */
+            label_ids: string[];
+            /**
+             * Create Default Reminders
+             * @default false
+             */
+            create_default_reminders: boolean;
         };
         /** CreatePracticeResponse */
         CreatePracticeResponse: {
@@ -877,7 +982,7 @@ export interface components {
         };
         /**
          * DashboardKPI
-         * @description KPI per la home dashboard V0.
+         * @description KPI aggregati per la home dashboard V0.
          */
         DashboardKPI: {
             /** Totale Pratiche */
@@ -895,7 +1000,7 @@ export interface components {
             /** Distribuzione Categorie */
             distribuzione_categorie: components["schemas"]["CategoryDistribution"][];
             /** Ultime Attivita */
-            ultime_attivita: components["schemas"]["ActivitySummary"][];
+            ultime_attivita: components["schemas"]["ActivityEnriched"][];
             /** Carico Per Utente */
             carico_per_utente: components["schemas"]["UserWorkload"][];
         };
@@ -1310,6 +1415,57 @@ export interface components {
             /** Count */
             count: number;
         };
+        /** TemplatePhasePreview */
+        TemplatePhasePreview: {
+            /** Order Index */
+            order_index: number;
+            /** Name */
+            name: string;
+            /** Description */
+            description?: string | null;
+            /** Duration Days */
+            duration_days: number;
+            /**
+             * Planned Start
+             * Format: date
+             */
+            planned_start: string;
+            /**
+             * Planned End
+             * Format: date
+             */
+            planned_end: string;
+        };
+        /**
+         * TemplatePreview
+         * @description Anteprima fasi + scadenza calcolata, per modal Nuova Pratica step 2/3.
+         */
+        TemplatePreview: {
+            /**
+             * Category Id
+             * Format: uuid
+             */
+            category_id: string;
+            /** Category Name */
+            category_name: string;
+            /**
+             * Apertura
+             * Format: date
+             */
+            apertura: string;
+            /**
+             * Scadenza Calcolata
+             * Format: date
+             */
+            scadenza_calcolata: string;
+            /**
+             * Total Duration Days
+             * @description Somma di duration_days delle fasi (giorni cumulativi).
+             */
+            total_duration_days: number;
+            /** Phases */
+            phases: components["schemas"]["TemplatePhasePreview"][];
+        };
         /** TopUrgentPractice */
         TopUrgentPractice: {
             /**
@@ -1323,10 +1479,23 @@ export interface components {
             title: string;
             /** Priority */
             priority: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "aperta" | "in_corso" | "in_attesa" | "sospesa" | "chiusa" | "archiviata";
             /** Scadenza */
             scadenza: string | null;
             /** Giorni Al Target */
             giorni_al_target: number | null;
+            /**
+             * Client Id
+             * Format: uuid
+             */
+            client_id: string;
+            /** Client Ragione Sociale */
+            client_ragione_sociale?: string | null;
+            responsible?: components["schemas"]["UserMiniSummary"] | null;
         };
         /** UpdatePhaseRequest */
         UpdatePhaseRequest: {
@@ -1375,6 +1544,26 @@ export interface components {
             /** Last Access At */
             last_access_at?: string | null;
         };
+        /** UserMiniSummary */
+        UserMiniSummary: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Nome */
+            nome: string;
+            /** Cognome */
+            cognome: string;
+            /** Role */
+            role: string;
+            /** Role Label */
+            role_label: string;
+            /** Initials */
+            initials: string;
+            /** Avatar Color */
+            avatar_color?: string | null;
+        };
         /**
          * UserSummary
          * @description Estratto di User per evitare di esporre PII non necessaria (no email).
@@ -1398,17 +1587,13 @@ export interface components {
         };
         /** UserWorkload */
         UserWorkload: {
-            /**
-             * User Id
-             * Format: uuid
-             */
-            user_id: string;
-            /** User Name */
-            user_name: string;
+            user: components["schemas"]["UserMiniSummary"];
             /** Pratiche Aperte */
             pratiche_aperte: number;
             /** Pratiche In Ritardo */
             pratiche_in_ritardo: number;
+            /** Load Pct */
+            load_pct: number;
         };
         /** ValidationError */
         ValidationError: {
@@ -1499,6 +1684,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["User"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    search_clients_api_clients_search_get: {
+        parameters: {
+            query?: {
+                q?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClientSearchHit"][];
                 };
             };
             /** @description Validation Error */
@@ -1764,6 +1981,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PhaseTemplate"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    template_preview_api_templates_category__category_id__preview_get: {
+        parameters: {
+            query?: {
+                /** @description Data apertura ipotetica (default oggi) */
+                apertura?: string | null;
+            };
+            header?: never;
+            path: {
+                category_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TemplatePreview"];
                 };
             };
             /** @description Validation Error */

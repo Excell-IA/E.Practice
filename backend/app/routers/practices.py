@@ -22,6 +22,7 @@ from app.deps import (
     get_practice_label_repo,
     get_practice_phase_repo,
     get_practice_repo,
+    get_reminder_repo,
     get_user_repo,
 )
 from app.models import (
@@ -36,9 +37,11 @@ from app.models import (
     PhaseTemplate,
     Practice,
     PracticeEvent,
+    PracticeLabel,
     PracticePhase,
     PracticePriority,
     PracticeStatus,
+    Reminder,
     User,
 )
 from app.repositories.base import Repository
@@ -384,17 +387,39 @@ async def create_practice(
     template_repo: Annotated[Repository[PhaseTemplate], Depends(get_phase_template_repo)],
     phase_repo: Annotated[Repository[PracticePhase], Depends(get_practice_phase_repo)],
     activity_repo: Annotated[Repository[ActivityLog], Depends(get_activity_log_repo)],
+    reminder_repo: Annotated[Repository[Reminder], Depends(get_reminder_repo)],
+    practice_label_repo: Annotated[InMemoryRepository[Any], Depends(get_practice_label_repo)],
     collaborators_bridge: Annotated[
         set[tuple[str, str, str]], Depends(get_practice_collaborator_bridge)
     ],
     current_user_id: Annotated[str, Depends(get_current_user_id)],
 ) -> CreatePracticeResponse:
-    """Wizard creazione pratica: genera Practice + instanzia fasi dal template."""
-    svc = PracticeService(practice_repo, template_repo, phase_repo, ActivityService(activity_repo))
+    """Wizard creazione pratica: genera Practice + instanzia fasi dal template.
+
+    Opzionale: se `create_default_reminders=True`, crea anche un Reminder per
+    ogni fase (days_before=2). Se `label_ids` non vuoto, aggancia le etichette.
+    """
+    svc = PracticeService(
+        practice_repo,
+        template_repo,
+        phase_repo,
+        ActivityService(activity_repo),
+        reminder_repo=reminder_repo,
+    )
     response = await svc.create_with_template(body, current_user_id)
 
     for collab_uid in body.collaborator_ids:
         collaborators_bridge.add((str(response.practice_id), str(collab_uid), "editor"))
+
+    # Attach etichette via bridge (id sintetico "<practice>:<label>" come fa il seed_loader)
+    import contextlib
+
+    for label_id in body.label_ids:
+        link = PracticeLabel(practice_id=response.practice_id, label_id=label_id)
+        bridge_id = f"{response.practice_id}:{label_id}"
+        object.__setattr__(link, "id", bridge_id)
+        with contextlib.suppress(Exception):
+            await practice_label_repo.create(link)
 
     return response
 

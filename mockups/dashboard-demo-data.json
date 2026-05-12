@@ -1,0 +1,347 @@
+{
+  "totale_pratiche": 8,
+  "counts_per_status": [
+    {
+      "status": "aperta",
+      "count": 1
+    },
+    {
+      "status": "in_corso",
+      "count": 3
+    },
+    {
+      "status": "in_attesa",
+      "count": 1
+    },
+    {
+      "status": "sospesa",
+      "count": 1
+    },
+    {
+      "status": "chiusa",
+      "count": 2
+    },
+    {
+      "status": "archiviata",
+      "count": 0
+    }
+  ],
+  "pratiche_in_ritardo": 1,
+  "completate_mese": 0,
+  "scadenze_prossime_7gg": 1,
+  "top_urgenti": [
+    {
+      "practice_id": "66666666-6666-4666-8666-000000000003",
+      "code": "PR-2026-003",
+      "title": "Ricorso CTP Officine Meccaniche Brescia",
+      "priority": "alta",
+      "status": "in_corso",
+      "scadenza": "2026-05-10",
+      "giorni_al_target": -2,
+      "client_id": "55555555-5555-4555-8555-000000000002",
+      "client_ragione_sociale": "Officine Meccaniche Brescia SRL",
+      "responsible": {
+        "id": "11111111-1111-4111-8111-000000000001",
+        "nome": "Mario",
+        "cognome": "Bonometti",
+        "role": "titolare",
+        "role_label": "Titolare · Admin",
+        "initials": "MB",
+        "avatar_color": "#14532d"
+      }
+    },
+    {
+      "practice_id": "66666666-6666-4666-8666-000000000001",
+      "code": "PR-2026-001",
+      "title": "Bilancio 2025 Acciaierie Valgobbia",
+      "priority": "alta",
+      "status": "in_corso",
+      "scadenza": "2026-05-31",
+      "giorni_al_target": 19,
+      "client_id": "55555555-5555-4555-8555-000000000001",
+      "client_ragione_sociale": "Acciaierie Valgobbia SRL",
+      "responsible": {
+        "id": "11111111-1111-4111-8111-000000000002",
+        "nome": "Sara",
+        "cognome": "Salvi",
+        "role": "senior",
+        "role_label": "Senior · Consulente",
+        "initials": "SS",
+        "avatar_color": "#0f766e"
+      }
+    },
+    {
+      "practice_id": "66666666-6666-4666-8666-000000000005",
+      "code": "PR-2026-005",
+      "title": "Consulenza bando Brixia Green Tech",
+      "priority": "alta",
+      "status": "sospesa",
+      "scadenza": "2026-06-10",
+      "giorni_al_target": 29,
+      "client_id": "55555555-5555-4555-8555-000000000008",
+      "client_ragione_sociale": "Brixia Green Tech SRL",
+      "responsible": {
+        "id": "11111111-1111-4111-8111-000000000001",
+        "nome": "Mario",
+        "cognome": "Bonometti",
+        "role": "titolare",
+        "role_label": "Titolare · Admin",
+        "initials": "MB",
+        "avatar_color": "#14532d"
+      }
+    }
+  ],
+  "distribuzione_categorie": [
+    {
+      "category_id": "22222222-2222-4222-8222-000000000003",
+      "category_name": "Bilancio e contabilità",
+      "count": 2
+    },
+    {
+      "category_id": "22222222-2222-4222-8222-000000000001",
+      "category_name": "Costituzione e variazioni",
+      "count": 2
+    },
+    {
+      "category_id": "22222222-2222-4222-8222-000000000002",
+      "category_name": "Adempimenti fiscali",
+      "count": 2
+    },
+    {
+      "category_id": "22222222-2222-4222-8222-000000000005",
+      "category_name": "Contenzioso tributario",
+      "count": 1
+    },
+    {
+      "category_id": "22222222-2222-4222-8222-000000000004",
+      "category_name": "Consulenza straordinaria",
+      "count": 1
+    }
+  ],
+  "ultime_attivita": [
+    {
+      "timestamp": "2026-05-11T10:00:00+02:00",
+      "action": "viewed_l1",
+      "entity_type": "client",
+      "entity_id": "55555555-5555-4555-8555-000000000001",
+      "practice_id": "66666666-6666-4666-8666-000000000001",
+      "actor": {
+        "id": "11111111-1111-4111-8111-000000000004",
+        "nome": "Paolo",
+        "cognome": "Verdi",
+        "role": "esterno",
+        "role_label": "Esterno · Praticante",
+        "initials": "PV",
+        "avatar_color": "#6b7280"
+      },
+      "entity_label": "scheda cliente",
+      "phase_name": null
+    },
+    {
+      "timestamp": "2026-05-07T15:12:00+02:00",
+      "action": "commented",
+      "entity_type": "note",
+      "entity_id": "99999999-9999-4999-8999-000000000002",
+      "practice_id": "66666666-6666-4666-8666-000000000002",
+      "actor": {
+        "id": "11111111-1111-4111-8111-000000000003",
+        "nome": "Luca",
+        "cognome": "Ferrari",
+        "role": "junior",
+        "role_label": "Junior · Consulente",
+        "initials": "LF",
+        "avatar_color": "#ea580c"
+      },
+      "entity_label": "nota su Apertura P.IVA Torchio Davide",
+      "phase_name": null
+    },
+    {
+      "timestamp": "2026-05-05T10:00:00+02:00",
+      "action": "created",
+      "entity_type": "practice",
+      "entity_id": "66666666-6666-4666-8666-000000000002",
+      "practice_id": "66666666-6666-4666-8666-000000000002",
+      "actor": {
+        "id": "11111111-1111-4111-8111-000000000002",
+        "nome": "Sara",
+        "cognome": "Salvi",
+        "role": "senior",
+        "role_label": "Senior · Consulente",
+        "initials": "SS",
+        "avatar_color": "#0f766e"
+      },
+      "entity_label": "Apertura P.IVA Torchio Davide",
+      "phase_name": null
+    },
+    {
+      "timestamp": "2026-05-03T09:15:00+02:00",
+      "action": "updated",
+      "entity_type": "practice",
+      "entity_id": "66666666-6666-4666-8666-000000000005",
+      "practice_id": "66666666-6666-4666-8666-000000000005",
+      "actor": {
+        "id": "11111111-1111-4111-8111-000000000001",
+        "nome": "Mario",
+        "cognome": "Bonometti",
+        "role": "titolare",
+        "role_label": "Titolare · Admin",
+        "initials": "MB",
+        "avatar_color": "#14532d"
+      },
+      "entity_label": "Consulenza bando Brixia Green Tech",
+      "phase_name": null
+    },
+    {
+      "timestamp": "2026-05-02T12:20:00+02:00",
+      "action": "created",
+      "entity_type": "event",
+      "entity_id": "88888888-8888-4888-8888-000000000004",
+      "practice_id": "66666666-6666-4666-8666-000000000004",
+      "actor": {
+        "id": "11111111-1111-4111-8111-000000000003",
+        "nome": "Luca",
+        "cognome": "Ferrari",
+        "role": "junior",
+        "role_label": "Junior · Consulente",
+        "initials": "LF",
+        "avatar_color": "#ea580c"
+      },
+      "entity_label": "evento su Dichiarazione 730 Alessandra Marini",
+      "phase_name": null
+    },
+    {
+      "timestamp": "2026-04-18T15:40:00+02:00",
+      "action": "completed",
+      "entity_type": "phase",
+      "entity_id": "77777777-7777-4777-8777-000000000012",
+      "practice_id": "66666666-6666-4666-8666-000000000007",
+      "actor": {
+        "id": "11111111-1111-4111-8111-000000000002",
+        "nome": "Sara",
+        "cognome": "Salvi",
+        "role": "senior",
+        "role_label": "Senior · Consulente",
+        "initials": "SS",
+        "avatar_color": "#0f766e"
+      },
+      "entity_label": "fase Deposito Camera di Commercio di Deposito bilancio Studio Dentistico Garda",
+      "phase_name": "Deposito Camera di Commercio"
+    },
+    {
+      "timestamp": "2026-04-18T14:40:00+02:00",
+      "action": "uploaded",
+      "entity_type": "attachment",
+      "entity_id": "aaaaaaaa-aaaa-4aaa-8aaa-000000000002",
+      "practice_id": "66666666-6666-4666-8666-000000000003",
+      "actor": {
+        "id": "11111111-1111-4111-8111-000000000001",
+        "nome": "Mario",
+        "cognome": "Bonometti",
+        "role": "titolare",
+        "role_label": "Titolare · Admin",
+        "initials": "MB",
+        "avatar_color": "#14532d"
+      },
+      "entity_label": "allegato su Ricorso CTP Officine Meccaniche Brescia",
+      "phase_name": null
+    },
+    {
+      "timestamp": "2026-04-10T11:30:00+02:00",
+      "action": "created",
+      "entity_type": "practice",
+      "entity_id": "66666666-6666-4666-8666-000000000003",
+      "practice_id": "66666666-6666-4666-8666-000000000003",
+      "actor": {
+        "id": "11111111-1111-4111-8111-000000000001",
+        "nome": "Mario",
+        "cognome": "Bonometti",
+        "role": "titolare",
+        "role_label": "Titolare · Admin",
+        "initials": "MB",
+        "avatar_color": "#14532d"
+      },
+      "entity_label": "Ricorso CTP Officine Meccaniche Brescia",
+      "phase_name": null
+    },
+    {
+      "timestamp": "2026-04-09T16:00:00+02:00",
+      "action": "completed",
+      "entity_type": "phase",
+      "entity_id": "77777777-7777-4777-8777-000000000001",
+      "practice_id": "66666666-6666-4666-8666-000000000001",
+      "actor": {
+        "id": "11111111-1111-4111-8111-000000000003",
+        "nome": "Luca",
+        "cognome": "Ferrari",
+        "role": "junior",
+        "role_label": "Junior · Consulente",
+        "initials": "LF",
+        "avatar_color": "#ea580c"
+      },
+      "entity_label": "fase Raccolta scritture contabili di Bilancio 2025 Acciaierie Valgobbia",
+      "phase_name": "Raccolta scritture contabili"
+    },
+    {
+      "timestamp": "2026-04-01T09:00:00+02:00",
+      "action": "created",
+      "entity_type": "practice",
+      "entity_id": "66666666-6666-4666-8666-000000000001",
+      "practice_id": "66666666-6666-4666-8666-000000000001",
+      "actor": {
+        "id": "11111111-1111-4111-8111-000000000001",
+        "nome": "Mario",
+        "cognome": "Bonometti",
+        "role": "titolare",
+        "role_label": "Titolare · Admin",
+        "initials": "MB",
+        "avatar_color": "#14532d"
+      },
+      "entity_label": "Bilancio 2025 Acciaierie Valgobbia",
+      "phase_name": null
+    }
+  ],
+  "carico_per_utente": [
+    {
+      "user": {
+        "id": "11111111-1111-4111-8111-000000000002",
+        "nome": "Sara",
+        "cognome": "Salvi",
+        "role": "senior",
+        "role_label": "Senior · Consulente",
+        "initials": "SS",
+        "avatar_color": "#0f766e"
+      },
+      "pratiche_aperte": 2,
+      "pratiche_in_ritardo": 0,
+      "load_pct": 100
+    },
+    {
+      "user": {
+        "id": "11111111-1111-4111-8111-000000000001",
+        "nome": "Mario",
+        "cognome": "Bonometti",
+        "role": "titolare",
+        "role_label": "Titolare · Admin",
+        "initials": "MB",
+        "avatar_color": "#14532d"
+      },
+      "pratiche_aperte": 2,
+      "pratiche_in_ritardo": 1,
+      "load_pct": 100
+    },
+    {
+      "user": {
+        "id": "11111111-1111-4111-8111-000000000003",
+        "nome": "Luca",
+        "cognome": "Ferrari",
+        "role": "junior",
+        "role_label": "Junior · Consulente",
+        "initials": "LF",
+        "avatar_color": "#ea580c"
+      },
+      "pratiche_aperte": 2,
+      "pratiche_in_ritardo": 0,
+      "load_pct": 100
+    }
+  ]
+}

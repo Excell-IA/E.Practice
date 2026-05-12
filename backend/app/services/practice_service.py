@@ -17,6 +17,7 @@ from app.models import (
     PhaseTemplate,
     Practice,
     PracticePhase,
+    Reminder,
 )
 from app.repositories.base import NotFoundError, Repository
 from app.services.activity_service import ActivityService
@@ -34,11 +35,13 @@ class PracticeService:
         template_repo: Repository[PhaseTemplate],
         phase_repo: Repository[PracticePhase],
         activity: ActivityService,
+        reminder_repo: Repository[Reminder] | None = None,
     ) -> None:
         self._practices = practice_repo
         self._templates = template_repo
         self._phases = phase_repo
         self._activity = activity
+        self._reminders = reminder_repo
 
     async def _next_code(self) -> str:
         existing = await self._practices.list()
@@ -117,13 +120,39 @@ class PracticeService:
             phase_ids.append(phase.id)
             cursor = phase_end
 
+        # Default reminders (1 per fase, days_before=2) se richiesto
+        reminder_count = 0
+        if request.create_default_reminders and self._reminders is not None:
+            recipient = request.responsible_id or UUID(str(current_user_id))
+            for tpl_idx, tpl in enumerate(templates):
+                phase_planned_end = request.apertura + timedelta(
+                    days=sum((t.duration_days or 1) for t in templates[: tpl_idx + 1])
+                )
+                reminder = Reminder(
+                    id=uuid4(),
+                    practice_id=practice_id,
+                    phase_id=phase_ids[tpl_idx],
+                    title=f"Promemoria {tpl.name}",
+                    target_date=phase_planned_end,
+                    days_before=2,
+                    recipient_id=recipient,
+                    status="pending",
+                    created_at=now,
+                )
+                await self._reminders.create(reminder)
+                reminder_count += 1
+
         await self._activity.log(
             actor_id=current_user_id,
             action="created",
             entity_type="practice",
             entity_id=practice_id,
             practice_id=practice_id,
-            metadata={"code": code, "n_phases": len(phase_ids)},
+            metadata={
+                "code": code,
+                "n_phases": len(phase_ids),
+                "n_reminders": reminder_count,
+            },
         )
         return CreatePracticeResponse(practice_id=practice_id, code=code, phase_ids=phase_ids)
 

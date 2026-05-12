@@ -7,6 +7,7 @@ from typing import Annotated
 from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from pydantic import BaseModel
 
 from app.deps import (
     get_activity_log_repo,
@@ -28,6 +29,81 @@ from app.routers._helpers import Page, Pagination, get_pagination
 from app.services.activity_service import ActivityService
 
 router = APIRouter(prefix="/clients", tags=["clients"])
+
+
+# ---------------------------------------------------------------------------
+# Search per combobox modal Nuova Pratica (enriched con stats)
+# ---------------------------------------------------------------------------
+
+
+class ClientSearchHit(BaseModel):
+    """Hit per combobox 'cerca cliente' del modal Nuova Pratica."""
+
+    id: UUID
+    code: str
+    ragione_sociale: str
+    type: ClientType
+    piva: str | None = None
+    cf: str | None = None
+    indirizzo_sede: str | None = None
+    cliente_dal_anno: int
+    practice_count: int
+    """Numero totale di pratiche di questo cliente (qualunque stato)."""
+    practice_count_open: int
+    """Numero pratiche aperte (status != chiusa/archiviata)."""
+
+
+@router.get("/search", response_model=list[ClientSearchHit])
+async def search_clients(
+    client_repo: Annotated[Repository[Client], Depends(get_client_repo)],
+    practice_repo: Annotated[Repository[Practice], Depends(get_practice_repo)],
+    q: Annotated[str | None, Query(min_length=1)] = None,
+    limit: Annotated[int, Query(ge=1, le=20)] = 10,
+) -> list[ClientSearchHit]:
+    """Ricerca clienti per combobox del modal Nuova Pratica.
+
+    Match case-insensitive su code/ragione_sociale/piva/cf. Restituisce hit
+    arricchiti con `practice_count` totale, aperte e `cliente_dal_anno`
+    (estratto da `created_at`). Default top 10.
+    """
+    items = await client_repo.list(status="attivo")
+    if q:
+        needle = q.casefold()
+        items = [
+            c
+            for c in items
+            if needle
+            in " ".join(
+                filter(None, [c.code, c.ragione_sociale, c.piva or "", c.cf or ""])
+            ).casefold()
+        ]
+    items.sort(key=lambda c: c.ragione_sociale.casefold())
+
+    # Carica una sola volta tutte le pratiche e indicizza per client_id
+    all_practices = await practice_repo.list()
+    practices_by_client: dict[str, list[Practice]] = {}
+    for p in all_practices:
+        practices_by_client.setdefault(str(p.client_id), []).append(p)
+
+    hits: list[ClientSearchHit] = []
+    for c in items[:limit]:
+        client_practices = practices_by_client.get(str(c.id), [])
+        open_count = sum(1 for p in client_practices if p.status not in ("chiusa", "archiviata"))
+        hits.append(
+            ClientSearchHit(
+                id=c.id,
+                code=c.code,
+                ragione_sociale=c.ragione_sociale,
+                type=c.type,
+                piva=c.piva,
+                cf=c.cf,
+                indirizzo_sede=c.indirizzo_sede,
+                cliente_dal_anno=c.created_at.year,
+                practice_count=len(client_practices),
+                practice_count_open=open_count,
+            )
+        )
+    return hits
 
 
 # --- helpers ---

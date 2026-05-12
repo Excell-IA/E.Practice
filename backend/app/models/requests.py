@@ -21,6 +21,11 @@ class CreatePracticeRequest(BaseModel):
     scadenza: date | None = None
     priority: PracticePriority = "media"
     collaborator_ids: list[UUID] = []
+    label_ids: list[UUID] = []
+    """Etichette da assegnare alla pratica all'atto della creazione (modal step 2)."""
+    create_default_reminders: bool = False
+    """Se True, crea un Reminder per ogni fase con `days_before=2` rispetto a planned_end.
+    Usato dal checkbox 'Crea promemoria automatici per ogni fase' del modal."""
 
 
 class CreatePracticeResponse(BaseModel):

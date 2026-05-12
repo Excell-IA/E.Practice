@@ -128,6 +128,73 @@
         }
       }
     },
+    "/api/clients/search": {
+      "get": {
+        "tags": [
+          "clients"
+        ],
+        "summary": "Search Clients",
+        "description": "Ricerca clienti per combobox del modal Nuova Pratica.\n\nMatch case-insensitive su code/ragione_sociale/piva/cf. Restituisce hit\narricchiti con `practice_count` totale, aperte e `cliente_dal_anno`\n(estratto da `created_at`). Default top 10.",
+        "operationId": "search_clients_api_clients_search_get",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 20,
+              "minimum": 1,
+              "default": 10,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ClientSearchHit"
+                  },
+                  "title": "Response Search Clients Api Clients Search Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/clients": {
       "get": {
         "tags": [
@@ -632,6 +699,69 @@
         }
       }
     },
+    "/api/templates/category/{category_id}/preview": {
+      "get": {
+        "tags": [
+          "templates"
+        ],
+        "summary": "Template Preview",
+        "description": "Restituisce le fasi del template con date pianificate cumulative\na partire da `apertura`, e calcola la scadenza finale.\n\nUsato dal modal Nuova Pratica:\n- Step 2 mostra la scadenza calcolata\n- Step 3 mostra le N fasi con durata e anteprima date",
+        "operationId": "template_preview_api_templates_category__category_id__preview_get",
+        "parameters": [
+          {
+            "name": "category_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Category Id"
+            }
+          },
+          {
+            "name": "apertura",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Data apertura ipotetica (default oggi)",
+              "title": "Apertura"
+            },
+            "description": "Data apertura ipotetica (default oggi)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TemplatePreview"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/practices": {
       "get": {
         "tags": [
@@ -806,7 +936,7 @@
           "practices"
         ],
         "summary": "Create Practice",
-        "description": "Wizard creazione pratica: genera Practice + instanzia fasi dal template.",
+        "description": "Wizard creazione pratica: genera Practice + instanzia fasi dal template.\n\nOpzionale: se `create_default_reminders=True`, crea anche un Reminder per\nogni fase (days_before=2). Se `label_ids` non vuoto, aggancia le etichette.",
         "operationId": "create_practice_api_practices_post",
         "parameters": [
           {
@@ -1679,7 +1809,7 @@
           "dashboard"
         ],
         "summary": "Get Dashboard",
-        "description": "Aggregato KPI per la home dashboard del frontend (1 sola GET).",
+        "description": "Aggregato KPI enriched per la home dashboard (1 sola GET = pagina pronta).",
         "operationId": "get_dashboard_api_dashboard_get",
         "responses": {
           "200": {
@@ -1756,6 +1886,92 @@
   },
   "components": {
     "schemas": {
+      "ActivityEnriched": {
+        "properties": {
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Timestamp"
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "created",
+              "updated",
+              "deleted",
+              "completed",
+              "uploaded",
+              "commented",
+              "viewed_l1"
+            ],
+            "title": "Action"
+          },
+          "entity_type": {
+            "type": "string",
+            "enum": [
+              "practice",
+              "phase",
+              "event",
+              "note",
+              "attachment",
+              "client"
+            ],
+            "title": "Entity Type"
+          },
+          "entity_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Entity Id"
+          },
+          "practice_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Practice Id"
+          },
+          "actor": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/UserMiniSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "entity_label": {
+            "type": "string",
+            "title": "Entity Label"
+          },
+          "phase_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phase Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "timestamp",
+          "action",
+          "entity_type",
+          "entity_id",
+          "entity_label"
+        ],
+        "title": "ActivityEnriched",
+        "description": "Activity log row arricchita: actor + entity_label leggibile."
+      },
       "ActivityLog": {
         "properties": {
           "actor_id": {
@@ -1837,42 +2053,6 @@
           "timestamp"
         ],
         "title": "ActivityLog"
-      },
-      "ActivitySummary": {
-        "properties": {
-          "actor_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Actor Id"
-          },
-          "action": {
-            "type": "string",
-            "title": "Action"
-          },
-          "entity_type": {
-            "type": "string",
-            "title": "Entity Type"
-          },
-          "entity_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Entity Id"
-          },
-          "timestamp": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Timestamp"
-          }
-        },
-        "type": "object",
-        "required": [
-          "actor_id",
-          "action",
-          "entity_type",
-          "entity_id",
-          "timestamp"
-        ],
-        "title": "ActivitySummary"
       },
       "Attachment": {
         "properties": {
@@ -2474,6 +2654,89 @@
         ],
         "title": "ClientCreate"
       },
+      "ClientSearchHit": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "ragione_sociale": {
+            "type": "string",
+            "title": "Ragione Sociale"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "persona_fisica",
+              "societa",
+              "altro"
+            ],
+            "title": "Type"
+          },
+          "piva": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Piva"
+          },
+          "cf": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cf"
+          },
+          "indirizzo_sede": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Indirizzo Sede"
+          },
+          "cliente_dal_anno": {
+            "type": "integer",
+            "title": "Cliente Dal Anno"
+          },
+          "practice_count": {
+            "type": "integer",
+            "title": "Practice Count"
+          },
+          "practice_count_open": {
+            "type": "integer",
+            "title": "Practice Count Open"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "code",
+          "ragione_sociale",
+          "type",
+          "cliente_dal_anno",
+          "practice_count",
+          "practice_count_open"
+        ],
+        "title": "ClientSearchHit",
+        "description": "Hit per combobox 'cerca cliente' del modal Nuova Pratica."
+      },
       "ClientUpdate": {
         "properties": {
           "code": {
@@ -2905,6 +3168,20 @@
             "type": "array",
             "title": "Collaborator Ids",
             "default": []
+          },
+          "label_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Label Ids",
+            "default": []
+          },
+          "create_default_reminders": {
+            "type": "boolean",
+            "title": "Create Default Reminders",
+            "default": false
           }
         },
         "type": "object",
@@ -2985,7 +3262,7 @@
           },
           "ultime_attivita": {
             "items": {
-              "$ref": "#/components/schemas/ActivitySummary"
+              "$ref": "#/components/schemas/ActivityEnriched"
             },
             "type": "array",
             "title": "Ultime Attivita"
@@ -3011,7 +3288,7 @@
           "carico_per_utente"
         ],
         "title": "DashboardKPI",
-        "description": "KPI per la home dashboard V0."
+        "description": "KPI aggregati per la home dashboard V0."
       },
       "EventEnriched": {
         "properties": {
@@ -4094,6 +4371,98 @@
         ],
         "title": "StatusCount"
       },
+      "TemplatePhasePreview": {
+        "properties": {
+          "order_index": {
+            "type": "integer",
+            "title": "Order Index"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "duration_days": {
+            "type": "integer",
+            "title": "Duration Days"
+          },
+          "planned_start": {
+            "type": "string",
+            "format": "date",
+            "title": "Planned Start"
+          },
+          "planned_end": {
+            "type": "string",
+            "format": "date",
+            "title": "Planned End"
+          }
+        },
+        "type": "object",
+        "required": [
+          "order_index",
+          "name",
+          "duration_days",
+          "planned_start",
+          "planned_end"
+        ],
+        "title": "TemplatePhasePreview"
+      },
+      "TemplatePreview": {
+        "properties": {
+          "category_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Category Id"
+          },
+          "category_name": {
+            "type": "string",
+            "title": "Category Name"
+          },
+          "apertura": {
+            "type": "string",
+            "format": "date",
+            "title": "Apertura"
+          },
+          "scadenza_calcolata": {
+            "type": "string",
+            "format": "date",
+            "title": "Scadenza Calcolata"
+          },
+          "total_duration_days": {
+            "type": "integer",
+            "title": "Total Duration Days",
+            "description": "Somma di duration_days delle fasi (giorni cumulativi)."
+          },
+          "phases": {
+            "items": {
+              "$ref": "#/components/schemas/TemplatePhasePreview"
+            },
+            "type": "array",
+            "title": "Phases"
+          }
+        },
+        "type": "object",
+        "required": [
+          "category_id",
+          "category_name",
+          "apertura",
+          "scadenza_calcolata",
+          "total_duration_days",
+          "phases"
+        ],
+        "title": "TemplatePreview",
+        "description": "Anteprima fasi + scadenza calcolata, per modal Nuova Pratica step 2/3."
+      },
       "TopUrgentPractice": {
         "properties": {
           "practice_id": {
@@ -4112,6 +4481,18 @@
           "priority": {
             "type": "string",
             "title": "Priority"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "aperta",
+              "in_corso",
+              "in_attesa",
+              "sospesa",
+              "chiusa",
+              "archiviata"
+            ],
+            "title": "Status"
           },
           "scadenza": {
             "anyOf": [
@@ -4135,6 +4516,32 @@
               }
             ],
             "title": "Giorni Al Target"
+          },
+          "client_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Client Id"
+          },
+          "client_ragione_sociale": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Client Ragione Sociale"
+          },
+          "responsible": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/UserMiniSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",
@@ -4143,8 +4550,10 @@
           "code",
           "title",
           "priority",
+          "status",
           "scadenza",
-          "giorni_al_target"
+          "giorni_al_target",
+          "client_id"
         ],
         "title": "TopUrgentPractice"
       },
@@ -4291,6 +4700,56 @@
         ],
         "title": "User"
       },
+      "UserMiniSummary": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "nome": {
+            "type": "string",
+            "title": "Nome"
+          },
+          "cognome": {
+            "type": "string",
+            "title": "Cognome"
+          },
+          "role": {
+            "type": "string",
+            "title": "Role"
+          },
+          "role_label": {
+            "type": "string",
+            "title": "Role Label"
+          },
+          "initials": {
+            "type": "string",
+            "title": "Initials"
+          },
+          "avatar_color": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avatar Color"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "nome",
+          "cognome",
+          "role",
+          "role_label",
+          "initials"
+        ],
+        "title": "UserMiniSummary"
+      },
       "UserSummary": {
         "properties": {
           "id": {
@@ -4339,14 +4798,8 @@
       },
       "UserWorkload": {
         "properties": {
-          "user_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "User Id"
-          },
-          "user_name": {
-            "type": "string",
-            "title": "User Name"
+          "user": {
+            "$ref": "#/components/schemas/UserMiniSummary"
           },
           "pratiche_aperte": {
             "type": "integer",
@@ -4355,14 +4808,18 @@
           "pratiche_in_ritardo": {
             "type": "integer",
             "title": "Pratiche In Ritardo"
+          },
+          "load_pct": {
+            "type": "integer",
+            "title": "Load Pct"
           }
         },
         "type": "object",
         "required": [
-          "user_id",
-          "user_name",
+          "user",
           "pratiche_aperte",
-          "pratiche_in_ritardo"
+          "pratiche_in_ritardo",
+          "load_pct"
         ],
         "title": "UserWorkload"
       },
