@@ -1,34 +1,22 @@
 "use client";
 
-import { ContactRound, FileText, FolderOpen, Info, MessageSquareText, Paperclip, Route } from "lucide-react";
+import { ContactRound, FileText, Info, MessageSquareText, Paperclip, Route } from "lucide-react";
 
-import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Practice, PracticeEvent, PracticePhase } from "@/lib/types";
 
 import { TabAlbero } from "./TabAlbero";
+import { TabAllegati } from "./TabAllegati";
+import { TabAnagrafica } from "./TabAnagrafica";
 import { TabInfo } from "./TabInfo";
 import { TabNotes } from "./TabNotes";
+import { TabTimeline } from "./TabTimeline";
 
 type PracticeTabsProps = {
   practice: Practice;
   phases: PracticePhase[];
   events: PracticeEvent[];
 };
-
-function Placeholder({ icon: Icon, label }: { icon: typeof Info; label: string }) {
-  return (
-    <Card className="min-h-[280px]">
-      <CardContent className="flex h-full min-h-[280px] items-center justify-center text-center">
-        <div className="space-y-3">
-          <Icon className="mx-auto h-8 w-8 text-electric" />
-          <p className="font-display text-lg font-semibold text-foreground">{label}</p>
-          <p className="max-w-md text-sm text-muted">Sezione predisposta nello scaffold, popolamento previsto nelle fasi successive.</p>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
 
 export function PracticeTabs({ practice, phases, events }: PracticeTabsProps) {
   return (
@@ -69,16 +57,16 @@ export function PracticeTabs({ practice, phases, events }: PracticeTabsProps) {
         <TabAlbero events={events} phases={phases} practice={practice} />
       </TabsContent>
       <TabsContent value="timeline">
-        <Placeholder icon={FolderOpen} label="Timeline pratica" />
+        <TabTimeline events={events} phases={phases} />
       </TabsContent>
       <TabsContent value="allegati">
-        <Placeholder icon={Paperclip} label="Allegati" />
+        <TabAllegati />
       </TabsContent>
       <TabsContent value="note">
         <TabNotes phases={phases} />
       </TabsContent>
       <TabsContent value="anagrafica">
-        <Placeholder icon={ContactRound} label="Anagrafica cliente" />
+        <TabAnagrafica practice={practice} />
       </TabsContent>
     </Tabs>
   );
