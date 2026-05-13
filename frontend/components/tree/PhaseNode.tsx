@@ -56,17 +56,17 @@ export function PhaseNode({ phase, x, y, selected, onSelect }: PhaseNodeProps) {
       tabIndex={0}
       transform={`translate(${x} ${y})`}
     >
-      <title>{`${phase.title} · ${fullDate}`}</title>
+      <title>{`${phase.title} - ${fullDate}`}</title>
       <g className="opacity-0 transition-opacity group-hover:opacity-100">
         <rect className="fill-surface-high stroke-border" height="22" rx="11" width="96" x="-48" y="-62" />
         <text className="fill-foreground text-[11px] font-semibold" textAnchor="middle" y="-47">
           {fullDate}
         </text>
       </g>
-      {phase.status === "done" ? <circle className="fill-success/20 stroke-success/30" r="34" /> : null}
-      {isActive ? <circle className="fill-electric opacity-20" r="42" /> : null}
-      {selected || isActive ? <circle className="fill-none stroke-electric stroke-2" r="34" /> : null}
-      <circle className="fill-none stroke-electric/0 stroke-2 transition-colors group-hover:stroke-electric/55" r="38" />
+      {phase.status === "done" ? <circle className="fill-success/20 stroke-success/30" r="30" /> : null}
+      {isActive ? <circle className="fill-electric opacity-20" r="38" /> : null}
+      {selected || isActive ? <circle className="fill-none stroke-electric stroke-2" r="30" /> : null}
+      <circle className="fill-none stroke-electric/0 stroke-2 transition-colors group-hover:stroke-electric/55" r="34" />
       <circle
         className={cn(
           "stroke-[1.4]",
@@ -76,7 +76,7 @@ export function PhaseNode({ phase, x, y, selected, onSelect }: PhaseNodeProps) {
           phase.status === "skipped" && "fill-surface-high stroke-muted/70",
           phase.status === "blocked" && "fill-danger/15 stroke-danger",
         )}
-        r="28"
+        r="24"
       />
       <foreignObject height="24" width="24" x="-12" y="-12">
         <div className="flex h-6 w-6 items-center justify-center">
@@ -87,9 +87,6 @@ export function PhaseNode({ phase, x, y, selected, onSelect }: PhaseNodeProps) {
           )}
         </div>
       </foreignObject>
-      <text className="fill-muted text-[10px] font-bold tracking-[0.12em]" textAnchor="middle" y="-22">
-        {`F${String(phase.order).padStart(2, "0")}`}
-      </text>
       <text className="fill-muted text-[11px] font-semibold" textAnchor="middle" y="56">
         {date}
       </text>

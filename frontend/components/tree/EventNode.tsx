@@ -43,14 +43,18 @@ export function EventNode({ event, phase, timelineY, x, y, onSelect }: EventNode
       tabIndex={0}
       transform={`translate(${x} 0)`}
     >
-      <title>{`${event.title} · ${eventDate}`}</title>
-      <circle className="fill-electric/10 stroke-electric/20 stroke-2" cy={timelineY} r="15" />
-      <circle className="fill-surface-high stroke-electric stroke-2" cy={timelineY} r="10" />
-      <circle className="fill-electric" cy={timelineY} r="4" />
+      <title>{`${event.title} - ${eventDate}`}</title>
+      <circle className="fill-transparent" cy={timelineY} r="24" />
+      <circle className="fill-electric/10 stroke-electric/20 stroke-2 transition-colors group-hover:fill-electric/20 group-hover:stroke-electric/50" cy={timelineY} r="18" />
+      <circle className="fill-surface-high stroke-electric stroke-2" cy={timelineY} r="12" />
+      <circle className="fill-electric" cy={timelineY} r="5" />
       <g className="opacity-0 transition-opacity group-hover:opacity-100">
-        <rect className="fill-surface-high stroke-border" height="22" rx="11" width="96" x="-48" y={dateChipY - 15} />
-        <text className="fill-foreground text-[11px] font-semibold" textAnchor="middle" y={dateChipY}>
+        <rect className="fill-surface-high stroke-border" height="38" rx="12" width="154" x="-77" y={dateChipY - 24} />
+        <text className="fill-foreground text-[11px] font-semibold" textAnchor="middle" y={dateChipY - 5}>
           {eventDate}
+        </text>
+        <text className="fill-muted text-[10px] font-semibold" textAnchor="middle" y={dateChipY + 10}>
+          {event.author.name}
         </text>
       </g>
       <g transform={`translate(0 ${y})`}>

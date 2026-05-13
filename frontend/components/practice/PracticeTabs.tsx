@@ -8,6 +8,7 @@ import type { Practice, PracticeEvent, PracticePhase } from "@/lib/types";
 
 import { TabAlbero } from "./TabAlbero";
 import { TabInfo } from "./TabInfo";
+import { TabNotes } from "./TabNotes";
 
 type PracticeTabsProps = {
   practice: Practice;
@@ -74,7 +75,7 @@ export function PracticeTabs({ practice, phases, events }: PracticeTabsProps) {
         <Placeholder icon={Paperclip} label="Allegati" />
       </TabsContent>
       <TabsContent value="note">
-        <Placeholder icon={MessageSquareText} label="Note operative" />
+        <TabNotes phases={phases} />
       </TabsContent>
       <TabsContent value="anagrafica">
         <Placeholder icon={ContactRound} label="Anagrafica cliente" />
