@@ -422,6 +422,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/events/{event_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Update Event */
+        put: operations["update_event_api_events__event_id__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/notes": {
         parameters: {
             query?: never;
@@ -433,6 +450,23 @@ export interface paths {
         put?: never;
         /** Create Note */
         post: operations["create_note_api_notes_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/notes/{note_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Update Note */
+        put: operations["update_note_api_notes__note_id__put"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1084,6 +1118,19 @@ export interface components {
             note: components["schemas"]["Note"];
             author?: components["schemas"]["UserSummary"] | null;
         };
+        /** NoteUpdate */
+        NoteUpdate: {
+            /** Practice Id */
+            practice_id?: string | null;
+            /** Phase Id */
+            phase_id?: string | null;
+            /** Event Id */
+            event_id?: string | null;
+            /** Content */
+            content?: string | null;
+            /** Author Id */
+            author_id?: string | null;
+        };
         /** Page[ActivityLog] */
         Page_ActivityLog_: {
             /** Items */
@@ -1295,6 +1342,27 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+        };
+        /** PracticeEventUpdate */
+        PracticeEventUpdate: {
+            /** Practice Id */
+            practice_id?: string | null;
+            /** Phase Id */
+            phase_id?: string | null;
+            /** Event Type */
+            event_type?: ("telefonata_in" | "telefonata_out" | "email_in" | "email_out" | "incontro" | "documento_in" | "documento_out" | "delega" | "f24" | "attesa_cliente" | "nota_interna" | "esterno") | null;
+            /** Title */
+            title?: string | null;
+            /** Description */
+            description?: string | null;
+            /** Event Date */
+            event_date?: string | null;
+            /** Event Time */
+            event_time?: string | null;
+            /** Author Id */
+            author_id?: string | null;
+            /** Visual Position */
+            visual_position?: ("top" | "bottom") | null;
         };
         /** PracticePhase */
         PracticePhase: {
@@ -2428,6 +2496,43 @@ export interface operations {
             };
         };
     };
+    update_event_api_events__event_id__put: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-User-Id"?: string | null;
+            };
+            path: {
+                event_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PracticeEventUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PracticeEvent"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     create_note_api_notes_post: {
         parameters: {
             query?: never;
@@ -2445,6 +2550,43 @@ export interface operations {
         responses: {
             /** @description Successful Response */
             201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Note"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_note_api_notes__note_id__put: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-User-Id"?: string | null;
+            };
+            path: {
+                note_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NoteUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };

@@ -4,16 +4,16 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from typing import Annotated
-from uuid import uuid4
+from uuid import UUID, uuid4
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.deps import (
     get_activity_log_repo,
     get_current_user_id,
     get_note_repo,
 )
-from app.models import ActivityLog, Note, NoteCreate
+from app.models import ActivityLog, Note, NoteCreate, NoteUpdate
 from app.repositories.base import Repository
 from app.services.activity_service import ActivityService
 
@@ -45,3 +45,26 @@ async def create_note(
         practice_id=created.practice_id,
     )
     return created
+
+
+@router.put("/{note_id}", response_model=Note)
+async def update_note(
+    note_id: UUID,
+    body: NoteUpdate,
+    note_repo: Annotated[Repository[Note], Depends(get_note_repo)],
+    activity_repo: Annotated[Repository[ActivityLog], Depends(get_activity_log_repo)],
+    current_user_id: Annotated[str, Depends(get_current_user_id)],
+) -> Note:
+    existing = await note_repo.get(str(note_id))
+    if existing is None:
+        raise HTTPException(status_code=404, detail="Note not found")
+    updates = body.model_dump(exclude_unset=True)
+    updated = await note_repo.update(str(note_id), **updates)
+    await ActivityService(activity_repo).log(
+        actor_id=current_user_id,
+        action="updated",
+        entity_type="note",
+        entity_id=updated.id,
+        practice_id=updated.practice_id,
+    )
+    return updated
