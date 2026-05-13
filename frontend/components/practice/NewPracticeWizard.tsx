@@ -24,6 +24,7 @@ import {
 import { Badge, type BadgeProps } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { V1Hint } from "@/components/ui/v1-hint";
 import { DEMO_USERS, useDemoStore } from "@/lib/demo-state";
 import { directoryClients } from "@/lib/demo-directory";
 import { cn } from "@/lib/utils";
@@ -442,13 +443,34 @@ export function NewPracticeWizard() {
               </div>
               <div className="space-y-2">
                 {phases.map((phase, index) => (
-                  <div className={cn("grid gap-3 rounded-xl border border-border bg-surface-container p-3 text-sm md:grid-cols-[40px_1fr_140px_140px_80px_40px]", !phase.enabled && "opacity-45")} key={`${phase.name}-${index}`}>
+                  <div className="grid gap-3 rounded-xl border border-border bg-surface-container p-3 text-sm md:grid-cols-[40px_1fr_160px_80px_auto_40px]" key={`phase-${phase.order_index}`}>
                     <span className="font-label text-muted">#{index + 1}</span>
                     <input className="rounded-lg bg-surface-low px-2 py-1 outline-none" onChange={(event) => setPhases((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, name: event.target.value } : item))} value={phase.name} />
-                    <input className="rounded-lg bg-surface-low px-2 py-1 outline-none" onChange={(event) => updatePhaseDate(index, "planned_start", event.target.value)} type="date" value={phase.planned_start} />
                     <input className="rounded-lg bg-surface-low px-2 py-1 outline-none" onChange={(event) => updatePhaseDate(index, "planned_end", event.target.value)} type="date" value={phase.planned_end} />
                     <span>{phase.duration_days} giorni</span>
-                    <button aria-label="Rimuovi fase" onClick={() => setPhases((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, enabled: !item.enabled } : item))} type="button"><Trash2 className="h-4 w-4 text-muted" /></button>
+                    {phase.custom ? (
+                      <V1Hint>
+                        <button
+                          className="rounded-lg border border-electric/40 bg-electric/10 px-2 py-1 text-xs font-semibold text-electric hover:bg-electric/20"
+                          title="Salva questa fase nel template della categoria"
+                          type="button"
+                        >
+                          Salva nel template
+                        </button>
+                      </V1Hint>
+                    ) : (
+                      <span />
+                    )}
+                    <button
+                      aria-label="Rimuovi fase"
+                      onClick={() => {
+                        if (!window.confirm(`Rimuovere la fase "${phase.name}"?`)) return;
+                        setPhases((current) => current.filter((_, itemIndex) => itemIndex !== index));
+                      }}
+                      type="button"
+                    >
+                      <Trash2 className="h-4 w-4 text-muted hover:text-danger" />
+                    </button>
                   </div>
                 ))}
               </div>
