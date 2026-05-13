@@ -76,9 +76,9 @@ export function ClientsListClient() {
                     <td className="px-4 py-3 font-label text-foreground-variant">{client.vat}</td>
                     <td className="px-4 py-3 text-foreground-variant">{client.city}</td>
                     <td className="px-4 py-3">
-                      <div className="flex flex-wrap gap-1.5">
+                      <div className="flex flex-wrap gap-1.5" onClick={(event) => event.stopPropagation()}>
                         {client.labels.map((label) => (
-                          <Badge key={label} variant="info">{label}</Badge>
+                          <Badge className="cursor-default" key={label} variant="info">{label}</Badge>
                         ))}
                       </div>
                     </td>
