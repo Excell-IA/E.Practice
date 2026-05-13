@@ -30,7 +30,7 @@ const navItems = [
   { label: "Dashboard", icon: LayoutDashboard, section: "Modulo" },
   { label: "Rubrica clienti", icon: UsersRound, section: "Modulo", href: "/clienti" },
   { label: "Pratiche", icon: Gauge, section: "Modulo", active: true, badge: 8, href: "/pratiche" },
-  { label: "Importa pratiche", icon: FileText, section: "Modulo", href: "/pratiche/importa" },
+  { label: "Carica documento", icon: FileText, section: "Modulo", href: "/pratiche/importa" },
   { label: "Agenda", icon: CalendarDays, section: "Modulo" },
   { label: "Scadenze", icon: Clock3, section: "Modulo", badge: 7 },
   { label: "Utenti studio", icon: UserSquare2, section: "Studio" },
