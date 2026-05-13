@@ -48,7 +48,9 @@ def main() -> int:
 
         # 4. Categories
         r = client.get("/api/categories", headers=HEADERS)
-        check(r, 200, "GET /api/categories", failures, lambda d: len(d) == 5, "5 categories expected")
+        check(
+            r, 200, "GET /api/categories", failures, lambda d: len(d) == 5, "5 categories expected"
+        )
         category_id = r.json()[0]["id"] if r.status_code == 200 else None
 
         # 5. Templates per categoria
@@ -65,8 +67,12 @@ def main() -> int:
             check(r, 200, "GET /api/templates/category/{id}/preview", failures)
             if r.status_code == 200:
                 d = r.json()
-                assert "phases" in d and "scadenza_calcolata" in d, "Expected phases + scadenza_calcolata"
-                print(f"      -> {len(d['phases'])} fasi, scadenza={d['scadenza_calcolata']}, totale {d['total_duration_days']}g")
+                assert (
+                    "phases" in d and "scadenza_calcolata" in d
+                ), "Expected phases + scadenza_calcolata"
+                print(
+                    f"      -> {len(d['phases'])} fasi, scadenza={d['scadenza_calcolata']}, totale {d['total_duration_days']}g"
+                )
 
         # 7. Clients list paginato
         r = client.get("/api/clients?limit=5", headers=HEADERS)
@@ -78,7 +84,9 @@ def main() -> int:
         check(r, 200, "GET /api/clients/search?q=acciai", failures)
         if r.status_code == 200:
             hits = r.json()
-            print(f"      -> {len(hits)} hit(s); first: {hits[0]['ragione_sociale'] if hits else 'n/a'}")
+            print(
+                f"      -> {len(hits)} hit(s); first: {hits[0]['ragione_sociale'] if hits else 'n/a'}"
+            )
             if hits:
                 assert "practice_count" in hits[0], "Expected practice_count in hit"
                 assert "cliente_dal_anno" in hits[0], "Expected cliente_dal_anno"
@@ -142,7 +150,11 @@ def main() -> int:
 
             # 12. Phase skip (su un'altra pending)
             pending2 = next(
-                (p for p in phases if p["status"] == "pending" and (not pending or p["id"] != pending["id"])),
+                (
+                    p
+                    for p in phases
+                    if p["status"] == "pending" and (not pending or p["id"] != pending["id"])
+                ),
                 None,
             )
             if pending2:
@@ -256,7 +268,9 @@ def main() -> int:
                     r2 = client.get("/api/reminders?status=pending", headers=HEADERS)
                     if r2.status_code == 200:
                         new_reminders = [
-                            rem for rem in r2.json() if rem["practice_id"] == new_practice["practice_id"]
+                            rem
+                            for rem in r2.json()
+                            if rem["practice_id"] == new_practice["practice_id"]
                         ]
                         print(f"      -> {len(new_reminders)} reminders auto-created")
 

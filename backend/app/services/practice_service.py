@@ -123,7 +123,9 @@ class PracticeService:
                 cursor += timedelta(days=duration)
                 continue
             duration = tpl.duration_days if tpl.duration_days and tpl.duration_days > 0 else 1
-            planned_start = override.planned_start if override and override.planned_start else cursor
+            planned_start = (
+                override.planned_start if override and override.planned_start else cursor
+            )
             phase_end = cursor + timedelta(days=duration)
             planned_end = override.planned_end if override and override.planned_end else phase_end
             phase = PracticePhase(

@@ -37,7 +37,9 @@ def main() -> int:
         out_path = Path(out_arg)
         out_path.parent.mkdir(parents=True, exist_ok=True)
         out_path.write_text(payload, encoding="utf-8")
-        print(f"OpenAPI schema written to {out_path} ({len(schema['paths'])} paths)", file=sys.stderr)
+        print(
+            f"OpenAPI schema written to {out_path} ({len(schema['paths'])} paths)", file=sys.stderr
+        )
     else:
         sys.stdout.write(payload)
     return 0
