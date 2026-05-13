@@ -12,6 +12,7 @@ ActivityAction = Literal[
     "deleted",
     "completed",
     "uploaded",
+    "attached",
     "commented",
     "viewed_l1",
 ]

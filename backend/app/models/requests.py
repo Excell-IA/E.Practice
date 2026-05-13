@@ -81,6 +81,13 @@ class CreateEventRequest(PracticeEventCreate):
     pass
 
 
+class AttachRequest(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, from_attributes=True)
+
+    practice_id: UUID
+    phase_id: UUID | None = None
+
+
 class AddLabelRequest(BaseModel):
     model_config = ConfigDict(populate_by_name=True, from_attributes=True)
 

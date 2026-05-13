@@ -77,6 +77,7 @@ from app.models.reminder import (
 )
 from app.models.requests import (
     AddLabelRequest,
+    AttachRequest,
     CompletePhaseRequest,
     CreateEventRequest,
     CreatePracticeRequest,
@@ -102,6 +103,7 @@ __all__ = [
     "AttachmentCreate",
     "AttachmentSource",
     "AttachmentUpdate",
+    "AttachRequest",
     "Category",
     "CategoryBase",
     "CategoryCreate",

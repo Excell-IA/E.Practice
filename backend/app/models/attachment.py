@@ -12,7 +12,7 @@ AttachmentSource = Literal["local", "drive", "db", "scan", "url"]
 class AttachmentBase(BaseModel):
     model_config = ConfigDict(populate_by_name=True, from_attributes=True)
 
-    practice_id: UUID
+    practice_id: UUID | None = None
     phase_id: UUID | None = None
     event_id: UUID | None = None
     filename: str
