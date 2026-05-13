@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 
 import { V1Hint } from "@/components/ui/v1-hint";
@@ -31,7 +32,7 @@ type EWorkShellProps = {
 const navItems = [
   { label: "Dashboard", icon: LayoutDashboard, section: "Modulo" },
   { label: "Rubrica clienti", icon: UsersRound, section: "Modulo", href: "/clienti" },
-  { label: "Pratiche", icon: Gauge, section: "Modulo", active: true, badge: 8, href: "/pratiche" },
+  { label: "Pratiche", icon: Gauge, section: "Modulo", badge: 8, href: "/pratiche" },
   { label: "Nuova pratica", icon: Plus, section: "Modulo", href: "/pratiche/nuova" },
   { label: "Carica documento", icon: FileText, section: "Modulo", href: "/pratiche/importa", secondary: true },
   { label: "Agenda", icon: CalendarDays, section: "Modulo" },
@@ -62,6 +63,13 @@ export function EWorkShell({ children, code }: EWorkShellProps) {
   const activeUser = useDemoStore((state) => state.activeUser);
   const users = useDemoStore((state) => state.users);
   const applyAction = useDemoStore((state) => state.applyAction);
+  const pathname = usePathname();
+  const isActive = (href: string | undefined): boolean => {
+    if (!href) return false;
+    if (href === pathname) return true;
+    if (navItems.some((item) => item.href === pathname)) return false;
+    return pathname.startsWith(`${href}/`);
+  };
 
   return (
     <div className="min-h-screen bg-surface text-foreground">
@@ -84,15 +92,15 @@ export function EWorkShell({ children, code }: EWorkShellProps) {
                   const itemClassName = cn(
                     "relative flex h-9 w-full items-center gap-3 rounded-lg px-3 text-left text-[13.5px] font-medium text-foreground-variant transition-colors",
                     item.secondary && "pl-8 text-[12.5px] text-muted",
-                    item.active && "bg-surface-high text-foreground",
-                    !item.active && "hover:bg-surface-container hover:text-foreground",
+                    isActive(item.href) && "bg-surface-high text-foreground",
+                    !isActive(item.href) && "hover:bg-surface-container hover:text-foreground",
                   );
                   const content = (
                     <>
-                      {item.active ? (
+                      {isActive(item.href) ? (
                         <span className="absolute bottom-2 left-0 top-2 w-0.5 rounded-r bg-gradient-to-b from-primary to-[#00C2FF]" />
                       ) : null}
-                      <Icon className={cn("h-4 w-4 text-muted", item.active && "text-primary")} />
+                      <Icon className={cn("h-4 w-4 text-muted", isActive(item.href) && "text-primary")} />
                       <span className="min-w-0 flex-1 truncate">{item.label}</span>
                       {item.badge ? (
                         <span className="rounded-full bg-primary/15 px-1.5 py-0.5 font-display text-[10px] font-semibold text-primary">
