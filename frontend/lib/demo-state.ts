@@ -164,6 +164,17 @@ const initialNotes: DemoNote[] = [
   },
 ];
 
+function readStoredNotes() {
+  if (typeof window === "undefined") return initialNotes;
+  const raw = window.localStorage.getItem("epractice:notes");
+  if (!raw) return initialNotes;
+  try {
+    return JSON.parse(raw) as DemoNote[];
+  } catch {
+    return initialNotes;
+  }
+}
+
 type DemoAction =
   | { type: "set_user"; userId: string }
   | { type: "complete_phase"; phaseId: string }
@@ -205,6 +216,12 @@ function isUuid(value: string) {
 function rememberUser(userId: string) {
   if (typeof window !== "undefined") {
     window.localStorage.setItem("epractice:user-id", userId);
+  }
+}
+
+function rememberNotes(notes: DemoNote[]) {
+  if (typeof window !== "undefined") {
+    window.localStorage.setItem("epractice:notes", JSON.stringify(notes));
   }
 }
 
@@ -265,7 +282,7 @@ export const useDemoStore = create<DemoState>((set) => ({
   practice,
   phases: initialPhases,
   events: initialEvents,
-  notes: initialNotes,
+  notes: readStoredNotes(),
   applyAction: (action) =>
     set((state) => {
       if (action.type === "set_user") {
@@ -328,8 +345,10 @@ export const useDemoStore = create<DemoState>((set) => ({
           createdAt: new Date().toISOString(),
           phaseId: action.phaseId,
         };
+        const notes = [note, ...state.notes];
+        rememberNotes(notes);
         return {
-          notes: [note, ...state.notes],
+          notes,
           phases: state.phases.map((phase) =>
             phase.id === action.phaseId ? { ...phase, notesCount: phase.notesCount + 1 } : phase,
           ),
