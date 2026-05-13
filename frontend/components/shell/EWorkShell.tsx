@@ -34,7 +34,7 @@ const navItems = [
   { label: "Rubrica clienti", icon: UsersRound, section: "Modulo", href: "/clienti" },
   { label: "Pratiche", icon: Gauge, section: "Modulo", badge: 8, href: "/pratiche" },
   { label: "Nuova pratica", icon: Plus, section: "Modulo", href: "/pratiche/nuova" },
-  { label: "Carica documento", icon: FileText, section: "Modulo", href: "/pratiche/importa", secondary: true },
+  { label: "Carica documento", icon: FileText, section: "Modulo", href: "/pratiche/importa" },
   { label: "Agenda", icon: CalendarDays, section: "Modulo" },
   { label: "Scadenze", icon: Clock3, section: "Modulo", badge: 7 },
   { label: "Utenti studio", icon: UserSquare2, section: "Studio" },
@@ -73,7 +73,7 @@ export function EWorkShell({ children, code }: EWorkShellProps) {
 
   return (
     <div className="min-h-screen bg-surface text-foreground">
-      <aside className="fixed bottom-0 left-0 top-[96px] z-40 hidden w-60 flex-col overflow-y-auto bg-surface-low px-3 py-5 lg:flex">
+      <aside className="fixed bottom-0 left-0 top-[120px] z-40 hidden w-60 flex-col overflow-y-auto bg-surface-low px-3 py-5 lg:flex">
         <div className="mb-5 px-3">
           <p className="font-display text-lg font-semibold text-foreground">E.Practice</p>
           <p className="font-label text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">Studio Leali</p>
@@ -91,7 +91,6 @@ export function EWorkShell({ children, code }: EWorkShellProps) {
                   const Icon = item.icon;
                   const itemClassName = cn(
                     "relative flex h-9 w-full items-center gap-3 rounded-lg px-3 text-left text-[13.5px] font-medium text-foreground-variant transition-colors",
-                    item.secondary && "pl-8 text-[12.5px] text-muted",
                     isActive(item.href) && "bg-surface-high text-foreground",
                     !isActive(item.href) && "hover:bg-surface-container hover:text-foreground",
                   );
@@ -136,7 +135,7 @@ export function EWorkShell({ children, code }: EWorkShellProps) {
         </div>
       </aside>
 
-      <header className="sticky top-0 z-50 flex h-[96px] items-center justify-between bg-surface-lowest/95 px-4 backdrop-blur-xl md:px-6">
+      <header className="sticky top-0 z-50 flex h-[120px] items-center justify-between bg-surface-lowest/95 px-3 backdrop-blur-xl md:px-3">
           <div className="flex min-w-0 items-center gap-6">
             <Image alt="ExcellIA" className="h-48 w-auto flex-shrink-0" height={192} priority src="/logo-excellia.svg" width={256} />
             <div className="min-w-0">

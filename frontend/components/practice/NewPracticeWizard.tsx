@@ -117,12 +117,12 @@ export function NewPracticeWizard() {
       status: "attivo",
     })),
   );
-  const [title, setTitle] = useState("Bilancio 2025 Acciaierie Valgobbia");
-  const [description, setDescription] = useState("Predisposizione bilancio d'esercizio e deposito camerale.");
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
   const [categoryId, setCategoryId] = useState(fallbackCategories[2].id);
   const [apertura, setApertura] = useState(today());
   const [scadenza, setScadenza] = useState("");
-  const [responsibleId, setResponsibleId] = useState<string>(DEMO_USERS[1].id);
+  const [responsibleId, setResponsibleId] = useState<string>(activeUser.id);
   const [priority, setPriority] = useState<"bassa" | "media" | "alta">("media");
   const [selectedLabels, setSelectedLabels] = useState<string[]>([fallbackLabels[0].id]);
   const [preview, setPreview] = useState<ApiTemplatePreview>(() => fallbackPreview(fallbackCategories[2], today()));
