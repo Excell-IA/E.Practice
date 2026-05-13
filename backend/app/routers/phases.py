@@ -49,11 +49,11 @@ async def update_phase(
     activity_repo: Annotated[Repository[ActivityLog], Depends(get_activity_log_repo)],
     current_user_id: Annotated[str, Depends(get_current_user_id)],
 ) -> PracticePhase:
-    """Modifica una fase. Solo se status=pending (le altre sono immutabili)."""
+    """Modifica una fase finche' non e' chiusa o saltata."""
     existing = await phase_repo.get(str(phase_id))
     if existing is None:
         raise HTTPException(status_code=404, detail=f"Phase {phase_id} non trovata")
-    if existing.status != "pending":
+    if existing.status in ("completed", "skipped"):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=f"Phase {phase_id} non modificabile (status={existing.status})",

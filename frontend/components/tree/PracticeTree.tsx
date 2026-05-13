@@ -30,6 +30,7 @@ type PracticeTreeProps = {
   practice: Practice;
   phases: PracticePhase[];
   events: PracticeEvent[];
+  onSwitchTab: (tab: "allegati" | "note") => void;
 };
 
 const disabledToolbar = [
@@ -60,7 +61,7 @@ type TrunkDraft = {
   phaseId: string;
 };
 
-export function PracticeTree({ practice, phases, events }: PracticeTreeProps) {
+export function PracticeTree({ practice, phases, events, onSwitchTab }: PracticeTreeProps) {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [selection, setSelection] = useState<TreeSelection | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -568,7 +569,7 @@ export function PracticeTree({ practice, phases, events }: PracticeTreeProps) {
         </CardContent>
       </Card>
 
-      <NodeDrawer onOpenChange={setDrawerOpen} open={drawerOpen} selection={freshSelection} />
+      <NodeDrawer onOpenChange={setDrawerOpen} onSwitchTab={onSwitchTab} open={drawerOpen} selection={freshSelection} />
     </>
   );
 }

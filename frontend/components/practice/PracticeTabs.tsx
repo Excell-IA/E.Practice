@@ -1,6 +1,7 @@
 "use client";
 
 import { ContactRound, FileText, Info, MessageSquareText, Paperclip, Route } from "lucide-react";
+import { useState } from "react";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Practice, PracticeEvent, PracticePhase } from "@/lib/types";
@@ -18,9 +19,13 @@ type PracticeTabsProps = {
   events: PracticeEvent[];
 };
 
+type PracticeTabValue = "info" | "albero" | "timeline" | "allegati" | "note" | "anagrafica";
+
 export function PracticeTabs({ practice, phases, events }: PracticeTabsProps) {
+  const [activeTab, setActiveTab] = useState<PracticeTabValue>("albero");
+
   return (
-    <Tabs defaultValue="albero">
+    <Tabs onValueChange={(value) => setActiveTab(value as PracticeTabValue)} value={activeTab}>
       <div className="overflow-x-auto">
         <TabsList>
           <TabsTrigger value="info">
@@ -54,7 +59,7 @@ export function PracticeTabs({ practice, phases, events }: PracticeTabsProps) {
         <TabInfo practice={practice} />
       </TabsContent>
       <TabsContent value="albero">
-        <TabAlbero events={events} phases={phases} practice={practice} />
+        <TabAlbero events={events} onSwitchTab={setActiveTab} phases={phases} practice={practice} />
       </TabsContent>
       <TabsContent value="timeline">
         <TabTimeline events={events} phases={phases} />

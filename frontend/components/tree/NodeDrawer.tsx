@@ -25,9 +25,10 @@ type NodeDrawerProps = {
   selection: TreeSelection | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onSwitchTab: (tab: "allegati" | "note") => void;
 };
 
-export function NodeDrawer({ selection, open, onOpenChange }: NodeDrawerProps) {
+export function NodeDrawer({ selection, open, onOpenChange, onSwitchTab }: NodeDrawerProps) {
   const [noteBody, setNoteBody] = useState("");
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [editingNoteBody, setEditingNoteBody] = useState("");
@@ -97,6 +98,11 @@ export function NodeDrawer({ selection, open, onOpenChange }: NodeDrawerProps) {
       phaseId: selection.item.phaseId,
       title: eventDraft.title.trim(),
     });
+  }
+
+  function switchTab(tab: "allegati" | "note") {
+    onSwitchTab(tab);
+    onOpenChange(false);
   }
 
   return (
@@ -240,9 +246,26 @@ export function NodeDrawer({ selection, open, onOpenChange }: NodeDrawerProps) {
               <div className="rounded-2xl border border-border bg-surface-low p-3">
                 <CalendarDays className="mb-3 h-4 w-4 text-electric" />
                 <p className="text-xs text-muted">{isPhase ? "Scadenza" : "Data evento"}</p>
-                <p className="font-label text-sm font-semibold text-foreground">
-                  {date ? new Intl.DateTimeFormat("it-IT").format(new Date(date)) : "-"}
-                </p>
+                {isPhase ? (
+                  <input
+                    className="mt-2 h-9 w-full rounded-xl border border-border bg-surface-container px-3 font-label text-sm font-semibold text-foreground outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                    disabled={!canEdit}
+                    onChange={(event) =>
+                      applyAction({
+                        type: "update_phase",
+                        phaseId: selection.item.id,
+                        planned_end: event.target.value,
+                      })
+                    }
+                    title={canEdit ? "Modifica scadenza fase" : "Permesso non disponibile per utente viewer"}
+                    type="date"
+                    value={selection.item.dueDate}
+                  />
+                ) : (
+                  <p className="font-label text-sm font-semibold text-foreground">
+                    {date ? new Intl.DateTimeFormat("it-IT").format(new Date(date)) : "-"}
+                  </p>
+                )}
               </div>
               <div className="rounded-2xl border border-border bg-surface-low p-3">
                 <UserRound className="mb-3 h-4 w-4 text-electric" />
@@ -255,20 +278,28 @@ export function NodeDrawer({ selection, open, onOpenChange }: NodeDrawerProps) {
           <section className="space-y-3">
             <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">Materiale</p>
             <div className="space-y-2">
-              <div className="flex items-center justify-between rounded-2xl border border-border bg-surface-low p-3 text-sm">
+              <button
+                className="flex w-full items-center justify-between rounded-2xl border border-border bg-surface-low p-3 text-left text-sm transition-colors hover:bg-surface-high"
+                onClick={() => switchTab("note")}
+                type="button"
+              >
                 <span className="flex items-center gap-2 text-foreground-variant">
                   <FileText className="h-4 w-4 text-electric" />
                   Note operative
                 </span>
                 <span className="text-muted">{isPhase ? selection.item.notesCount : 1}</span>
-              </div>
-              <div className="flex items-center justify-between rounded-2xl border border-border bg-surface-low p-3 text-sm">
+              </button>
+              <button
+                className="flex w-full items-center justify-between rounded-2xl border border-border bg-surface-low p-3 text-left text-sm transition-colors hover:bg-surface-high"
+                onClick={() => switchTab("allegati")}
+                type="button"
+              >
                 <span className="flex items-center gap-2 text-foreground-variant">
                   <Paperclip className="h-4 w-4 text-electric" />
                   Allegati
                 </span>
                 <span className="text-muted">{isPhase ? selection.item.attachmentsCount : 0}</span>
-              </div>
+              </button>
             </div>
           </section>
 
