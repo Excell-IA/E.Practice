@@ -14,6 +14,7 @@ from app.logging_setup import get_logger
 from app.models import (
     CreatePracticeRequest,
     CreatePracticeResponse,
+    PhaseOverride,
     PhaseTemplate,
     Practice,
     PracticePhase,
@@ -58,6 +59,13 @@ class PracticeService:
         items = await self._templates.list(category_id=category_id)
         return sorted(items, key=lambda t: t.order_index)
 
+    def _override_for_template(
+        self,
+        tpl: PhaseTemplate,
+        overrides: dict[int, PhaseOverride],
+    ) -> PhaseOverride | None:
+        return overrides.get(tpl.order_index)
+
     async def create_with_template(
         self,
         request: CreatePracticeRequest,
@@ -94,21 +102,40 @@ class PracticeService:
         if not templates:
             log.warning("create_practice_no_templates", category_id=str(request.category_id))
 
+        overrides = {override.order_index: override for override in request.phase_overrides}
+        max_template_order = max((tpl.order_index for tpl in templates), default=0)
+        # V0: fasi custom FE con order_index oltre il template sono ignorate.
+        custom_override_count = sum(1 for order in overrides if order > max_template_order)
+        if custom_override_count:
+            log.info(
+                "create_practice_custom_phase_overrides_ignored_v0",
+                count=custom_override_count,
+                category_id=str(request.category_id),
+            )
+
         cursor: date = request.apertura
         phase_ids: list[UUID] = []
+        created_phases: list[PracticePhase] = []
         for tpl in templates:
+            override = self._override_for_template(tpl, overrides)
+            if override is not None and not override.enabled:
+                duration = tpl.duration_days if tpl.duration_days and tpl.duration_days > 0 else 1
+                cursor += timedelta(days=duration)
+                continue
             duration = tpl.duration_days if tpl.duration_days and tpl.duration_days > 0 else 1
+            planned_start = override.planned_start if override and override.planned_start else cursor
             phase_end = cursor + timedelta(days=duration)
+            planned_end = override.planned_end if override and override.planned_end else phase_end
             phase = PracticePhase(
                 id=uuid4(),
                 practice_id=practice_id,
                 template_id=tpl.id,
                 order_index=tpl.order_index,
-                name=tpl.name,
+                name=override.name if override and override.name else tpl.name,
                 description=tpl.description,
                 assignee_id=request.responsible_id,
-                planned_start=cursor,
-                planned_end=phase_end,
+                planned_start=planned_start,
+                planned_end=planned_end,
                 actual_start=None,
                 actual_end=None,
                 status="pending",
@@ -118,22 +145,22 @@ class PracticeService:
             )
             await self._phases.create(phase)
             phase_ids.append(phase.id)
+            created_phases.append(phase)
             cursor = phase_end
 
         # Default reminders (1 per fase, days_before=2) se richiesto
         reminder_count = 0
         if request.create_default_reminders and self._reminders is not None:
             recipient = request.responsible_id or UUID(str(current_user_id))
-            for tpl_idx, tpl in enumerate(templates):
-                phase_planned_end = request.apertura + timedelta(
-                    days=sum((t.duration_days or 1) for t in templates[: tpl_idx + 1])
-                )
+            templates_by_order = {tpl.order_index: tpl for tpl in templates}
+            for phase in created_phases:
+                tpl = templates_by_order[phase.order_index]
                 reminder = Reminder(
                     id=uuid4(),
                     practice_id=practice_id,
-                    phase_id=phase_ids[tpl_idx],
+                    phase_id=phase.id,
                     title=f"Promemoria {tpl.name}",
-                    target_date=phase_planned_end,
+                    target_date=phase.planned_end or request.apertura,
                     days_before=2,
                     recipient_id=recipient,
                     status="pending",

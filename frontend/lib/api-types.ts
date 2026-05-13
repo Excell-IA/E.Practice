@@ -967,6 +967,11 @@ export interface components {
              * @default false
              */
             create_default_reminders: boolean;
+            /**
+             * Phase Overrides
+             * @default []
+             */
+            phase_overrides: components["schemas"]["PhaseOverride"][];
         };
         /** CreatePracticeResponse */
         CreatePracticeResponse: {
@@ -1119,6 +1124,22 @@ export interface components {
         PhaseEnriched: {
             phase: components["schemas"]["PracticePhase"];
             assignee?: components["schemas"]["UserSummary"] | null;
+        };
+        /** PhaseOverride */
+        PhaseOverride: {
+            /** Order Index */
+            order_index: number;
+            /** Name */
+            name?: string | null;
+            /** Planned Start */
+            planned_start?: string | null;
+            /** Planned End */
+            planned_end?: string | null;
+            /**
+             * Enabled
+             * @default true
+             */
+            enabled: boolean;
         };
         /** PhaseTemplate */
         PhaseTemplate: {

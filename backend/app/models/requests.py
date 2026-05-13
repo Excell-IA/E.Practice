@@ -9,6 +9,16 @@ from app.models.practice import PracticePriority
 from app.models.practice_event import PracticeEventCreate
 
 
+class PhaseOverride(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, from_attributes=True)
+
+    order_index: int
+    name: str | None = None
+    planned_start: date | None = None
+    planned_end: date | None = None
+    enabled: bool = True
+
+
 class CreatePracticeRequest(BaseModel):
     model_config = ConfigDict(populate_by_name=True, from_attributes=True)
 
@@ -26,6 +36,12 @@ class CreatePracticeRequest(BaseModel):
     create_default_reminders: bool = False
     """Se True, crea un Reminder per ogni fase con `days_before=2` rispetto a planned_end.
     Usato dal checkbox 'Crea promemoria automatici per ogni fase' del modal."""
+    phase_overrides: list[PhaseOverride] = []
+    """Override V0 sulle fasi generate dal template.
+
+    V0 applica solo override su order_index esistenti nel template; fasi custom
+    con order_index oltre il template sono lasciate al piano V1.
+    """
 
 
 class CreatePracticeResponse(BaseModel):

@@ -3182,6 +3182,14 @@
             "type": "boolean",
             "title": "Create Default Reminders",
             "default": false
+          },
+          "phase_overrides": {
+            "items": {
+              "$ref": "#/components/schemas/PhaseOverride"
+            },
+            "type": "array",
+            "title": "Phase Overrides",
+            "default": []
           }
         },
         "type": "object",
@@ -3596,6 +3604,59 @@
         ],
         "title": "PhaseEnriched",
         "description": "PracticePhase + nome+avatar dell'assegnatario."
+      },
+      "PhaseOverride": {
+        "properties": {
+          "order_index": {
+            "type": "integer",
+            "title": "Order Index"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "planned_start": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Planned Start"
+          },
+          "planned_end": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Planned End"
+          },
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled",
+            "default": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "order_index"
+        ],
+        "title": "PhaseOverride"
       },
       "PhaseTemplate": {
         "properties": {
