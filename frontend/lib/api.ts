@@ -135,10 +135,26 @@ export function createNote(input: components["schemas"]["NoteCreate"], userId: s
   });
 }
 
+export function updateNote(noteId: string, input: components["schemas"]["NoteUpdate"], userId: string) {
+  return apiFetch<ApiNote>(`/api/notes/${noteId}`, {
+    body: JSON.stringify(input),
+    method: "PUT",
+    userId,
+  });
+}
+
 export function createEvent(input: components["schemas"]["CreateEventRequest"], userId: string) {
   return apiFetch<ApiPracticeEvent>("/api/events", {
     body: JSON.stringify(input),
     method: "POST",
+    userId,
+  });
+}
+
+export function updateEvent(eventId: string, input: components["schemas"]["PracticeEventUpdate"], userId: string) {
+  return apiFetch<ApiPracticeEvent>(`/api/events/${eventId}`, {
+    body: JSON.stringify(input),
+    method: "PUT",
     userId,
   });
 }

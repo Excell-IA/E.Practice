@@ -1,7 +1,18 @@
 "use client";
 
-import { CalendarDays, Check, FileText, Lock, Paperclip, RotateCcw, SkipForward, UserRound } from "lucide-react";
-import { useState } from "react";
+import {
+  CalendarDays,
+  Check,
+  FileText,
+  Lock,
+  Paperclip,
+  Pencil,
+  RotateCcw,
+  Save,
+  SkipForward,
+  UserRound,
+} from "lucide-react";
+import { useEffect, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -18,6 +29,14 @@ type NodeDrawerProps = {
 
 export function NodeDrawer({ selection, open, onOpenChange }: NodeDrawerProps) {
   const [noteBody, setNoteBody] = useState("");
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [editingNoteBody, setEditingNoteBody] = useState("");
+  const [eventDraft, setEventDraft] = useState({
+    authorId: "",
+    description: "",
+    occurredAt: "",
+    title: "",
+  });
   const activeUser = useDemoStore((state) => state.activeUser);
   const users = useDemoStore((state) => state.users);
   const notes = useDemoStore((state) => state.notes);
@@ -32,6 +51,16 @@ export function NodeDrawer({ selection, open, onOpenChange }: NodeDrawerProps) {
   const isAdmin = activeUser.permission === "admin";
   const phaseNotes = isPhase ? notes.filter((note) => note.phaseId === selection.item.id) : [];
 
+  useEffect(() => {
+    if (selection?.kind !== "event") return;
+    setEventDraft({
+      authorId: selection.item.author.id,
+      description: selection.item.description,
+      occurredAt: selection.item.occurredAt,
+      title: selection.item.title,
+    });
+  }, [selection]);
+
   function avatarClass(userId?: string) {
     if (userId?.endsWith("0001")) return "bg-[#14532d]";
     if (userId?.endsWith("0002")) return "bg-[#0f766e]";
@@ -43,6 +72,31 @@ export function NodeDrawer({ selection, open, onOpenChange }: NodeDrawerProps) {
     if (!isPhase || !noteBody.trim()) return;
     applyAction({ type: "add_note", phaseId: selection.item.id, body: noteBody.trim() });
     setNoteBody("");
+  }
+
+  function startEditingNote(noteId: string, body: string) {
+    setEditingNoteId(noteId);
+    setEditingNoteBody(body);
+  }
+
+  function saveNoteEdit() {
+    if (!editingNoteId || !editingNoteBody.trim()) return;
+    applyAction({ type: "update_note", noteId: editingNoteId, body: editingNoteBody.trim() });
+    setEditingNoteId(null);
+    setEditingNoteBody("");
+  }
+
+  function saveEventEdit() {
+    if (selection?.kind !== "event" || !eventDraft.title.trim() || !eventDraft.occurredAt) return;
+    applyAction({
+      type: "update_event",
+      authorId: eventDraft.authorId,
+      description: eventDraft.description.trim(),
+      eventId: selection.item.id,
+      occurredAt: eventDraft.occurredAt,
+      phaseId: selection.item.phaseId,
+      title: eventDraft.title.trim(),
+    });
   }
 
   return (
@@ -121,12 +175,71 @@ export function NodeDrawer({ selection, open, onOpenChange }: NodeDrawerProps) {
             ) : null}
           </section>
 
+          {!isPhase && selection?.kind === "event" ? (
+            <section className="space-y-3">
+              <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
+                Modifica evento
+              </p>
+              <div className="space-y-3 rounded-2xl border border-border bg-surface-low p-3">
+                <label className="block space-y-1.5">
+                  <span className="text-xs font-semibold text-muted">Titolo</span>
+                  <input
+                    className="h-10 w-full rounded-xl border border-border bg-surface-container px-3 text-sm text-foreground outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                    disabled={!canEdit}
+                    onChange={(event) => setEventDraft((draft) => ({ ...draft, title: event.target.value }))}
+                    value={eventDraft.title}
+                  />
+                </label>
+                <label className="block space-y-1.5">
+                  <span className="text-xs font-semibold text-muted">Descrizione</span>
+                  <textarea
+                    className="min-h-24 w-full resize-none rounded-xl border border-border bg-surface-container p-3 text-sm text-foreground outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                    disabled={!canEdit}
+                    onChange={(event) => setEventDraft((draft) => ({ ...draft, description: event.target.value }))}
+                    value={eventDraft.description}
+                  />
+                </label>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <label className="block space-y-1.5">
+                    <span className="text-xs font-semibold text-muted">Data</span>
+                    <input
+                      className="h-10 w-full rounded-xl border border-border bg-surface-container px-3 text-sm text-foreground outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                      disabled={!canEdit}
+                      onChange={(event) => setEventDraft((draft) => ({ ...draft, occurredAt: event.target.value }))}
+                      type="date"
+                      value={eventDraft.occurredAt}
+                    />
+                  </label>
+                  <label className="block space-y-1.5">
+                    <span className="text-xs font-semibold text-muted">Autore</span>
+                    <select
+                      className="h-10 w-full rounded-xl border border-border bg-surface-container px-3 text-sm text-foreground outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                      disabled={!canEdit}
+                      onChange={(event) => setEventDraft((draft) => ({ ...draft, authorId: event.target.value }))}
+                      value={eventDraft.authorId}
+                    >
+                      {users.map((user) => (
+                        <option className="bg-surface text-foreground" key={user.id} value={user.id}>
+                          {user.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+                <Button disabled={!canEdit || !eventDraft.title.trim()} onClick={saveEventEdit} type="button">
+                  <Save className="h-4 w-4" />
+                  Salva modifiche
+                </Button>
+              </div>
+            </section>
+          ) : null}
+
           <section className="space-y-3">
             <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">Date</p>
             <div className="grid grid-cols-2 gap-3">
               <div className="rounded-2xl border border-border bg-surface-low p-3">
                 <CalendarDays className="mb-3 h-4 w-4 text-electric" />
-                <p className="text-xs text-muted">Scadenza</p>
+                <p className="text-xs text-muted">{isPhase ? "Scadenza" : "Data evento"}</p>
                 <p className="font-label text-sm font-semibold text-foreground">
                   {date ? new Intl.DateTimeFormat("it-IT").format(new Date(date)) : "-"}
                 </p>
@@ -161,26 +274,60 @@ export function NodeDrawer({ selection, open, onOpenChange }: NodeDrawerProps) {
 
           {isPhase ? (
             <section className="space-y-3">
-              <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
+            <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
                 Note salvate in locale
               </p>
               <div className="space-y-2">
-                {phaseNotes.map((note) => (
+                {phaseNotes.map((note) => {
+                  const canEditNote = note.author.id === activeUser.id || isAdmin;
+                  const isEditing = editingNoteId === note.id;
+                  return (
                   <div className="rounded-2xl border border-border bg-surface-low p-3" key={note.id}>
                     <div className="mb-1 flex items-center justify-between gap-2">
                       <span className="font-label text-xs font-semibold text-foreground">{note.author.name}</span>
-                      <span className="text-[11px] text-muted">
-                        {new Intl.DateTimeFormat("it-IT", {
-                          day: "2-digit",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                          month: "2-digit",
-                        }).format(new Date(note.createdAt))}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11px] text-muted">
+                          {new Intl.DateTimeFormat("it-IT", {
+                            day: "2-digit",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                            month: "2-digit",
+                          }).format(new Date(note.createdAt))}
+                        </span>
+                        {canEditNote ? (
+                          <button
+                            aria-label="Modifica nota"
+                            className="rounded-lg p-1 text-muted transition-colors hover:bg-surface-high hover:text-foreground"
+                            onClick={() => startEditingNote(note.id, note.body)}
+                            type="button"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </button>
+                        ) : null}
+                      </div>
                     </div>
-                    <p className="text-sm leading-5 text-foreground-variant">{note.body}</p>
+                    {isEditing ? (
+                      <div className="space-y-2">
+                        <textarea
+                          className="min-h-20 w-full resize-none rounded-xl border border-border bg-surface-container p-3 text-sm text-foreground outline-none"
+                          onChange={(event) => setEditingNoteBody(event.target.value)}
+                          value={editingNoteBody}
+                        />
+                        <div className="flex gap-2">
+                          <Button disabled={!editingNoteBody.trim()} onClick={saveNoteEdit} size="sm" type="button">
+                            Salva
+                          </Button>
+                          <Button onClick={() => setEditingNoteId(null)} size="sm" type="button" variant="ghost">
+                            Annulla
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-sm leading-5 text-foreground-variant">{note.body}</p>
+                    )}
                   </div>
-                ))}
+                );
+                })}
               </div>
               <textarea
                 className="min-h-20 w-full resize-none rounded-2xl border border-border bg-surface-low p-3 text-sm text-foreground outline-none placeholder:text-muted disabled:cursor-not-allowed disabled:opacity-50"

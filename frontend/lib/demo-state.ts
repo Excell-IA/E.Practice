@@ -2,7 +2,15 @@
 
 import { create } from "zustand";
 
-import { completePhase, createEvent, createNote, skipPhase, updatePhaseAssignee } from "@/lib/api";
+import {
+  completePhase,
+  createEvent,
+  createNote,
+  skipPhase,
+  updateEvent,
+  updateNote,
+  updatePhaseAssignee,
+} from "@/lib/api";
 import { mapEventTypeToApi, type PracticeDetailUi } from "@/lib/mappers/practice";
 import type { EventType, Practice, PracticeEvent, PracticePhase, User } from "@/lib/types";
 
@@ -183,7 +191,17 @@ type DemoAction =
   | { type: "set_phase_status"; phaseId: string; status: PracticePhase["status"] }
   | { type: "assign_phase"; phaseId: string; userId: string }
   | { type: "add_note"; phaseId: string; body: string }
+  | { type: "update_note"; noteId: string; body: string }
   | { type: "create_event"; phaseId: string; eventType: EventType; title: string; description: string; occurredAt: string }
+  | {
+      type: "update_event";
+      eventId: string;
+      title: string;
+      description: string;
+      occurredAt: string;
+      authorId?: string;
+      phaseId?: string;
+    }
   | { type: "hydrate_from_api"; detail: PracticeDetailUi };
 
 type DemoState = {
@@ -259,6 +277,10 @@ function syncActionWithApi(action: DemoAction, state: DemoState) {
     ).catch(console.warn);
   }
 
+  if (action.type === "update_note" && isUuid(action.noteId)) {
+    void updateNote(action.noteId, { content: action.body }, state.activeUser.id).catch(console.warn);
+  }
+
   if (action.type === "create_event" && isUuid(action.phaseId) && isUuid(state.practice.id)) {
     void createEvent(
       {
@@ -270,6 +292,20 @@ function syncActionWithApi(action: DemoAction, state: DemoState) {
         practice_id: state.practice.id,
         title: action.title,
         visual_position: action.eventType === "mail" ? "bottom" : "top",
+      },
+      state.activeUser.id,
+    ).catch(console.warn);
+  }
+
+  if (action.type === "update_event" && isUuid(action.eventId)) {
+    void updateEvent(
+      action.eventId,
+      {
+        author_id: action.authorId,
+        description: action.description,
+        event_date: action.occurredAt,
+        phase_id: action.phaseId,
+        title: action.title,
       },
       state.activeUser.id,
     ).catch(console.warn);
@@ -361,6 +397,14 @@ export const useDemoStore = create<DemoState>((set) => ({
         };
       }
 
+      if (action.type === "update_note") {
+        const notes = state.notes.map((note) =>
+          note.id === action.noteId ? { ...note, body: action.body } : note,
+        );
+        rememberNotes(notes);
+        return { notes };
+      }
+
       if (action.type === "create_event") {
         const event: PracticeEvent = {
           id: `event-${Date.now()}`,
@@ -373,6 +417,24 @@ export const useDemoStore = create<DemoState>((set) => ({
           type: action.eventType,
         };
         return { events: [...state.events, event] };
+      }
+
+      if (action.type === "update_event") {
+        const author = action.authorId ? state.users.find((user) => user.id === action.authorId) : undefined;
+        return {
+          events: state.events.map((event) =>
+            event.id === action.eventId
+              ? {
+                  ...event,
+                  author: author ?? event.author,
+                  description: action.description,
+                  occurredAt: action.occurredAt,
+                  phaseId: action.phaseId ?? event.phaseId,
+                  title: action.title,
+                }
+              : event,
+          ),
+        };
       }
 
       return state;

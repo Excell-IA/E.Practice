@@ -2,7 +2,7 @@
 
 import { formatDistanceToNow } from "date-fns";
 import { it } from "date-fns/locale";
-import { FileText } from "lucide-react";
+import { FileText, Pencil } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,8 @@ function avatarClass(userId: string) {
 
 export function TabNotes({ phases }: TabNotesProps) {
   const [body, setBody] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingBody, setEditingBody] = useState("");
   const activeUser = useDemoStore((state) => state.activeUser);
   const notes = useDemoStore((state) => state.notes);
   const applyAction = useDemoStore((state) => state.applyAction);
@@ -39,6 +41,18 @@ export function TabNotes({ phases }: TabNotesProps) {
     setBody("");
   }
 
+  function startEditing(noteId: string, noteBody: string) {
+    setEditingId(noteId);
+    setEditingBody(noteBody);
+  }
+
+  function saveEdit() {
+    if (!editingId || !editingBody.trim()) return;
+    applyAction({ body: editingBody.trim(), noteId: editingId, type: "update_note" });
+    setEditingId(null);
+    setEditingBody("");
+  }
+
   return (
     <section className="grid gap-5 lg:grid-cols-[1fr_360px]">
       <div className="rounded-2xl border border-border bg-surface-low p-5">
@@ -50,7 +64,10 @@ export function TabNotes({ phases }: TabNotesProps) {
           <span className="text-sm text-muted">{sortedNotes.length} note</span>
         </div>
         <div className="space-y-3">
-          {sortedNotes.map((note) => (
+          {sortedNotes.map((note) => {
+            const canEditNote = note.author.id === activeUser.id || activeUser.permission === "admin";
+            const isEditing = editingId === note.id;
+            return (
             <article className="rounded-2xl border border-border bg-surface-container p-4" key={note.id}>
               <div className="mb-3 flex items-center gap-3">
                 <div
@@ -67,10 +84,39 @@ export function TabNotes({ phases }: TabNotesProps) {
                     {formatDistanceToNow(new Date(note.createdAt), { addSuffix: true, locale: it })}
                   </p>
                 </div>
+                {canEditNote ? (
+                  <button
+                    aria-label="Modifica nota"
+                    className="rounded-lg p-1.5 text-muted transition-colors hover:bg-surface-high hover:text-foreground"
+                    onClick={() => startEditing(note.id, note.body)}
+                    type="button"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </button>
+                ) : null}
               </div>
-              <p className="text-sm leading-6 text-foreground-variant">{note.body}</p>
+              {isEditing ? (
+                <div className="space-y-2">
+                  <textarea
+                    className="min-h-24 w-full resize-none rounded-xl border border-border bg-surface-low p-3 text-sm text-foreground outline-none"
+                    onChange={(event) => setEditingBody(event.target.value)}
+                    value={editingBody}
+                  />
+                  <div className="flex gap-2">
+                    <Button disabled={!editingBody.trim()} onClick={saveEdit} size="sm" type="button">
+                      Salva
+                    </Button>
+                    <Button onClick={() => setEditingId(null)} size="sm" type="button" variant="ghost">
+                      Annulla
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm leading-6 text-foreground-variant">{note.body}</p>
+              )}
             </article>
-          ))}
+          );
+          })}
         </div>
       </div>
 
