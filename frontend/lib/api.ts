@@ -8,6 +8,7 @@ export type ApiPracticeDetail = components["schemas"]["PracticeDetail"];
 export type ApiPracticePhase = components["schemas"]["PracticePhase"];
 export type ApiPracticeEvent = components["schemas"]["PracticeEvent"];
 export type ApiNote = components["schemas"]["Note"];
+export type ApiAttachment = components["schemas"]["Attachment"];
 export type ApiClient = components["schemas"]["Client"];
 export type ApiClientSearchHit = components["schemas"]["ClientSearchHit"];
 export type ApiCategory = components["schemas"]["Category"];
@@ -30,7 +31,8 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
   headers.set("Accept", "application/json");
   headers.set("X-User-Id", activeUserId(options.userId));
 
-  if (options.body && !headers.has("Content-Type")) {
+  const isFormData = typeof FormData !== "undefined" && options.body instanceof FormData;
+  if (options.body && !isFormData && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
 
@@ -51,6 +53,10 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
     throw new Error(`API ${response.status}: ${detail || response.statusText}`);
   }
 
+  if (response.status === 204) {
+    return undefined as T;
+  }
+
   return (await response.json()) as T;
 }
 
@@ -62,6 +68,14 @@ export function getPractices(q?: string) {
 
 export function getPracticeDetail(practiceId: string) {
   return apiFetch<ApiPracticeDetail>(`/api/practices/${practiceId}`);
+}
+
+export function getClient(clientId: string) {
+  return apiFetch<ApiClient>(`/api/clients/${clientId}`);
+}
+
+export function getClientPractices(clientId: string) {
+  return apiFetch<components["schemas"]["Practice"][]>(`/api/clients/${clientId}/practices`);
 }
 
 export function searchClients(q: string) {
@@ -157,4 +171,36 @@ export function updateEvent(eventId: string, input: components["schemas"]["Pract
     method: "PUT",
     userId,
   });
+}
+
+export function uploadAttachment(file: File, userId: string) {
+  const formData = new FormData();
+  formData.append("file", file);
+  return apiFetch<ApiAttachment>("/api/attachments", {
+    body: formData,
+    method: "POST",
+    userId,
+  });
+}
+
+export function attachAttachment(id: string, practiceId: string, phaseId: string | null, userId: string) {
+  return apiFetch<ApiAttachment>(`/api/attachments/${id}/attach`, {
+    body: JSON.stringify({ phase_id: phaseId, practice_id: practiceId }),
+    method: "POST",
+    userId,
+  });
+}
+
+export function deleteAttachment(id: string, userId: string) {
+  return apiFetch<void>(`/api/attachments/${id}`, {
+    method: "DELETE",
+    userId,
+  });
+}
+
+export function listAttachments(practiceId?: string) {
+  const params = new URLSearchParams();
+  if (practiceId) params.set("practice_id", practiceId);
+  const suffix = params.size ? `?${params.toString()}` : "";
+  return apiFetch<ApiAttachment[]>(`/api/attachments${suffix}`);
 }

@@ -482,12 +482,60 @@ export interface paths {
         };
         /**
          * List Attachments
-         * @description Lista allegati (filtri arrivano in iterazione successiva).
+         * @description Lista allegati, filtrabile per pratica. Include anche upload non attaccati se senza filtro.
          */
         get: operations["list_attachments_api_attachments_get"];
         put?: never;
-        post?: never;
+        /**
+         * Upload Attachment
+         * @description Carica un allegato V0.
+         *
+         *     V0 non scrive su disco/R2: conserva i byte in base64 dentro `storage_key`
+         *     del repository in-memory. Al restart il file sparisce, come il resto dello
+         *     stato demo runtime.
+         */
+        post: operations["upload_attachment_api_attachments_post"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/attachments/{attachment_id}/attach": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Attach Attachment
+         * @description Aggancia un allegato caricato a una pratica e, opzionalmente, a una fase.
+         */
+        post: operations["attach_attachment_api_attachments__attachment_id__attach_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/attachments/{attachment_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete Attachment
+         * @description Elimina allegato se proprietario upload o titolare.
+         */
+        delete: operations["delete_attachment_api_attachments__attachment_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -586,7 +634,7 @@ export interface components {
              * Action
              * @enum {string}
              */
-            action: "created" | "updated" | "deleted" | "completed" | "uploaded" | "commented" | "viewed_l1";
+            action: "created" | "updated" | "deleted" | "completed" | "uploaded" | "attached" | "commented" | "viewed_l1";
             /**
              * Entity Type
              * @enum {string}
@@ -616,7 +664,7 @@ export interface components {
              * Action
              * @enum {string}
              */
-            action: "created" | "updated" | "deleted" | "completed" | "uploaded" | "commented" | "viewed_l1";
+            action: "created" | "updated" | "deleted" | "completed" | "uploaded" | "attached" | "commented" | "viewed_l1";
             /**
              * Entity Type
              * @enum {string}
@@ -642,13 +690,20 @@ export interface components {
              */
             timestamp: string;
         };
-        /** Attachment */
-        Attachment: {
+        /** AttachRequest */
+        AttachRequest: {
             /**
              * Practice Id
              * Format: uuid
              */
             practice_id: string;
+            /** Phase Id */
+            phase_id?: string | null;
+        };
+        /** Attachment */
+        Attachment: {
+            /** Practice Id */
+            practice_id?: string | null;
             /** Phase Id */
             phase_id?: string | null;
             /** Event Id */
@@ -687,6 +742,14 @@ export interface components {
         AttachmentEnriched: {
             attachment: components["schemas"]["Attachment"];
             uploaded_by_user?: components["schemas"]["UserSummary"] | null;
+        };
+        /** Body_upload_attachment_api_attachments_post */
+        Body_upload_attachment_api_attachments_post: {
+            /**
+             * File
+             * Format: binary
+             */
+            file: string;
         };
         /** Category */
         Category: {
@@ -2607,7 +2670,9 @@ export interface operations {
     };
     list_attachments_api_attachments_get: {
         parameters: {
-            query?: never;
+            query?: {
+                practice_id?: string | null;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -2621,6 +2686,118 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Attachment"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upload_attachment_api_attachments_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-User-Id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_upload_attachment_api_attachments_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Attachment"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    attach_attachment_api_attachments__attachment_id__attach_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-User-Id"?: string | null;
+            };
+            path: {
+                attachment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AttachRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Attachment"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_attachment_api_attachments__attachment_id__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-User-Id"?: string | null;
+            };
+            path: {
+                attachment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -2660,7 +2837,7 @@ export interface operations {
         parameters: {
             query?: {
                 actor_id?: string | null;
-                action?: ("created" | "updated" | "deleted" | "completed" | "uploaded" | "commented" | "viewed_l1") | null;
+                action?: ("created" | "updated" | "deleted" | "completed" | "uploaded" | "attached" | "commented" | "viewed_l1") | null;
                 entity_type?: ("practice" | "phase" | "event" | "note" | "attachment" | "client") | null;
                 practice_id?: string | null;
                 offset?: number;

@@ -1723,19 +1723,229 @@
           "attachments"
         ],
         "summary": "List Attachments",
-        "description": "Lista allegati (filtri arrivano in iterazione successiva).",
+        "description": "Lista allegati, filtrabile per pratica. Include anche upload non attaccati se senza filtro.",
         "operationId": "list_attachments_api_attachments_get",
+        "parameters": [
+          {
+            "name": "practice_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Practice Id"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
+                  "type": "array",
                   "items": {
                     "$ref": "#/components/schemas/Attachment"
                   },
-                  "type": "array",
                   "title": "Response List Attachments Api Attachments Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "attachments"
+        ],
+        "summary": "Upload Attachment",
+        "description": "Carica un allegato V0.\n\nV0 non scrive su disco/R2: conserva i byte in base64 dentro `storage_key`\ndel repository in-memory. Al restart il file sparisce, come il resto dello\nstato demo runtime.",
+        "operationId": "upload_attachment_api_attachments_post",
+        "parameters": [
+          {
+            "name": "X-User-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_attachment_api_attachments_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Attachment"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/attachments/{attachment_id}/attach": {
+      "post": {
+        "tags": [
+          "attachments"
+        ],
+        "summary": "Attach Attachment",
+        "description": "Aggancia un allegato caricato a una pratica e, opzionalmente, a una fase.",
+        "operationId": "attach_attachment_api_attachments__attachment_id__attach_post",
+        "parameters": [
+          {
+            "name": "attachment_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Attachment Id"
+            }
+          },
+          {
+            "name": "X-User-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AttachRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Attachment"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/attachments/{attachment_id}": {
+      "delete": {
+        "tags": [
+          "attachments"
+        ],
+        "summary": "Delete Attachment",
+        "description": "Elimina allegato se proprietario upload o titolare.",
+        "operationId": "delete_attachment_api_attachments__attachment_id__delete",
+        "parameters": [
+          {
+            "name": "attachment_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Attachment Id"
+            }
+          },
+          {
+            "name": "X-User-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -1840,6 +2050,7 @@
                     "deleted",
                     "completed",
                     "uploaded",
+                    "attached",
                     "commented",
                     "viewed_l1"
                   ],
@@ -2039,6 +2250,7 @@
               "deleted",
               "completed",
               "uploaded",
+              "attached",
               "commented",
               "viewed_l1"
             ],
@@ -2125,6 +2337,7 @@
               "deleted",
               "completed",
               "uploaded",
+              "attached",
               "commented",
               "viewed_l1"
             ],
@@ -2192,11 +2405,44 @@
         ],
         "title": "ActivityLog"
       },
-      "Attachment": {
+      "AttachRequest": {
         "properties": {
           "practice_id": {
             "type": "string",
             "format": "uuid",
+            "title": "Practice Id"
+          },
+          "phase_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phase Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "practice_id"
+        ],
+        "title": "AttachRequest"
+      },
+      "Attachment": {
+        "properties": {
+          "practice_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Practice Id"
           },
           "phase_id": {
@@ -2276,7 +2522,6 @@
         },
         "type": "object",
         "required": [
-          "practice_id",
           "filename",
           "size_bytes",
           "storage_key",
@@ -2307,6 +2552,20 @@
           "attachment"
         ],
         "title": "AttachmentEnriched"
+      },
+      "Body_upload_attachment_api_attachments_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "format": "binary",
+            "title": "File"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Body_upload_attachment_api_attachments_post"
       },
       "Category": {
         "properties": {
