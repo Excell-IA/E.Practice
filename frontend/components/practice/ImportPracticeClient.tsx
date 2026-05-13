@@ -1,74 +1,76 @@
 "use client";
 
-import { CheckCircle2, FileSpreadsheet, UploadCloud, XCircle } from "lucide-react";
+import { FileSpreadsheet, Sparkles, UploadCloud, X } from "lucide-react";
 import Link from "next/link";
-import { useMemo, useRef, useState } from "react";
+import { useRef, useState } from "react";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { V1Hint } from "@/components/ui/v1-hint";
+import { deleteAttachment, uploadAttachment, type ApiAttachment } from "@/lib/api";
+import { useDemoStore } from "@/lib/demo-state";
 
-type ImportRow = {
-  id: string;
-  fileName: string;
-  client: string;
-  practice: string;
-  status: "valid" | "warning";
-};
-
-function rowsFromFiles(files: File[]): ImportRow[] {
-  return files.map((file, index) => ({
-    client: index % 2 === 0 ? "Acciaierie Valgobbia SRL" : "Officine Meccaniche Brescia",
-    fileName: file.name,
-    id: `${file.name}-${file.lastModified}`,
-    practice: index % 2 === 0 ? "Bilancio 2025" : "Liquidazione IVA Q2",
-    status: file.name.toLowerCase().endsWith(".csv") || file.name.toLowerCase().endsWith(".xlsx") ? "valid" : "warning",
-  }));
+function formatUploadedAt(iso: string): string {
+  const d = new Date(iso);
+  return d.toLocaleString("it-IT", {
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    month: "2-digit",
+  });
 }
 
 export function ImportPracticeClient() {
   const inputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [rows, setRows] = useState<ImportRow[]>([
-    {
-      client: "Acciaierie Valgobbia SRL",
-      fileName: "scadenziario-bilanci-studio-leali.xlsx",
-      id: "seed-1",
-      practice: "Bilancio 2025",
-      status: "valid",
-    },
-    {
-      client: "Panificio San Faustino SNC",
-      fileName: "lipe-q2.csv",
-      id: "seed-2",
-      practice: "LIPE Q2",
-      status: "valid",
-    },
-  ]);
-  const validCount = useMemo(() => rows.filter((row) => row.status === "valid").length, [rows]);
+  const [rows, setRows] = useState<ApiAttachment[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const activeUser = useDemoStore((state) => state.activeUser);
 
-  function addFiles(fileList: FileList | null) {
+  async function addFiles(fileList: FileList | null) {
     if (!fileList) return;
-    setRows((current) => [...rowsFromFiles(Array.from(fileList)), ...current]);
+    const files = Array.from(fileList);
+    if (!files.length) return;
+    setIsUploading(true);
+    setError(null);
+    try {
+      const uploaded = await Promise.all(files.map((file) => uploadAttachment(file, activeUser.id)));
+      setRows((current) => [...uploaded, ...current]);
+    } catch (err) {
+      console.error("attachment_upload_failed", err);
+      setError(err instanceof Error ? err.message : "Upload non riuscito. Verifica che il backend sia acceso.");
+    } finally {
+      setIsUploading(false);
+      if (inputRef.current) inputRef.current.value = "";
+    }
   }
 
+  async function removeRow(id: string) {
+    setError(null);
+    try {
+      await deleteAttachment(id, activeUser.id);
+      setRows((current) => current.filter((row) => row.id !== id));
+    } catch (err) {
+      console.error("attachment_delete_failed", err);
+      setError(err instanceof Error ? err.message : "Rimozione non riuscita.");
+    }
+  }
+
+  const newPracticeHref =
+    rows.length > 0 ? `/pratiche/nuova?attachments=${rows.map((row) => row.id).join(",")}` : "/pratiche/nuova";
+
   return (
-    <main className="min-h-[calc(100vh-60px)] bg-surface">
-      <header className="border-b border-border bg-surface-low/80 px-6 py-6 md:px-10">
+    <main className="min-h-[calc(100vh-120px)] bg-surface">
+      <header className="border-b border-border bg-surface-low/80 px-6 py-[14px] md:px-10">
         <div className="mx-auto flex max-w-7xl flex-wrap items-end justify-between gap-4">
-          <div>
-            <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-electric">
-              Import allegati
-            </p>
-            <h1 className="mt-2 font-display text-3xl font-semibold text-foreground md:text-4xl">
-              Importa allegati
-            </h1>
-          </div>
-          <Badge variant="info">{validCount} righe pronte</Badge>
+          <h1 className="font-display text-3xl font-semibold text-foreground md:text-4xl">
+            Carica documento
+          </h1>
         </div>
       </header>
 
-      <section className="mx-auto grid max-w-7xl gap-5 px-6 py-6 md:px-10 lg:grid-cols-[1fr_360px]">
+      <section className="mx-auto grid max-w-7xl gap-5 px-6 py-[10px] md:px-10 lg:grid-cols-2">
         <Card
           className={isDragging ? "border-electric bg-electric/10" : undefined}
           onDragEnter={(event) => {
@@ -83,16 +85,21 @@ export function ImportPracticeClient() {
             addFiles(event.dataTransfer.files);
           }}
         >
-          <CardContent className="flex min-h-[360px] flex-col items-center justify-center gap-5 p-8 text-center">
+          <CardContent className="flex min-h-[520px] flex-col items-center justify-center gap-5 p-8 text-center">
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-electric/10 text-electric">
               <UploadCloud className="h-8 w-8" />
             </div>
             <div>
               <h2 className="font-display text-2xl font-semibold text-foreground">Trascina qui un file</h2>
               <p className="mt-2 max-w-xl text-sm leading-6 text-muted">
-                V0 salva la selezione in memoria locale della demo. CSV e XLSX vengono marcati come pronti.
+                Puoi selezionare anche più file alla volta. Il caricamento crea allegati reali nel backend demo.
               </p>
             </div>
+            {error ? (
+              <p className="rounded-xl border border-danger/30 bg-danger/10 px-3 py-2 text-sm font-semibold text-danger">
+                {error}
+              </p>
+            ) : null}
             <input
               accept=".csv,.xlsx,.xls,.pdf"
               className="hidden"
@@ -101,54 +108,88 @@ export function ImportPracticeClient() {
               ref={inputRef}
               type="file"
             />
-            <Button onClick={() => inputRef.current?.click()} type="button">
+            <Button disabled={isUploading} onClick={() => inputRef.current?.click()} type="button">
               <FileSpreadsheet className="h-4 w-4" />
-              Seleziona file
+              {isUploading ? "Caricamento..." : "Seleziona file"}
             </Button>
           </CardContent>
         </Card>
 
         <div className="space-y-5">
           <Card>
-            <CardHeader>
-              <CardTitle>Vuoi creare una nuova pratica da zero?</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="mb-4 text-sm leading-6 text-muted">
-                Usa il wizard guidato per scegliere cliente, categoria, template fasi e promemoria.
-              </p>
-              <Button asChild className="w-full">
-                <Link href="/pratiche/nuova">Apri Nuova pratica</Link>
-              </Button>
+            <CardContent className="space-y-3 pt-6">
+              {rows.length === 0 ? (
+                <Button className="w-full" disabled type="button">
+                  Apri Nuova pratica
+                </Button>
+              ) : (
+                <Button asChild className="w-full">
+                  <Link href={newPracticeHref}>Apri Nuova pratica</Link>
+                </Button>
+              )}
+              <V1Hint className="w-full">
+                <Button
+                  className="w-full bg-gradient-to-r from-[#3a5f8f] to-[#5078b8] text-white hover:from-[#456ea3] hover:to-[#5d8ace]"
+                  type="button"
+                >
+                  Allega a pratica esistente
+                </Button>
+              </V1Hint>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
-              <CardTitle>Anteprima import</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-electric" />
+                Lettore AI
+              </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
-              {rows.map((row) => (
-                <div className="rounded-xl border border-border bg-surface-container p-3" key={row.id}>
-                  <div className="mb-2 flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="truncate font-label text-sm font-semibold text-foreground">{row.fileName}</p>
-                      <p className="mt-1 text-xs text-muted">{row.client}</p>
-                    </div>
-                    {row.status === "valid" ? (
-                      <CheckCircle2 className="h-4 w-4 shrink-0 text-success" />
-                    ) : (
-                      <XCircle className="h-4 w-4 shrink-0 text-warning" />
-                    )}
-                  </div>
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs text-foreground-variant">{row.practice}</span>
-                    <Badge variant={row.status === "valid" ? "success" : "warning"}>
-                      {row.status === "valid" ? "Pronto" : "Da verificare"}
-                    </Badge>
-                  </div>
+            <CardContent>
+              <V1Hint className="w-full">
+                <div className="rounded-xl border border-dashed border-border bg-surface-container p-4 text-sm leading-6 text-muted">
+                  <p className="font-semibold text-foreground">Componente da sviluppare</p>
+                  <p className="mt-1">
+                    Attiva il componente di lettura documento con intelligenza artificiale per la lettura
+                    automatica dei dati del documento.
+                  </p>
                 </div>
-              ))}
+              </V1Hint>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>File caricati ({rows.length})</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {rows.length === 0 ? (
+                <p className="rounded-xl border border-dashed border-border bg-surface-container px-3 py-4 text-center text-sm text-muted">
+                  Nessun file ancora caricato.
+                </p>
+              ) : (
+                <div className="max-h-[min(60vh,400px)] space-y-2 overflow-y-auto pr-1">
+                  {rows.map((row) => (
+                    <div
+                      className="flex items-center justify-between gap-3 rounded-xl border border-border bg-surface-container px-3 py-2"
+                      key={row.id}
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-label text-sm font-semibold text-foreground">{row.filename}</p>
+                        <p className="text-xs text-muted">caricato {formatUploadedAt(row.created_at)}</p>
+                      </div>
+                      <button
+                        aria-label={`Rimuovi ${row.filename}`}
+                        className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-high hover:text-foreground"
+                        onClick={() => removeRow(row.id)}
+                        type="button"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
