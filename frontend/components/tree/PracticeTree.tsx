@@ -1,7 +1,17 @@
 "use client";
 
-import { AlertTriangle, CalendarDays, Mail, Maximize2, Minus, MoveHorizontal, PhoneCall, Plus } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  AlertTriangle,
+  CalendarDays,
+  Mail,
+  Maximize2,
+  MessageSquareText,
+  Minus,
+  MoveHorizontal,
+  PhoneCall,
+  Plus,
+} from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent, type PointerEvent } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -32,26 +42,23 @@ const timeline = {
   startX: 120,
   endX: 2060,
   y: 250,
-  startDate: new Date("2026-01-15"),
-  endDate: new Date("2026-04-30"),
   todayDate: new Date("2026-03-16"),
 };
 
 const svgWidth = 2200;
 
-const monthMarkers = [
-  { label: "Febbraio", date: "2026-02-01" },
-  { label: "Marzo", date: "2026-03-01" },
-  { label: "Aprile", date: "2026-04-01" },
-];
+type ComposerKind = PracticeEvent["type"] | "note";
 
-function dateToX(value: string | Date) {
-  const date = typeof value === "string" ? new Date(value) : value;
-  const duration = timeline.endDate.getTime() - timeline.startDate.getTime();
-  const elapsed = date.getTime() - timeline.startDate.getTime();
-  const ratio = Math.min(Math.max(elapsed / duration, 0), 1);
-  return timeline.startX + ratio * (timeline.endX - timeline.startX);
-}
+type TrunkHover = {
+  date: string;
+  x: number;
+  y: number;
+};
+
+type TrunkDraft = {
+  date: string;
+  phaseId: string;
+};
 
 export function PracticeTree({ practice, phases, events }: PracticeTreeProps) {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -60,31 +67,119 @@ export function PracticeTree({ practice, phases, events }: PracticeTreeProps) {
   const [composerType, setComposerType] = useState<PracticeEvent["type"] | null>(null);
   const [composerTitle, setComposerTitle] = useState("");
   const [composerDescription, setComposerDescription] = useState("");
+  const [composerDate, setComposerDate] = useState("2026-03-16");
+  const [composerPhaseId, setComposerPhaseId] = useState<string | null>(null);
+  const [trunkHover, setTrunkHover] = useState<TrunkHover | null>(null);
+  const [trunkDraft, setTrunkDraft] = useState<TrunkDraft | null>(null);
   const activeUser = useDemoStore((state) => state.activeUser);
   const applyAction = useDemoStore((state) => state.applyAction);
   const orderedPhases = useMemo(() => [...phases].sort((a, b) => a.order - b.order), [phases]);
   const currentPhase = orderedPhases.find((phase) => phase.status === "in_progress") ?? orderedPhases[0];
+  const timelineRange = useMemo(
+    () => ({
+      endDate: new Date(practice.dueDate),
+      startDate: new Date(practice.startDate),
+    }),
+    [practice.dueDate, practice.startDate],
+  );
+  const dateToTimelineX = useCallback(
+    (value: string | Date) => {
+      const date = typeof value === "string" ? new Date(value) : value;
+      const duration = Math.max(timelineRange.endDate.getTime() - timelineRange.startDate.getTime(), 1);
+      const elapsed = date.getTime() - timelineRange.startDate.getTime();
+      const ratio = Math.min(Math.max(elapsed / duration, 0), 1);
+      return timeline.startX + ratio * (timeline.endX - timeline.startX);
+    },
+    [timelineRange.endDate, timelineRange.startDate],
+  );
+  const todayX = useMemo(() => dateToTimelineX(timeline.todayDate), [dateToTimelineX]);
+  const monthMarkers = useMemo(() => {
+    const markers: { date: Date; label: string }[] = [];
+    const cursor = new Date(timelineRange.startDate);
+    cursor.setDate(1);
+    cursor.setMonth(cursor.getMonth() + 1);
+    while (cursor < timelineRange.endDate) {
+      markers.push({
+        date: new Date(cursor),
+        label: new Intl.DateTimeFormat("it-IT", { month: "long" }).format(cursor),
+      });
+      cursor.setMonth(cursor.getMonth() + 1);
+    }
+    return markers;
+  }, [timelineRange.endDate, timelineRange.startDate]);
+
+  function xToTimelineDate(x: number) {
+    const clampedX = Math.min(Math.max(x, timeline.startX), timeline.endX);
+    const ratio = (clampedX - timeline.startX) / (timeline.endX - timeline.startX);
+    const time =
+      timelineRange.startDate.getTime() +
+      ratio * (timelineRange.endDate.getTime() - timelineRange.startDate.getTime());
+    return new Date(time);
+  }
+
+  function isoDate(value: Date) {
+    return value.toISOString().slice(0, 10);
+  }
+
+  function displayDate(value: string) {
+    return new Intl.DateTimeFormat("it-IT", {
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+    }).format(new Date(value));
+  }
+
+  const phaseTimelineDate = useCallback((phase: PracticePhase, index: number) => {
+    const rawDate = phase.plannedDate || phase.dueDate;
+    const parsed = new Date(rawDate);
+    if (!Number.isNaN(parsed.getTime())) return parsed;
+    const denominator = Math.max(orderedPhases.length - 1, 1);
+    const ratio = orderedPhases.length > 1 ? index / denominator : 0.5;
+    return new Date(
+      timelineRange.startDate.getTime() +
+        ratio * (timelineRange.endDate.getTime() - timelineRange.startDate.getTime()),
+    );
+  }, [orderedPhases.length, timelineRange.endDate, timelineRange.startDate]);
+
+  function closestPhaseId(date: string) {
+    const target = new Date(date).getTime();
+    const closest = orderedPhases.reduce<PracticePhase | null>((best, phase) => {
+      if (!best) return phase;
+      const bestDistance = Math.abs(phaseTimelineDate(best, orderedPhases.indexOf(best)).getTime() - target);
+      const phaseDistance = Math.abs(phaseTimelineDate(phase, orderedPhases.indexOf(phase)).getTime() - target);
+      return phaseDistance < bestDistance ? phase : best;
+    }, null);
+    return closest?.id ?? currentPhase?.id ?? orderedPhases[0]?.id ?? "";
+  }
+
+  function resolveEventPhase(event: PracticeEvent) {
+    return (
+      orderedPhases.find((item) => item.id === event.phaseId) ??
+      orderedPhases.find((item) => item.id === closestPhaseId(event.occurredAt))
+    );
+  }
+
   const phasePositions = useMemo(() => {
     let previousX = timeline.startX;
     return new Map(
       orderedPhases.map((phase, index) => {
-        const dateX = dateToX(phase.plannedDate);
+        const dateX = dateToTimelineX(phaseTimelineDate(phase, index));
         const x = index === 0 ? dateX : Math.max(dateX, previousX + 175);
         previousX = x;
         return [phase.id, { x, y: timeline.y }];
       }),
     );
-  }, [orderedPhases]);
+  }, [dateToTimelineX, orderedPhases, phaseTimelineDate]);
 
   const eventPositions = useMemo(
     () =>
       new Map(
         events.map((event, index) => {
           const above = index % 2 === 0;
-          return [event.id, { x: dateToX(event.occurredAt), y: above ? 132 : 360 }];
+          return [event.id, { x: dateToTimelineX(event.occurredAt), y: above ? 132 : 360 }];
         }),
       ),
-    [events],
+    [dateToTimelineX, events],
   );
   const freshSelection = useMemo((): TreeSelection | null => {
     if (!selection) return null;
@@ -114,29 +209,72 @@ export function PracticeTree({ practice, phases, events }: PracticeTreeProps) {
     scrollArea.scrollTo({ behavior: "smooth", left: Math.max(targetLeft, 0) });
   }
 
-  function openComposer(eventType: PracticeEvent["type"]) {
-    const defaultTitle = eventType === "call" ? "Telefonata cliente" : eventType === "mail" ? "Email integrativa" : "Alert scadenza";
-    setComposerType(eventType);
+  function openComposer(eventType: ComposerKind, date = isoDate(timeline.todayDate), phaseId = currentPhase?.id) {
+    const mappedType: PracticeEvent["type"] = eventType === "note" ? "warning" : eventType;
+    const defaultTitle =
+      eventType === "note"
+        ? "Nota operativa"
+        : eventType === "call"
+          ? "Telefonata cliente"
+          : eventType === "mail"
+            ? "Email integrativa"
+            : "Alert scadenza";
+    setComposerType(mappedType);
     setComposerTitle(defaultTitle);
     setComposerDescription("");
+    setComposerDate(date);
+    setComposerPhaseId(phaseId ?? null);
+    setTrunkDraft(null);
   }
 
   function createEvent() {
-    if (!composerType || !composerTitle.trim() || !currentPhase) return;
+    const phaseId = composerPhaseId ?? currentPhase?.id;
+    if (!composerType || !composerTitle.trim() || !phaseId) return;
     applyAction({
       type: "create_event",
       description: composerDescription.trim() || "Evento demo creato durante walkthrough.",
       eventType: composerType,
-      occurredAt: "2026-03-16",
-      phaseId: currentPhase.id,
+      occurredAt: composerDate,
+      phaseId,
       title: composerTitle.trim(),
     });
     setComposerType(null);
   }
 
+  function svgPointFromPointer(event: MouseEvent<SVGLineElement> | PointerEvent<SVGLineElement>) {
+    const svg = event.currentTarget.ownerSVGElement;
+    if (!svg) return null;
+    const point = svg.createSVGPoint();
+    point.x = event.clientX;
+    point.y = event.clientY;
+    const matrix = svg.getScreenCTM();
+    if (!matrix) return null;
+    return point.matrixTransform(matrix.inverse());
+  }
+
+  function handleTrunkPointerMove(event: PointerEvent<SVGLineElement>) {
+    const point = svgPointFromPointer(event);
+    if (!point) return;
+    const clampedX = Math.min(Math.max(point.x, timeline.startX), timeline.endX);
+    setTrunkHover({
+      date: isoDate(xToTimelineDate(clampedX)),
+      x: clampedX,
+      y: point.y,
+    });
+  }
+
+  function handleTrunkClick(event: MouseEvent<SVGLineElement>) {
+    if (activeUser.permission === "viewer") return;
+    const point = svgPointFromPointer(event);
+    if (!point) return;
+    const date = isoDate(xToTimelineDate(point.x));
+    setTrunkDraft({ date, phaseId: closestPhaseId(date) });
+    setComposerType(null);
+  }
+
   useEffect(() => {
-    scrollToTimelineX(dateToX(timeline.todayDate));
-  }, []);
+    scrollToTimelineX(todayX);
+  }, [todayX]);
 
   return (
     <>
@@ -149,12 +287,12 @@ export function PracticeTree({ practice, phases, events }: PracticeTreeProps) {
             <h2 className="font-display text-xl font-semibold text-foreground">{practice.title}</h2>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <Button onClick={() => scrollToTimelineX(dateToX(timeline.todayDate))} size="sm" title="Centra su oggi" type="button" variant="outline">
+            <Button onClick={() => scrollToTimelineX(todayX)} size="sm" title="Centra su oggi" type="button" variant="outline">
               <CalendarDays className="h-4 w-4" />
               Oggi
             </Button>
             <Button
-              onClick={() => currentPhase && scrollToTimelineX(dateToX(currentPhase.plannedDate))}
+              onClick={() => currentPhase && scrollToTimelineX(dateToTimelineX(currentPhase.plannedDate))}
               size="sm"
               title="Centra sulla fase corrente"
               type="button"
@@ -253,6 +391,39 @@ export function PracticeTree({ practice, phases, events }: PracticeTreeProps) {
               </div>
             </div>
           ) : null}
+          {trunkDraft && !composerType ? (
+            <div className="border-b border-border bg-surface-container px-5 py-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-electric">
+                    Aggiungi evento
+                  </p>
+                  <p className="text-sm font-semibold text-foreground">In data {displayDate(trunkDraft.date)}</p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button onClick={() => openComposer("note", trunkDraft.date, trunkDraft.phaseId)} size="sm" type="button" variant="outline">
+                    <MessageSquareText className="h-4 w-4" />
+                    Nota
+                  </Button>
+                  <Button onClick={() => openComposer("call", trunkDraft.date, trunkDraft.phaseId)} size="sm" type="button" variant="outline">
+                    <PhoneCall className="h-4 w-4" />
+                    Telefonata
+                  </Button>
+                  <Button onClick={() => openComposer("mail", trunkDraft.date, trunkDraft.phaseId)} size="sm" type="button" variant="outline">
+                    <Mail className="h-4 w-4" />
+                    Mail
+                  </Button>
+                  <Button onClick={() => openComposer("warning", trunkDraft.date, trunkDraft.phaseId)} size="sm" type="button" variant="warning">
+                    <AlertTriangle className="h-4 w-4" />
+                    Alert
+                  </Button>
+                  <Button onClick={() => setTrunkDraft(null)} size="sm" type="button" variant="ghost">
+                    Annulla
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ) : null}
           <div className="overflow-x-auto" ref={scrollAreaRef}>
             <svg
               aria-label="Albero della pratica"
@@ -288,7 +459,7 @@ export function PracticeTree({ practice, phases, events }: PracticeTreeProps) {
               </defs>
 
               {monthMarkers.map((month) => {
-                const x = dateToX(month.date);
+                const x = dateToTimelineX(month.date);
                 return (
                   <g key={month.label}>
                     <line
@@ -319,10 +490,28 @@ export function PracticeTree({ practice, phases, events }: PracticeTreeProps) {
                 y1={timeline.y}
                 y2={timeline.y}
               />
-              <TodayLine x={dateToX(timeline.todayDate)} />
+              <line
+                className="cursor-pointer stroke-transparent stroke-[24]"
+                onClick={handleTrunkClick}
+                onPointerLeave={() => setTrunkHover(null)}
+                onPointerMove={handleTrunkPointerMove}
+                x1={timeline.startX}
+                x2={timeline.endX}
+                y1={timeline.y}
+                y2={timeline.y}
+              />
+              {trunkHover ? (
+                <g pointerEvents="none" transform={`translate(${trunkHover.x} ${Math.max(54, trunkHover.y - 54)})`}>
+                  <rect className="fill-surface-high stroke-border" height="32" rx="10" width="134" x="-67" y="-24" />
+                  <text className="fill-foreground text-[11px] font-semibold" textAnchor="middle" y="-4">
+                    {displayDate(trunkHover.date)}
+                  </text>
+                </g>
+              ) : null}
+              <TodayLine x={todayX} />
 
               {events.map((event) => {
-                const phase = orderedPhases.find((item) => item.id === event.phaseId);
+                const phase = resolveEventPhase(event);
                 const eventPosition = eventPositions.get(event.id);
                 if (!phase || !eventPosition) return null;
                 return (
@@ -339,7 +528,7 @@ export function PracticeTree({ practice, phases, events }: PracticeTreeProps) {
               })}
 
               {events.map((event) => {
-                const phase = orderedPhases.find((item) => item.id === event.phaseId);
+                const phase = resolveEventPhase(event);
                 const position = eventPositions.get(event.id);
                 if (!phase || !position) return null;
                 return (
