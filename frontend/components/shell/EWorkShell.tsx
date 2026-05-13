@@ -28,8 +28,8 @@ type EWorkShellProps = {
 
 const navItems = [
   { label: "Dashboard", icon: LayoutDashboard, section: "Modulo" },
-  { label: "Rubrica clienti", icon: UsersRound, section: "Modulo" },
-  { label: "Pratiche", icon: Gauge, section: "Modulo", active: true, badge: 24, href: "/pratiche/PR-2026-042" },
+  { label: "Rubrica clienti", icon: UsersRound, section: "Modulo", href: "/clienti" },
+  { label: "Pratiche", icon: Gauge, section: "Modulo", active: true, badge: 8, href: "/pratiche" },
   { label: "Importa pratiche", icon: FileText, section: "Modulo", href: "/pratiche/importa" },
   { label: "Agenda", icon: CalendarDays, section: "Modulo" },
   { label: "Scadenze", icon: Clock3, section: "Modulo", badge: 7 },
