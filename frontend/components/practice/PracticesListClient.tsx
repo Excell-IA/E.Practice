@@ -1,5 +1,6 @@
 "use client";
 
+import { useQuery } from "@tanstack/react-query";
 import { differenceInCalendarDays, format } from "date-fns";
 import { it } from "date-fns/locale";
 import { Plus, Search } from "lucide-react";
@@ -9,7 +10,9 @@ import { useMemo, useState } from "react";
 
 import { Badge, type BadgeProps } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { getPractices } from "@/lib/api";
 import { directoryPractices, type DirectoryPractice } from "@/lib/demo-directory";
+import { mapApiPracticeToDirectoryPractice } from "@/lib/mappers/practice-list";
 import { cn } from "@/lib/utils";
 
 type PracticeFilter = "all" | "open" | "progress" | "done" | "late";
@@ -67,16 +70,24 @@ export function PracticesListClient() {
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<PracticeFilter>("all");
+  const practicesQuery = useQuery({
+    queryFn: () => getPractices(),
+    queryKey: ["practices"],
+  });
+  const sourcePractices = useMemo(() => {
+    const apiPractices = practicesQuery.data?.items.map(mapApiPracticeToDirectoryPractice) ?? [];
+    return apiPractices.length ? apiPractices : directoryPractices;
+  }, [practicesQuery.data?.items]);
   const practices = useMemo(() => {
     const needle = query.trim().toLowerCase();
-    return directoryPractices.filter((practice) => {
+    return sourcePractices.filter((practice) => {
       const text = `${practice.code} ${practice.title} ${practice.clientName}`.toLowerCase();
       return matchesFilter(practice, filter) && (!needle || text.includes(needle));
     });
-  }, [filter, query]);
+  }, [filter, query, sourcePractices]);
 
   function count(filterId: PracticeFilter) {
-    return directoryPractices.filter((practice) => matchesFilter(practice, filterId)).length;
+    return sourcePractices.filter((practice) => matchesFilter(practice, filterId)).length;
   }
 
   return (
