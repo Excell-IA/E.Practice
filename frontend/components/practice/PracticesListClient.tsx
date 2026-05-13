@@ -91,7 +91,7 @@ export function PracticesListClient() {
   }
 
   return (
-    <main className="min-h-[calc(100vh-60px)] bg-surface px-6 py-6 md:px-10">
+    <main className="min-h-[calc(100vh-96px)] bg-surface px-6 md:px-10">
       <div className="mx-auto max-w-7xl">
         <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
           <div>

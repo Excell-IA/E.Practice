@@ -15,6 +15,7 @@ import {
   UsersRound,
   UserSquare2,
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
@@ -64,13 +65,10 @@ export function EWorkShell({ children, code }: EWorkShellProps) {
 
   return (
     <div className="min-h-screen bg-surface text-foreground">
-      <aside className="fixed inset-y-[60px] left-0 z-40 hidden w-60 flex-col overflow-y-auto bg-surface-low px-3 py-5 lg:flex">
-        <div className="mb-5 flex items-center gap-3 px-3">
-          <LogoMark />
-          <div>
-            <p className="font-display text-sm font-semibold text-foreground">ExcellIA Work</p>
-            <p className="font-label text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">Studio Leali</p>
-          </div>
+      <aside className="fixed bottom-0 left-0 top-[96px] z-40 hidden w-60 flex-col overflow-y-auto bg-surface-low px-3 py-5 lg:flex">
+        <div className="mb-5 px-3">
+          <p className="font-display text-lg font-semibold text-foreground">E.Practice</p>
+          <p className="font-label text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">Studio Leali</p>
         </div>
 
         <nav className="flex-1 space-y-6">
@@ -124,22 +122,23 @@ export function EWorkShell({ children, code }: EWorkShellProps) {
 
         <div className="border-t border-border pt-4">
           <div className="rounded-xl bg-surface-container p-3">
-            <p className="font-display text-xs font-semibold text-foreground">Demo Leali</p>
+            <p className="font-display text-xs font-semibold text-foreground">Demo Gestione Pratiche</p>
             <p className="mt-1 text-xs leading-5 text-muted">Ambiente statico V0, pronto per walkthrough prodotto.</p>
           </div>
         </div>
       </aside>
 
-      <div className="lg:pl-60">
-        <header className="sticky top-0 z-30 flex h-[60px] items-center justify-between bg-surface-lowest/75 px-4 backdrop-blur-xl md:px-5">
-          <div className="flex min-w-0 items-center gap-4">
-            <div className="lg:hidden">
-              <LogoMark />
-            </div>
+      <header className="sticky top-0 z-50 flex h-[96px] items-center justify-between bg-surface-lowest/95 px-4 backdrop-blur-xl md:px-6">
+          <div className="flex min-w-0 items-center gap-6">
+            <Image alt="ExcellIA" className="h-48 w-auto flex-shrink-0" height={192} priority src="/logo-excellia.svg" width={256} />
             <div className="min-w-0">
               <div className="flex items-center gap-2 overflow-hidden whitespace-nowrap text-sm">
                 <span className="font-display text-[11px] font-medium uppercase tracking-[0.14em] text-muted">
-                  ExcellIA Work
+                  ExcellIA
+                </span>
+                <span className="text-muted/60">/</span>
+                <span className="font-display text-[11px] font-medium uppercase tracking-[0.14em] text-muted">
+                  E.Work
                 </span>
                 <span className="text-muted/60">/</span>
                 <span className="font-medium text-foreground-variant">E.Practice</span>
@@ -229,8 +228,7 @@ export function EWorkShell({ children, code }: EWorkShellProps) {
           </div>
         </header>
 
-        <div>{children}</div>
-      </div>
+      <div className="lg:pl-60">{children}</div>
     </div>
   );
 }
