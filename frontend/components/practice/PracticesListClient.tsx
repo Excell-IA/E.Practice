@@ -2,11 +2,12 @@
 
 import { differenceInCalendarDays, format } from "date-fns";
 import { it } from "date-fns/locale";
-import { Search } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import { Badge, type BadgeProps } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { directoryPractices, type DirectoryPractice } from "@/lib/demo-directory";
 import { cn } from "@/lib/utils";
 
@@ -84,15 +85,23 @@ export function PracticesListClient() {
             <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-electric">Pratiche</p>
             <h1 className="mt-2 font-display text-3xl font-semibold text-foreground">Situazione operativa</h1>
           </div>
-          <label className="relative w-full max-w-sm">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
-            <input
-              className="h-10 w-full rounded-xl border border-border bg-surface-low pl-9 pr-3 text-sm text-foreground outline-none"
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Cerca pratica o cliente"
-              value={query}
-            />
-          </label>
+          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+            <label className="relative w-full max-w-sm sm:w-72">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+              <input
+                className="h-10 w-full rounded-xl border border-border bg-surface-low pl-9 pr-3 text-sm text-foreground outline-none"
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Cerca pratica o cliente"
+                value={query}
+              />
+            </label>
+            <Button asChild>
+              <Link href="/pratiche/nuova">
+                <Plus className="h-4 w-4" />
+                Nuova pratica
+              </Link>
+            </Button>
+          </div>
         </div>
 
         <div className="mb-4 flex flex-wrap gap-2">

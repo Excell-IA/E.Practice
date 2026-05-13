@@ -8,6 +8,12 @@ export type ApiPracticeDetail = components["schemas"]["PracticeDetail"];
 export type ApiPracticePhase = components["schemas"]["PracticePhase"];
 export type ApiPracticeEvent = components["schemas"]["PracticeEvent"];
 export type ApiNote = components["schemas"]["Note"];
+export type ApiClient = components["schemas"]["Client"];
+export type ApiClientSearchHit = components["schemas"]["ClientSearchHit"];
+export type ApiCategory = components["schemas"]["Category"];
+export type ApiUser = components["schemas"]["User"];
+export type ApiTemplatePreview = components["schemas"]["TemplatePreview"];
+export type ApiCreatePracticeResponse = components["schemas"]["CreatePracticeResponse"];
 
 type ApiFetchOptions = RequestInit & {
   userId?: string;
@@ -49,6 +55,40 @@ export function getPractices(q?: string) {
 
 export function getPracticeDetail(practiceId: string) {
   return apiFetch<ApiPracticeDetail>(`/api/practices/${practiceId}`);
+}
+
+export function searchClients(q: string) {
+  const params = new URLSearchParams({ limit: "10", q });
+  return apiFetch<ApiClientSearchHit[]>(`/api/clients/search?${params.toString()}`);
+}
+
+export function getCategories() {
+  return apiFetch<ApiCategory[]>("/api/categories");
+}
+
+export function getUsers() {
+  return apiFetch<ApiUser[]>("/api/users");
+}
+
+export function getTemplatePreview(categoryId: string, apertura: string) {
+  const params = new URLSearchParams({ apertura });
+  return apiFetch<ApiTemplatePreview>(`/api/templates/category/${categoryId}/preview?${params.toString()}`);
+}
+
+export function createClient(input: components["schemas"]["ClientCreate"], userId: string) {
+  return apiFetch<ApiClient>("/api/clients", {
+    body: JSON.stringify(input),
+    method: "POST",
+    userId,
+  });
+}
+
+export function createPractice(input: components["schemas"]["CreatePracticeRequest"], userId: string) {
+  return apiFetch<ApiCreatePracticeResponse>("/api/practices", {
+    body: JSON.stringify(input),
+    method: "POST",
+    userId,
+  });
 }
 
 export function completePhase(phaseId: string, userId: string) {

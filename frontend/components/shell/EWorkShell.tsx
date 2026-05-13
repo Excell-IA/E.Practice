@@ -8,6 +8,7 @@ import {
   Gauge,
   LayoutDashboard,
   Moon,
+  Plus,
   Search,
   Settings,
   Sun,
@@ -30,7 +31,8 @@ const navItems = [
   { label: "Dashboard", icon: LayoutDashboard, section: "Modulo" },
   { label: "Rubrica clienti", icon: UsersRound, section: "Modulo", href: "/clienti" },
   { label: "Pratiche", icon: Gauge, section: "Modulo", active: true, badge: 8, href: "/pratiche" },
-  { label: "Carica documento", icon: FileText, section: "Modulo", href: "/pratiche/importa" },
+  { label: "Nuova pratica", icon: Plus, section: "Modulo", href: "/pratiche/nuova" },
+  { label: "Carica documento", icon: FileText, section: "Modulo", href: "/pratiche/importa", secondary: true },
   { label: "Agenda", icon: CalendarDays, section: "Modulo" },
   { label: "Scadenze", icon: Clock3, section: "Modulo", badge: 7 },
   { label: "Utenti studio", icon: UserSquare2, section: "Studio" },
@@ -83,6 +85,7 @@ export function EWorkShell({ children, code }: EWorkShellProps) {
                   const Icon = item.icon;
                   const itemClassName = cn(
                     "relative flex h-9 w-full items-center gap-3 rounded-lg px-3 text-left text-[13.5px] font-medium text-foreground-variant transition-colors",
+                    item.secondary && "pl-8 text-[12.5px] text-muted",
                     item.active && "bg-surface-high text-foreground",
                     !item.active && "hover:bg-surface-container hover:text-foreground",
                   );
