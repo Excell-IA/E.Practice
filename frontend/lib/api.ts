@@ -40,7 +40,14 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
   });
 
   if (!response.ok) {
-    const detail = await response.text();
+    const rawDetail = await response.text();
+    let detail = rawDetail;
+    try {
+      const parsed = JSON.parse(rawDetail) as { detail?: unknown };
+      detail = typeof parsed.detail === "string" ? parsed.detail : JSON.stringify(parsed.detail ?? parsed);
+    } catch {
+      detail = rawDetail;
+    }
     throw new Error(`API ${response.status}: ${detail || response.statusText}`);
   }
 

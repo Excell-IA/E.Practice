@@ -1,10 +1,11 @@
 "use client";
 
-import { addDays, format } from "date-fns";
+import { addDays, differenceInCalendarDays, format } from "date-fns";
 import { it } from "date-fns/locale";
 import { ArrowLeft, ArrowRight, Check, Plus, Search, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { createClient, createPractice, getCategories, getTemplatePreview, getUsers, searchClients, type ApiCategory, type ApiClientSearchHit, type ApiTemplatePreview, type ApiUser } from "@/lib/api";
 import { Badge, type BadgeProps } from "@/components/ui/badge";
@@ -80,6 +81,7 @@ function fallbackPreview(category: ApiCategory, apertura: string): ApiTemplatePr
 
 export function NewPracticeWizard() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const activeUser = useDemoStore((state) => state.activeUser);
   const [step, setStep] = useState<WizardStep>(1);
   const [clientQuery, setClientQuery] = useState("");
@@ -113,6 +115,7 @@ export function NewPracticeWizard() {
   const [phases, setPhases] = useState<PreviewPhase[]>(preview.phases.map((phase) => ({ ...phase, enabled: true })));
   const [reminders, setReminders] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const selectedCategory = categories.find((category) => category.id === categoryId) ?? categories[0];
   const canContinueStep1 = createNewClient ? Boolean(newClient.name.trim()) : Boolean(selectedClient);
@@ -151,6 +154,7 @@ export function NewPracticeWizard() {
   async function submit() {
     if (!canSubmit) return;
     setSubmitting(true);
+    setError(null);
     try {
       let clientId = selectedClient?.id ?? "";
       if (createNewClient) {
@@ -170,26 +174,34 @@ export function NewPracticeWizard() {
         );
         clientId = created.id;
       }
-      const result = await createPractice(
-        {
-          apertura,
-          category_id: categoryId,
-          client_id: clientId,
-          collaborator_ids: [],
-          create_default_reminders: reminders,
-          description,
-          label_ids: selectedLabels,
-          priority,
-          responsible_id: responsibleId,
-          scadenza: scadenza || preview.scadenza_calcolata,
-          title,
-        },
-        activeUser.id,
-      );
+      const payload = {
+        apertura,
+        category_id: categoryId,
+        client_id: clientId,
+        collaborator_ids: [],
+        create_default_reminders: reminders,
+        description,
+        label_ids: selectedLabels,
+        phase_overrides: activePhases.map((phase) => ({
+          enabled: phase.enabled,
+          name: phase.name,
+          order_index: phase.order_index,
+          planned_end: phase.planned_end,
+          planned_start: phase.planned_start,
+        })),
+        priority,
+        responsible_id: responsibleId,
+        scadenza: scadenza || preview.scadenza_calcolata,
+        title,
+      };
+      console.info("create_practice_payload", payload);
+      const result = await createPractice(payload, activeUser.id);
+      await queryClient.invalidateQueries({ queryKey: ["practices"] });
+      await queryClient.invalidateQueries({ queryKey: ["practice-detail"] });
       router.push(`/pratiche/${result.code}`);
-    } catch {
-      const fallbackCode = `PR-2026-${Math.floor(Math.random() * 800 + 100)}`;
-      router.push(`/pratiche/${fallbackCode}`);
+    } catch (err) {
+      console.error("create_practice_failed", err);
+      setError(err instanceof Error ? err.message : "Errore durante la creazione della pratica.");
     } finally {
       setSubmitting(false);
     }
@@ -197,7 +209,8 @@ export function NewPracticeWizard() {
 
   function addCustomPhase() {
     const index = phases.length + 1;
-    const start = addDays(new Date(apertura), index * 3);
+    const lastEnd = phases.length ? phases[phases.length - 1].planned_end : apertura;
+    const start = addDays(new Date(lastEnd), 1);
     setPhases((current) => [
       ...current,
       {
@@ -211,6 +224,26 @@ export function NewPracticeWizard() {
         planned_start: format(start, "yyyy-MM-dd"),
       },
     ]);
+  }
+
+  function updatePhaseDate(index: number, field: "planned_start" | "planned_end", value: string) {
+    setPhases((current) =>
+      current.map((phase, itemIndex) => {
+        if (itemIndex !== index) return phase;
+        const next = { ...phase, [field]: value };
+        let start = new Date(next.planned_start);
+        let end = new Date(next.planned_end);
+        if (end < start) {
+          const swap = start;
+          start = end;
+          end = swap;
+          next.planned_start = format(start, "yyyy-MM-dd");
+          next.planned_end = format(end, "yyyy-MM-dd");
+        }
+        next.duration_days = Math.max(1, differenceInCalendarDays(end, start));
+        return next;
+      }),
+    );
   }
 
   return (
@@ -234,6 +267,12 @@ export function NewPracticeWizard() {
             ))}
           </div>
         </div>
+
+        {error ? (
+          <div className="rounded-2xl border border-danger/40 bg-danger/10 px-4 py-3 text-sm font-semibold text-danger">
+            {error}
+          </div>
+        ) : null}
 
         {step === 1 ? (
           <Card>
@@ -333,10 +372,11 @@ export function NewPracticeWizard() {
               </div>
               <div className="space-y-2">
                 {phases.map((phase, index) => (
-                  <div className={cn("grid gap-3 rounded-xl border border-border bg-surface-container p-3 text-sm md:grid-cols-[56px_1fr_120px_100px_40px]", !phase.enabled && "opacity-45")} key={`${phase.name}-${index}`}>
+                  <div className={cn("grid gap-3 rounded-xl border border-border bg-surface-container p-3 text-sm md:grid-cols-[40px_1fr_140px_140px_80px_40px]", !phase.enabled && "opacity-45")} key={`${phase.name}-${index}`}>
                     <span className="font-label text-muted">#{index + 1}</span>
                     <input className="rounded-lg bg-surface-low px-2 py-1 outline-none" onChange={(event) => setPhases((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, name: event.target.value } : item))} value={phase.name} />
-                    <span>{format(new Date(phase.planned_end), "dd/MM/yyyy")}</span>
+                    <input className="rounded-lg bg-surface-low px-2 py-1 outline-none" onChange={(event) => updatePhaseDate(index, "planned_start", event.target.value)} type="date" value={phase.planned_start} />
+                    <input className="rounded-lg bg-surface-low px-2 py-1 outline-none" onChange={(event) => updatePhaseDate(index, "planned_end", event.target.value)} type="date" value={phase.planned_end} />
                     <span>{phase.duration_days} giorni</span>
                     <button aria-label="Rimuovi fase" onClick={() => setPhases((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, enabled: !item.enabled } : item))} type="button"><Trash2 className="h-4 w-4 text-muted" /></button>
                   </div>
