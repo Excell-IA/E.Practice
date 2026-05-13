@@ -3,11 +3,24 @@
 import { addDays, differenceInCalendarDays, format } from "date-fns";
 import { it } from "date-fns/locale";
 import { ArrowLeft, ArrowRight, Check, Plus, Search, Trash2 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { createClient, createPractice, getCategories, getTemplatePreview, getUsers, searchClients, type ApiCategory, type ApiClientSearchHit, type ApiTemplatePreview, type ApiUser } from "@/lib/api";
+import {
+  attachAttachment,
+  createClient,
+  createPractice,
+  getCategories,
+  getTemplatePreview,
+  getUsers,
+  listAttachments,
+  searchClients,
+  type ApiCategory,
+  type ApiClientSearchHit,
+  type ApiTemplatePreview,
+  type ApiUser,
+} from "@/lib/api";
 import { Badge, type BadgeProps } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -81,6 +94,7 @@ function fallbackPreview(category: ApiCategory, apertura: string): ApiTemplatePr
 
 export function NewPracticeWizard() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const queryClient = useQueryClient();
   const activeUser = useDemoStore((state) => state.activeUser);
   const [step, setStep] = useState<WizardStep>(1);
@@ -118,6 +132,23 @@ export function NewPracticeWizard() {
   const [error, setError] = useState<string | null>(null);
 
   const selectedCategory = categories.find((category) => category.id === categoryId) ?? categories[0];
+  const attachmentIds = useMemo(
+    () =>
+      (searchParams.get("attachments") ?? "")
+        .split(",")
+        .map((id) => id.trim())
+        .filter(Boolean),
+    [searchParams],
+  );
+  const attachmentQuery = useQuery({
+    enabled: attachmentIds.length > 0,
+    queryFn: async () => {
+      const attachments = await listAttachments();
+      const ids = new Set(attachmentIds);
+      return attachments.filter((attachment) => ids.has(attachment.id));
+    },
+    queryKey: ["attachments", "preloaded", attachmentIds.join(",")],
+  });
   const canContinueStep1 = createNewClient ? Boolean(newClient.name.trim()) : Boolean(selectedClient);
   const canSubmit = Boolean(title.trim() && categoryId && responsibleId && canContinueStep1);
 
@@ -196,8 +227,21 @@ export function NewPracticeWizard() {
       };
       console.info("create_practice_payload", payload);
       const result = await createPractice(payload, activeUser.id);
+      const attachFailures: string[] = [];
+      for (const attachmentId of attachmentIds) {
+        try {
+          await attachAttachment(attachmentId, result.practice_id, null, activeUser.id);
+        } catch (attachError) {
+          console.warn("attachment_attach_failed", attachmentId, attachError);
+          attachFailures.push(attachmentId);
+        }
+      }
+      if (attachFailures.length > 0) {
+        console.warn("attachments_not_attached", attachFailures);
+      }
       await queryClient.invalidateQueries({ queryKey: ["practices"] });
       await queryClient.invalidateQueries({ queryKey: ["practice-detail"] });
+      await queryClient.invalidateQueries({ queryKey: ["attachments"] });
       router.push(`/pratiche/${result.code}`);
     } catch (err) {
       console.error("create_practice_failed", err);
@@ -272,6 +316,32 @@ export function NewPracticeWizard() {
           <div className="rounded-2xl border border-danger/40 bg-danger/10 px-4 py-3 text-sm font-semibold text-danger">
             {error}
           </div>
+        ) : null}
+
+        {attachmentIds.length > 0 ? (
+          <Card className="border-electric/30 bg-electric/5">
+            <CardContent className="flex flex-col gap-3 pt-5 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-electric">
+                  Allegati pre-caricati
+                </p>
+                <p className="mt-1 text-sm font-semibold text-foreground">
+                  {attachmentIds.length === 1 ? "1 file pronto da allegare" : `${attachmentIds.length} file pronti da allegare`}
+                </p>
+                {attachmentQuery.data?.length ? (
+                  <ul className="mt-2 space-y-1 text-xs text-muted">
+                    {attachmentQuery.data.map((attachment) => (
+                      <li key={attachment.id}>{attachment.filename}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="mt-2 text-xs text-muted">
+                    {attachmentQuery.isLoading ? "Recupero nomi file..." : "File caricati, pronti per il collegamento."}
+                  </p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
         ) : null}
 
         {step === 1 ? (
