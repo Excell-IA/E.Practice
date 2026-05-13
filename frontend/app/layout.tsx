@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Manrope, Space_Grotesk } from "next/font/google";
 
+import { Providers } from "@/components/Providers";
 import "@/styles/globals.css";
 
 const display = Space_Grotesk({
@@ -31,7 +32,7 @@ export default function RootLayout({
   return (
     <html lang="it" data-theme="excellia" suppressHydrationWarning>
       <body className={`${display.variable} ${body.variable} ${label.variable}`}>
-        {children}
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

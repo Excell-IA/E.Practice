@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { V1Hint } from "@/components/ui/v1-hint";
 import { useDemoStore } from "@/lib/demo-state";
 import type { Practice, PracticeEvent, PracticePhase, TreeSelection } from "@/lib/types";
 
@@ -29,12 +30,14 @@ const disabledToolbar = [
 
 const timeline = {
   startX: 120,
-  endX: 1480,
+  endX: 2060,
   y: 250,
   startDate: new Date("2026-01-15"),
   endDate: new Date("2026-04-30"),
   todayDate: new Date("2026-03-16"),
 };
+
+const svgWidth = 2200;
 
 const monthMarkers = [
   { label: "Febbraio", date: "2026-02-01" },
@@ -62,7 +65,15 @@ export function PracticeTree({ practice, phases, events }: PracticeTreeProps) {
   const orderedPhases = useMemo(() => [...phases].sort((a, b) => a.order - b.order), [phases]);
   const currentPhase = orderedPhases.find((phase) => phase.status === "in_progress") ?? orderedPhases[0];
   const phasePositions = useMemo(() => {
-    return new Map(orderedPhases.map((phase) => [phase.id, { x: dateToX(phase.plannedDate), y: timeline.y }]));
+    let previousX = timeline.startX;
+    return new Map(
+      orderedPhases.map((phase, index) => {
+        const dateX = dateToX(phase.plannedDate);
+        const x = index === 0 ? dateX : Math.max(dateX, previousX + 175);
+        previousX = x;
+        return [phase.id, { x, y: timeline.y }];
+      }),
+    );
   }, [orderedPhases]);
 
   const eventPositions = useMemo(
@@ -75,6 +86,16 @@ export function PracticeTree({ practice, phases, events }: PracticeTreeProps) {
       ),
     [events],
   );
+  const freshSelection = useMemo((): TreeSelection | null => {
+    if (!selection) return null;
+    if (selection.kind === "phase") {
+      const phase = orderedPhases.find((item) => item.id === selection.item.id);
+      return phase ? { kind: "phase", item: phase } : null;
+    }
+    const event = events.find((item) => item.id === selection.item.id);
+    const phase = orderedPhases.find((item) => item.id === selection.phase.id);
+    return event && phase ? { kind: "event", item: event, phase } : null;
+  }, [events, orderedPhases, selection]);
 
   function selectPhase(phase: PracticePhase) {
     setSelection({ kind: "phase", item: phase });
@@ -89,13 +110,12 @@ export function PracticeTree({ practice, phases, events }: PracticeTreeProps) {
   function scrollToTimelineX(x: number) {
     const scrollArea = scrollAreaRef.current;
     if (!scrollArea) return;
-    const svgWidth = 1600;
     const targetLeft = (x / svgWidth) * scrollArea.scrollWidth - scrollArea.clientWidth / 2;
     scrollArea.scrollTo({ behavior: "smooth", left: Math.max(targetLeft, 0) });
   }
 
   function openComposer(eventType: PracticeEvent["type"]) {
-    const defaultTitle = eventType === "call" ? "Telefonata cliente" : eventType === "mail" ? "Email integrativa" : "Attesa cliente";
+    const defaultTitle = eventType === "call" ? "Telefonata cliente" : eventType === "mail" ? "Email integrativa" : "Alert scadenza";
     setComposerType(eventType);
     setComposerTitle(defaultTitle);
     setComposerDescription("");
@@ -169,28 +189,29 @@ export function PracticeTree({ practice, phases, events }: PracticeTreeProps) {
               disabled={activeUser.permission === "viewer"}
               onClick={() => openComposer("warning")}
               size="sm"
-              title={activeUser.permission === "viewer" ? "Permesso non disponibile per utente viewer" : "Crea warning demo"}
+              title={activeUser.permission === "viewer" ? "Permesso non disponibile per utente viewer" : "Crea alert scadenza"}
               type="button"
               variant="warning"
             >
               <AlertTriangle className="h-4 w-4" />
-              Warning
+              Alert
             </Button>
             {disabledToolbar.map((item) => {
               const Icon = item.icon;
               return (
-                <Button
-                  aria-label={item.label}
-                  className="cursor-not-allowed opacity-50"
-                  disabled
-                  key={item.label}
-                  size="icon"
-                  title="Disponibile in V1"
-                  type="button"
-                  variant="outline"
-                >
-                  <Icon className="h-4 w-4" />
-                </Button>
+                <V1Hint key={item.label} label="Disponibile in V1">
+                  <Button
+                    aria-label={item.label}
+                    className="cursor-not-allowed opacity-50"
+                    disabled
+                    size="icon"
+                    title="Disponibile in V1"
+                    type="button"
+                    variant="outline"
+                  >
+                    <Icon className="h-4 w-4" />
+                  </Button>
+                </V1Hint>
               );
             })}
           </div>
@@ -235,12 +256,12 @@ export function PracticeTree({ practice, phases, events }: PracticeTreeProps) {
           <div className="overflow-x-auto" ref={scrollAreaRef}>
             <svg
               aria-label="Albero della pratica"
-              className="h-[470px] min-w-[1600px] text-foreground"
+              className="h-[470px] min-w-[2200px] text-foreground"
               role="img"
-              viewBox="0 0 1600 470"
+              viewBox={`0 0 ${svgWidth} 470`}
             >
               <defs>
-                <linearGradient id="mainLine" x1="120" x2="1480" y1="0" y2="0">
+                <linearGradient id="mainLine" x1="120" x2="2060" y1="0" y2="0">
                   <stop offset="0%" stopColor="var(--success)" />
                   <stop offset="50%" stopColor="var(--electric)" />
                   <stop offset="100%" stopColor="var(--on-surface-muted)" stopOpacity="0.45" />
@@ -358,7 +379,7 @@ export function PracticeTree({ practice, phases, events }: PracticeTreeProps) {
         </CardContent>
       </Card>
 
-      <NodeDrawer onOpenChange={setDrawerOpen} open={drawerOpen} selection={selection} />
+      <NodeDrawer onOpenChange={setDrawerOpen} open={drawerOpen} selection={freshSelection} />
     </>
   );
 }

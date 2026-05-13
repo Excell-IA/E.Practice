@@ -10,7 +10,7 @@ type PracticeDetailPageProps = {
 export default function PracticeDetailPage({ params }: PracticeDetailPageProps) {
   return (
     <EWorkShell code={params.numero}>
-      <PracticeDetailClient />
+      <PracticeDetailClient code={params.numero} />
     </EWorkShell>
   );
 }

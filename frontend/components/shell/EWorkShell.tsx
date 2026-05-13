@@ -4,6 +4,7 @@ import {
   Bell,
   CalendarDays,
   Clock3,
+  FileText,
   Gauge,
   LayoutDashboard,
   Moon,
@@ -13,8 +14,10 @@ import {
   UsersRound,
   UserSquare2,
 } from "lucide-react";
+import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { V1Hint } from "@/components/ui/v1-hint";
 import { useDemoStore } from "@/lib/demo-state";
 import { cn } from "@/lib/utils";
 
@@ -26,7 +29,8 @@ type EWorkShellProps = {
 const navItems = [
   { label: "Dashboard", icon: LayoutDashboard, section: "Modulo" },
   { label: "Rubrica clienti", icon: UsersRound, section: "Modulo" },
-  { label: "Pratiche", icon: Gauge, section: "Modulo", active: true, badge: 24 },
+  { label: "Pratiche", icon: Gauge, section: "Modulo", active: true, badge: 24, href: "/pratiche/PR-2026-042" },
+  { label: "Importa pratiche", icon: FileText, section: "Modulo", href: "/pratiche/importa" },
   { label: "Agenda", icon: CalendarDays, section: "Modulo" },
   { label: "Scadenze", icon: Clock3, section: "Modulo", badge: 7 },
   { label: "Utenti studio", icon: UserSquare2, section: "Studio" },
@@ -77,17 +81,13 @@ export function EWorkShell({ children, code }: EWorkShellProps) {
                 .filter((item) => item.section === section)
                 .map((item) => {
                   const Icon = item.icon;
-                  return (
-                    <button
-                      className={cn(
-                        "relative flex h-9 w-full items-center gap-3 rounded-lg px-3 text-left text-[13.5px] font-medium text-foreground-variant transition-colors",
-                        item.active && "bg-surface-high text-foreground",
-                        !item.active && "hover:bg-surface-container hover:text-foreground",
-                      )}
-                      key={item.label}
-                      title="In sviluppo"
-                      type="button"
-                    >
+                  const itemClassName = cn(
+                    "relative flex h-9 w-full items-center gap-3 rounded-lg px-3 text-left text-[13.5px] font-medium text-foreground-variant transition-colors",
+                    item.active && "bg-surface-high text-foreground",
+                    !item.active && "hover:bg-surface-container hover:text-foreground",
+                  );
+                  const content = (
+                    <>
                       {item.active ? (
                         <span className="absolute bottom-2 left-0 top-2 w-0.5 rounded-r bg-gradient-to-b from-primary to-[#00C2FF]" />
                       ) : null}
@@ -98,7 +98,21 @@ export function EWorkShell({ children, code }: EWorkShellProps) {
                           {item.badge}
                         </span>
                       ) : null}
-                    </button>
+                    </>
+                  );
+                  if (item.href) {
+                    return (
+                      <Link className={itemClassName} href={item.href} key={item.label}>
+                        {content}
+                      </Link>
+                    );
+                  }
+                  return (
+                    <V1Hint className="w-full" key={item.label}>
+                      <button className={itemClassName} title="In sviluppo" type="button">
+                        {content}
+                      </button>
+                    </V1Hint>
                   );
                 })}
             </div>
@@ -142,39 +156,47 @@ export function EWorkShell({ children, code }: EWorkShellProps) {
               </div>
               <span className="font-display text-[11px] font-semibold text-foreground">43%</span>
             </div>
-            <button
-              aria-label="Cerca"
-              className="hidden h-8 w-8 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-high hover:text-foreground md:inline-flex"
-              title="In sviluppo"
-              type="button"
-            >
-              <Search className="h-4 w-4" />
-            </button>
-            <button
-              aria-label="Notifiche"
-              className="relative hidden h-8 w-8 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-high hover:text-foreground md:inline-flex"
-              title="In sviluppo"
-              type="button"
-            >
-              <Bell className="h-4 w-4" />
-              <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-gradient-to-br from-primary to-[#00C2FF] px-1 font-display text-[10px] font-semibold text-[var(--on-primary)]">
-                3
-              </span>
-            </button>
-            <div className="hidden h-8 items-center gap-1 rounded-full bg-surface-container px-1 md:flex">
-              <button className="flex h-6 w-6 items-center justify-center rounded-full bg-surface-high text-primary" type="button">
-                <Sun className="h-3.5 w-3.5" />
+            <V1Hint className="hidden md:inline-flex">
+              <button
+                aria-label="Cerca"
+                className="h-8 w-8 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-high hover:text-foreground md:inline-flex"
+                title="Componente da sviluppare"
+                type="button"
+              >
+                <Search className="h-4 w-4" />
               </button>
-              <button className="flex h-6 w-6 items-center justify-center rounded-full text-muted" type="button">
-                <span className="font-label text-[11px] font-bold">E</span>
+            </V1Hint>
+            <V1Hint className="hidden md:inline-flex">
+              <button
+                aria-label="Notifiche"
+                className="relative h-8 w-8 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-high hover:text-foreground md:inline-flex"
+                title="Componente da sviluppare"
+                type="button"
+              >
+                <Bell className="h-4 w-4" />
+                <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-gradient-to-br from-primary to-[#00C2FF] px-1 font-display text-[10px] font-semibold text-[var(--on-primary)]">
+                  3
+                </span>
               </button>
-              <button className="flex h-6 w-6 items-center justify-center rounded-full text-muted" type="button">
-                <Moon className="h-3.5 w-3.5" />
-              </button>
-            </div>
-            <div className="hidden h-8 items-center rounded-full bg-surface-container px-3 font-label text-xs font-semibold text-foreground md:flex">
-              IT
-            </div>
+            </V1Hint>
+            <V1Hint className="hidden md:inline-flex">
+              <div className="h-8 items-center gap-1 rounded-full bg-surface-container px-1 md:flex">
+                <button className="flex h-6 w-6 items-center justify-center rounded-full bg-surface-high text-primary" type="button">
+                  <Sun className="h-3.5 w-3.5" />
+                </button>
+                <button className="flex h-6 w-6 items-center justify-center rounded-full text-muted" type="button">
+                  <span className="font-label text-[11px] font-bold">E</span>
+                </button>
+                <button className="flex h-6 w-6 items-center justify-center rounded-full text-muted" type="button">
+                  <Moon className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </V1Hint>
+            <V1Hint className="hidden md:inline-flex">
+              <div className="h-8 items-center rounded-full bg-surface-container px-3 font-label text-xs font-semibold text-foreground md:flex">
+                IT
+              </div>
+            </V1Hint>
             <div className="flex items-center gap-3" title="Cambia utente demo">
               <div
                 className={cn(

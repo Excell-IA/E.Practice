@@ -2,6 +2,8 @@
 
 import { create } from "zustand";
 
+import { completePhase, createEvent, createNote, skipPhase, updatePhaseAssignee } from "@/lib/api";
+import { mapEventTypeToApi, type PracticeDetailUi } from "@/lib/mappers/practice";
 import type { EventType, Practice, PracticeEvent, PracticePhase, User } from "@/lib/types";
 
 export type DemoRole = "admin" | "editor" | "viewer";
@@ -170,7 +172,8 @@ type DemoAction =
   | { type: "set_phase_status"; phaseId: string; status: PracticePhase["status"] }
   | { type: "assign_phase"; phaseId: string; userId: string }
   | { type: "add_note"; phaseId: string; body: string }
-  | { type: "create_event"; phaseId: string; eventType: EventType; title: string; description: string; occurredAt: string };
+  | { type: "create_event"; phaseId: string; eventType: EventType; title: string; description: string; occurredAt: string }
+  | { type: "hydrate_from_api"; detail: PracticeDetailUi };
 
 type DemoState = {
   activeUser: DemoUser;
@@ -195,6 +198,67 @@ function setSingleInProgress(phases: PracticePhase[], phaseId: string) {
   });
 }
 
+function isUuid(value: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
+
+function rememberUser(userId: string) {
+  if (typeof window !== "undefined") {
+    window.localStorage.setItem("epractice:user-id", userId);
+  }
+}
+
+function syncActionWithApi(action: DemoAction, state: DemoState) {
+  if (action.type === "complete_phase" && isUuid(action.phaseId)) {
+    void completePhase(action.phaseId, state.activeUser.id).catch(console.warn);
+  }
+
+  if (action.type === "skip_phase" && isUuid(action.phaseId)) {
+    void skipPhase(action.phaseId, state.activeUser.id).catch(console.warn);
+  }
+
+  if (action.type === "set_phase_status" && isUuid(action.phaseId)) {
+    if (action.status === "done") {
+      void completePhase(action.phaseId, state.activeUser.id).catch(console.warn);
+    }
+    if (action.status === "skipped") {
+      void skipPhase(action.phaseId, state.activeUser.id).catch(console.warn);
+    }
+  }
+
+  if (action.type === "assign_phase" && isUuid(action.phaseId)) {
+    void updatePhaseAssignee(action.phaseId, action.userId, state.activeUser.id).catch(console.warn);
+  }
+
+  if (action.type === "add_note" && isUuid(action.phaseId) && isUuid(state.practice.id)) {
+    void createNote(
+      {
+        author_id: state.activeUser.id,
+        content: action.body,
+        phase_id: action.phaseId,
+        practice_id: state.practice.id,
+      },
+      state.activeUser.id,
+    ).catch(console.warn);
+  }
+
+  if (action.type === "create_event" && isUuid(action.phaseId) && isUuid(state.practice.id)) {
+    void createEvent(
+      {
+        author_id: state.activeUser.id,
+        description: action.description,
+        event_date: action.occurredAt,
+        event_type: mapEventTypeToApi(action.eventType),
+        phase_id: action.phaseId,
+        practice_id: state.practice.id,
+        title: action.title,
+        visual_position: action.eventType === "mail" ? "bottom" : "top",
+      },
+      state.activeUser.id,
+    ).catch(console.warn);
+  }
+}
+
 export const useDemoStore = create<DemoState>((set) => ({
   activeUser: DEMO_USERS[0],
   users: DEMO_USERS,
@@ -205,12 +269,19 @@ export const useDemoStore = create<DemoState>((set) => ({
   applyAction: (action) =>
     set((state) => {
       if (action.type === "set_user") {
+        rememberUser(action.userId);
         return { activeUser: state.users.find((user) => user.id === action.userId) ?? state.activeUser };
+      }
+
+      if (action.type === "hydrate_from_api") {
+        return action.detail;
       }
 
       if (state.activeUser.permission === "viewer") {
         return state;
       }
+
+      syncActionWithApi(action, state);
 
       if (action.type === "complete_phase") {
         const current = state.phases.find((phase) => phase.id === action.phaseId);

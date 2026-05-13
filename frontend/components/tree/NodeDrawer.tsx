@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useDemoStore } from "@/lib/demo-state";
 import type { TreeSelection } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 type NodeDrawerProps = {
   selection: TreeSelection | null;
@@ -30,6 +31,13 @@ export function NodeDrawer({ selection, open, onOpenChange }: NodeDrawerProps) {
   const canEdit = activeUser.permission !== "viewer";
   const isAdmin = activeUser.permission === "admin";
   const phaseNotes = isPhase ? notes.filter((note) => note.phaseId === selection.item.id) : [];
+
+  function avatarClass(userId?: string) {
+    if (userId?.endsWith("0001")) return "bg-[#14532d]";
+    if (userId?.endsWith("0002")) return "bg-[#0f766e]";
+    if (userId?.endsWith("0003")) return "bg-[#ea580c]";
+    return "bg-[#6b7280]";
+  }
 
   function addNote() {
     if (!isPhase || !noteBody.trim()) return;
@@ -83,7 +91,12 @@ export function NodeDrawer({ selection, open, onOpenChange }: NodeDrawerProps) {
               Assegnatario
             </p>
             <div className="flex items-center gap-3 rounded-2xl border border-border bg-surface-low p-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand font-display text-sm font-bold text-[var(--on-primary)]">
+              <div
+                className={cn(
+                  "flex h-11 w-11 items-center justify-center rounded-full font-display text-sm font-bold text-white ring-2 ring-electric/25",
+                  avatarClass(assignee?.id),
+                )}
+              >
                 {assignee?.initials}
               </div>
               <div>
