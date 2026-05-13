@@ -1,8 +1,11 @@
 """Pydantic schemas for reusable labels and bridges."""
 
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
+
+LabelScope = Literal["client", "practice", "both"]
 
 
 class LabelBase(BaseModel):
@@ -10,6 +13,7 @@ class LabelBase(BaseModel):
 
     name: str
     color: str
+    scope: LabelScope = "both"
     description: str | None = None
 
 
@@ -27,6 +31,7 @@ class LabelUpdate(BaseModel):
 
     name: str | None = None
     color: str | None = None
+    scope: LabelScope | None = None
     description: str | None = None
 
 

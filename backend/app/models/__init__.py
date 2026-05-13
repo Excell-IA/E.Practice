@@ -30,6 +30,7 @@ from app.models.label import (
     Label,
     LabelBase,
     LabelCreate,
+    LabelScope,
     LabelUpdate,
     PracticeLabel,
 )
@@ -122,6 +123,7 @@ __all__ = [
     "Label",
     "LabelBase",
     "LabelCreate",
+    "LabelScope",
     "LabelUpdate",
     "Note",
     "NoteBase",

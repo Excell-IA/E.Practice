@@ -441,43 +441,85 @@
       "id": "44444444-4444-4444-8444-000000000001",
       "name": "Urgente",
       "color": "#dc2626",
+      "scope": "practice",
       "description": "Priorità alta o scadenza ravvicinata."
     },
     {
       "id": "44444444-4444-4444-8444-000000000002",
       "name": "In attesa cliente",
       "color": "#ca8a04",
+      "scope": "practice",
       "description": "Bloccata da informazioni o documenti mancanti."
     },
     {
       "id": "44444444-4444-4444-8444-000000000003",
       "name": "Bandi",
       "color": "#16a34a",
+      "scope": "practice",
       "description": "Pratica collegata a contributi o agevolazioni."
     },
     {
       "id": "44444444-4444-4444-8444-000000000004",
       "name": "Contenzioso",
       "color": "#7c3aed",
+      "scope": "practice",
       "description": "Posizione con elementi di contenzioso."
     },
     {
       "id": "44444444-4444-4444-8444-000000000005",
       "name": "Bilancio",
       "color": "#2563eb",
+      "scope": "practice",
       "description": "Lavoro di bilancio o deposito camerale."
     },
     {
       "id": "44444444-4444-4444-8444-000000000006",
       "name": "Da rifare",
       "color": "#ea580c",
+      "scope": "practice",
       "description": "Serve revisione significativa."
     },
     {
       "id": "44444444-4444-4444-8444-000000000007",
       "name": "Lavorazione esterna",
       "color": "#6b7280",
+      "scope": "practice",
       "description": "Coinvolge collaboratori o consulenti esterni."
+    },
+    {
+      "id": "44444444-4444-4444-8444-000000000008",
+      "name": "Prioritario",
+      "color": "warning",
+      "scope": "client",
+      "description": "Cliente da seguire con priorita alta."
+    },
+    {
+      "id": "44444444-4444-4444-8444-000000000009",
+      "name": "Sospeso amministrazione",
+      "color": "danger",
+      "scope": "client",
+      "description": "Cliente con criticita amministrative o pagamento sospeso."
+    },
+    {
+      "id": "44444444-4444-4444-8444-000000000010",
+      "name": "Strategico",
+      "color": "success",
+      "scope": "client",
+      "description": "Cliente strategico per relazione o valore atteso."
+    },
+    {
+      "id": "44444444-4444-4444-8444-000000000011",
+      "name": "Storico",
+      "color": "info",
+      "scope": "client",
+      "description": "Cliente consolidato dello studio."
+    },
+    {
+      "id": "44444444-4444-4444-8444-000000000012",
+      "name": "Nuovo",
+      "color": "info",
+      "scope": "client",
+      "description": "Cliente acquisito recentemente."
     }
   ],
   "clients": [
@@ -1358,7 +1400,9 @@
       "entity_type": "practice",
       "entity_id": "66666666-6666-4666-8666-000000000001",
       "practice_id": "66666666-6666-4666-8666-000000000001",
-      "metadata": {"code": "PR-2026-001"},
+      "metadata": {
+        "code": "PR-2026-001"
+      },
       "timestamp": "2026-04-01T09:00:00+02:00"
     },
     {
@@ -1368,7 +1412,9 @@
       "entity_type": "phase",
       "entity_id": "77777777-7777-4777-8777-000000000001",
       "practice_id": "66666666-6666-4666-8666-000000000001",
-      "metadata": {"phase": "Raccolta scritture contabili"},
+      "metadata": {
+        "phase": "Raccolta scritture contabili"
+      },
       "timestamp": "2026-04-09T16:00:00+02:00"
     },
     {
@@ -1378,7 +1424,9 @@
       "entity_type": "practice",
       "entity_id": "66666666-6666-4666-8666-000000000002",
       "practice_id": "66666666-6666-4666-8666-000000000002",
-      "metadata": {"code": "PR-2026-002"},
+      "metadata": {
+        "code": "PR-2026-002"
+      },
       "timestamp": "2026-05-05T10:00:00+02:00"
     },
     {
@@ -1388,7 +1436,9 @@
       "entity_type": "note",
       "entity_id": "99999999-9999-4999-8999-000000000002",
       "practice_id": "66666666-6666-4666-8666-000000000002",
-      "metadata": {"scope": "phase"},
+      "metadata": {
+        "scope": "phase"
+      },
       "timestamp": "2026-05-07T15:12:00+02:00"
     },
     {
@@ -1398,7 +1448,9 @@
       "entity_type": "practice",
       "entity_id": "66666666-6666-4666-8666-000000000003",
       "practice_id": "66666666-6666-4666-8666-000000000003",
-      "metadata": {"code": "PR-2026-003"},
+      "metadata": {
+        "code": "PR-2026-003"
+      },
       "timestamp": "2026-04-10T11:30:00+02:00"
     },
     {
@@ -1408,7 +1460,9 @@
       "entity_type": "attachment",
       "entity_id": "aaaaaaaa-aaaa-4aaa-8aaa-000000000002",
       "practice_id": "66666666-6666-4666-8666-000000000003",
-      "metadata": {"filename": "avviso-accertamento-ires.pdf"},
+      "metadata": {
+        "filename": "avviso-accertamento-ires.pdf"
+      },
       "timestamp": "2026-04-18T14:40:00+02:00"
     },
     {
@@ -1418,7 +1472,9 @@
       "entity_type": "event",
       "entity_id": "88888888-8888-4888-8888-000000000004",
       "practice_id": "66666666-6666-4666-8666-000000000004",
-      "metadata": {"event_type": "telefonata_out"},
+      "metadata": {
+        "event_type": "telefonata_out"
+      },
       "timestamp": "2026-05-02T12:20:00+02:00"
     },
     {
@@ -1428,7 +1484,9 @@
       "entity_type": "practice",
       "entity_id": "66666666-6666-4666-8666-000000000005",
       "practice_id": "66666666-6666-4666-8666-000000000005",
-      "metadata": {"status": "sospesa"},
+      "metadata": {
+        "status": "sospesa"
+      },
       "timestamp": "2026-05-03T09:15:00+02:00"
     },
     {
@@ -1438,7 +1496,9 @@
       "entity_type": "phase",
       "entity_id": "77777777-7777-4777-8777-000000000012",
       "practice_id": "66666666-6666-4666-8666-000000000007",
-      "metadata": {"phase": "Deposito Camera di Commercio"},
+      "metadata": {
+        "phase": "Deposito Camera di Commercio"
+      },
       "timestamp": "2026-04-18T15:40:00+02:00"
     },
     {
@@ -1448,22 +1508,86 @@
       "entity_type": "client",
       "entity_id": "55555555-5555-4555-8555-000000000001",
       "practice_id": "66666666-6666-4666-8666-000000000001",
-      "metadata": {"reason": "demo sola lettura"},
+      "metadata": {
+        "reason": "demo sola lettura"
+      },
       "timestamp": "2026-05-11T10:00:00+02:00"
     }
   ],
   "practice_labels": [
-    {"practice_id": "66666666-6666-4666-8666-000000000001", "label_id": "44444444-4444-4444-8444-000000000005"},
-    {"practice_id": "66666666-6666-4666-8666-000000000002", "label_id": "44444444-4444-4444-8444-000000000002"},
-    {"practice_id": "66666666-6666-4666-8666-000000000003", "label_id": "44444444-4444-4444-8444-000000000001"},
-    {"practice_id": "66666666-6666-4666-8666-000000000003", "label_id": "44444444-4444-4444-8444-000000000004"},
-    {"practice_id": "66666666-6666-4666-8666-000000000005", "label_id": "44444444-4444-4444-8444-000000000003"},
-    {"practice_id": "66666666-6666-4666-8666-000000000005", "label_id": "44444444-4444-4444-8444-000000000007"}
+    {
+      "practice_id": "66666666-6666-4666-8666-000000000001",
+      "label_id": "44444444-4444-4444-8444-000000000005"
+    },
+    {
+      "practice_id": "66666666-6666-4666-8666-000000000002",
+      "label_id": "44444444-4444-4444-8444-000000000002"
+    },
+    {
+      "practice_id": "66666666-6666-4666-8666-000000000003",
+      "label_id": "44444444-4444-4444-8444-000000000001"
+    },
+    {
+      "practice_id": "66666666-6666-4666-8666-000000000003",
+      "label_id": "44444444-4444-4444-8444-000000000004"
+    },
+    {
+      "practice_id": "66666666-6666-4666-8666-000000000005",
+      "label_id": "44444444-4444-4444-8444-000000000003"
+    },
+    {
+      "practice_id": "66666666-6666-4666-8666-000000000005",
+      "label_id": "44444444-4444-4444-8444-000000000007"
+    }
   ],
   "client_labels": [
-    {"client_id": "55555555-5555-4555-8555-000000000001", "label_id": "44444444-4444-4444-8444-000000000005"},
-    {"client_id": "55555555-5555-4555-8555-000000000002", "label_id": "44444444-4444-4444-8444-000000000004"},
-    {"client_id": "55555555-5555-4555-8555-000000000008", "label_id": "44444444-4444-4444-8444-000000000003"},
-    {"client_id": "55555555-5555-4555-8555-000000000010", "label_id": "44444444-4444-4444-8444-000000000002"}
+    {
+      "client_id": "55555555-5555-4555-8555-000000000001",
+      "label_id": "44444444-4444-4444-8444-000000000008"
+    },
+    {
+      "client_id": "55555555-5555-4555-8555-000000000001",
+      "label_id": "44444444-4444-4444-8444-000000000010"
+    },
+    {
+      "client_id": "55555555-5555-4555-8555-000000000002",
+      "label_id": "44444444-4444-4444-8444-000000000011"
+    },
+    {
+      "client_id": "55555555-5555-4555-8555-000000000003",
+      "label_id": "44444444-4444-4444-8444-000000000012"
+    },
+    {
+      "client_id": "55555555-5555-4555-8555-000000000005",
+      "label_id": "44444444-4444-4444-8444-000000000011"
+    },
+    {
+      "client_id": "55555555-5555-4555-8555-000000000006",
+      "label_id": "44444444-4444-4444-8444-000000000009"
+    },
+    {
+      "client_id": "55555555-5555-4555-8555-000000000007",
+      "label_id": "44444444-4444-4444-8444-000000000008"
+    },
+    {
+      "client_id": "55555555-5555-4555-8555-000000000008",
+      "label_id": "44444444-4444-4444-8444-000000000010"
+    },
+    {
+      "client_id": "55555555-5555-4555-8555-000000000008",
+      "label_id": "44444444-4444-4444-8444-000000000012"
+    },
+    {
+      "client_id": "55555555-5555-4555-8555-000000000009",
+      "label_id": "44444444-4444-4444-8444-000000000012"
+    },
+    {
+      "client_id": "55555555-5555-4555-8555-000000000010",
+      "label_id": "44444444-4444-4444-8444-000000000011"
+    },
+    {
+      "client_id": "55555555-5555-4555-8555-000000000010",
+      "label_id": "44444444-4444-4444-8444-000000000008"
+    }
   ]
 }
