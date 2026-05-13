@@ -1,6 +1,7 @@
 "use client";
 
 import { CheckCircle2, FileSpreadsheet, UploadCloud, XCircle } from "lucide-react";
+import Link from "next/link";
 import { useMemo, useRef, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
@@ -57,10 +58,10 @@ export function ImportPracticeClient() {
         <div className="mx-auto flex max-w-7xl flex-wrap items-end justify-between gap-4">
           <div>
             <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-electric">
-              Import pratiche
+              Import allegati
             </p>
             <h1 className="mt-2 font-display text-3xl font-semibold text-foreground md:text-4xl">
-              Carica scadenziari e bozze pratica
+              Importa allegati
             </h1>
           </div>
           <Badge variant="info">{validCount} righe pronte</Badge>
@@ -107,34 +108,50 @@ export function ImportPracticeClient() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Anteprima import</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {rows.map((row) => (
-              <div className="rounded-xl border border-border bg-surface-container p-3" key={row.id}>
-                <div className="mb-2 flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="truncate font-label text-sm font-semibold text-foreground">{row.fileName}</p>
-                    <p className="mt-1 text-xs text-muted">{row.client}</p>
+        <div className="space-y-5">
+          <Card>
+            <CardHeader>
+              <CardTitle>Vuoi creare una nuova pratica da zero?</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="mb-4 text-sm leading-6 text-muted">
+                Usa il wizard guidato per scegliere cliente, categoria, template fasi e promemoria.
+              </p>
+              <Button asChild className="w-full">
+                <Link href="/pratiche/nuova">Apri Nuova pratica</Link>
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Anteprima import</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {rows.map((row) => (
+                <div className="rounded-xl border border-border bg-surface-container p-3" key={row.id}>
+                  <div className="mb-2 flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate font-label text-sm font-semibold text-foreground">{row.fileName}</p>
+                      <p className="mt-1 text-xs text-muted">{row.client}</p>
+                    </div>
+                    {row.status === "valid" ? (
+                      <CheckCircle2 className="h-4 w-4 shrink-0 text-success" />
+                    ) : (
+                      <XCircle className="h-4 w-4 shrink-0 text-warning" />
+                    )}
                   </div>
-                  {row.status === "valid" ? (
-                    <CheckCircle2 className="h-4 w-4 shrink-0 text-success" />
-                  ) : (
-                    <XCircle className="h-4 w-4 shrink-0 text-warning" />
-                  )}
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs text-foreground-variant">{row.practice}</span>
+                    <Badge variant={row.status === "valid" ? "success" : "warning"}>
+                      {row.status === "valid" ? "Pronto" : "Da verificare"}
+                    </Badge>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-xs text-foreground-variant">{row.practice}</span>
-                  <Badge variant={row.status === "valid" ? "success" : "warning"}>
-                    {row.status === "valid" ? "Pronto" : "Da verificare"}
-                  </Badge>
-                </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
+              ))}
+            </CardContent>
+          </Card>
+        </div>
       </section>
     </main>
   );
