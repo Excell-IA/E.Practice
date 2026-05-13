@@ -45,10 +45,7 @@ function demoUserFromSummary(user: ApiUserSummary | null | undefined, knownUsers
 }
 
 function mapPracticeStatus(status: ApiPracticeStatus): Practice["status"] {
-  if (status === "chiusa" || status === "archiviata") return "done";
-  if (status === "sospesa") return "blocked";
-  if (status === "in_corso" || status === "in_attesa") return "in_progress";
-  return "todo";
+  return status;
 }
 
 function mapPhaseStatus(status: ApiPhaseStatus): PracticePhase["status"] {

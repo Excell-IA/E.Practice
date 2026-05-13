@@ -41,6 +41,7 @@ from app.models import (
     PracticePhase,
     PracticePriority,
     PracticeStatus,
+    PracticeUpdate,
     Reminder,
     User,
 )
@@ -373,6 +374,36 @@ async def list_practice_events(
 ) -> list[PracticeEvent]:
     events = await event_repo.list(practice_id=practice_id)
     return sorted(events, key=lambda e: (e.event_date, e.event_time or ""))
+
+
+# ---------------------------------------------------------------------------
+# UPDATE
+# ---------------------------------------------------------------------------
+
+
+@router.put("/{practice_id}", response_model=Practice)
+async def update_practice(
+    practice_id: UUID,
+    body: PracticeUpdate,
+    practice_repo: Annotated[Repository[Practice], Depends(get_practice_repo)],
+    activity_repo: Annotated[Repository[ActivityLog], Depends(get_activity_log_repo)],
+    current_user_id: Annotated[str, Depends(get_current_user_id)],
+) -> Practice:
+    existing = await practice_repo.get(str(practice_id))
+    if existing is None:
+        raise HTTPException(status_code=404, detail=f"Practice {practice_id} non trovata")
+
+    updates = body.model_dump(exclude_unset=True)
+    updated = await practice_repo.update(str(practice_id), **updates)
+    await ActivityService(activity_repo).log(
+        actor_id=current_user_id,
+        action="updated",
+        entity_type="practice",
+        entity_id=updated.id,
+        practice_id=updated.id,
+        metadata={"fields": list(updates.keys())},
+    )
+    return updated
 
 
 # ---------------------------------------------------------------------------

@@ -9,10 +9,12 @@ import {
   skipPhase,
   updateEvent,
   updateNote,
+  updatePhase,
   updatePhaseAssignee,
+  updatePracticeStatus,
 } from "@/lib/api";
 import { mapEventTypeToApi, type PracticeDetailUi } from "@/lib/mappers/practice";
-import type { EventType, Practice, PracticeEvent, PracticePhase, User } from "@/lib/types";
+import type { EventType, Practice, PracticeEvent, PracticePhase, PracticeStatus, User } from "@/lib/types";
 
 export type DemoRole = "admin" | "editor" | "viewer";
 
@@ -87,7 +89,7 @@ const practice: Practice = {
   progress: 50,
   responsible: DEMO_USERS[0],
   startDate: "2026-01-22",
-  status: "in_progress",
+  status: "in_corso",
   title: "Bilancio 2025 Acciaierie Valgobbia",
 };
 
@@ -189,6 +191,8 @@ type DemoAction =
   | { type: "reopen_phase"; phaseId: string }
   | { type: "skip_phase"; phaseId: string }
   | { type: "set_phase_status"; phaseId: string; status: PracticePhase["status"] }
+  | { type: "set_practice_status"; status: Extract<PracticeStatus, "aperta" | "sospesa" | "chiusa"> }
+  | { type: "update_phase"; phaseId: string; planned_end: string }
   | { type: "assign_phase"; phaseId: string; userId: string }
   | { type: "add_note"; phaseId: string; body: string }
   | { type: "update_note"; noteId: string; body: string }
@@ -215,6 +219,7 @@ type DemoState = {
 };
 
 function withProgress(practiceValue: Practice, phases: PracticePhase[]) {
+  if (phases.length === 0) return { ...practiceValue, progress: 0 };
   const completed = phases.filter((phase) => phase.status === "done" || phase.status === "skipped").length;
   return { ...practiceValue, progress: Math.round((completed / phases.length) * 100) };
 }
@@ -263,6 +268,14 @@ function syncActionWithApi(action: DemoAction, state: DemoState) {
 
   if (action.type === "assign_phase" && isUuid(action.phaseId)) {
     void updatePhaseAssignee(action.phaseId, action.userId, state.activeUser.id).catch(console.warn);
+  }
+
+  if (action.type === "update_phase" && isUuid(action.phaseId)) {
+    void updatePhase(action.phaseId, { planned_end: action.planned_end }, state.activeUser.id).catch(console.warn);
+  }
+
+  if (action.type === "set_practice_status" && isUuid(state.practice.id)) {
+    void updatePracticeStatus(state.practice.id, action.status, state.activeUser.id).catch(console.warn);
   }
 
   if (action.type === "add_note" && isUuid(action.phaseId) && isUuid(state.practice.id)) {
@@ -369,6 +382,18 @@ export const useDemoStore = create<DemoState>((set) => ({
             ? setSingleInProgress(state.phases, action.phaseId)
             : state.phases.map((phase) => (phase.id === action.phaseId ? { ...phase, status: action.status } : phase));
         return { phases, practice: withProgress(state.practice, phases) };
+      }
+
+      if (action.type === "update_phase") {
+        return {
+          phases: state.phases.map((phase) =>
+            phase.id === action.phaseId ? { ...phase, dueDate: action.planned_end, plannedDate: action.planned_end } : phase,
+          ),
+        };
+      }
+
+      if (action.type === "set_practice_status") {
+        return { practice: { ...state.practice, status: action.status } };
       }
 
       if (action.type === "assign_phase" && state.activeUser.permission === "admin") {

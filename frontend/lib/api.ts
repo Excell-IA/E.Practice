@@ -1,4 +1,5 @@
 import type { components } from "@/lib/api-types";
+import type { PracticeStatus } from "@/lib/types";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 const DEFAULT_USER_ID = "11111111-1111-4111-8111-000000000001";
@@ -112,6 +113,26 @@ export function createPractice(input: components["schemas"]["CreatePracticeReque
   });
 }
 
+export function updatePracticeStatus(
+  practiceId: string,
+  status: Extract<PracticeStatus, "aperta" | "sospesa" | "chiusa">,
+  userId: string,
+) {
+  return apiFetch<components["schemas"]["Practice"]>(`/api/practices/${practiceId}`, {
+    body: JSON.stringify({ status }),
+    method: "PUT",
+    userId,
+  });
+}
+
+export function updatePhase(phaseId: string, input: components["schemas"]["UpdatePhaseRequest"], userId: string) {
+  return apiFetch<ApiPracticePhase>(`/api/phases/${phaseId}`, {
+    body: JSON.stringify(input),
+    method: "PUT",
+    userId,
+  });
+}
+
 export function completePhase(phaseId: string, userId: string) {
   return apiFetch<ApiPracticePhase>(`/api/phases/${phaseId}/complete`, {
     body: JSON.stringify({
@@ -134,11 +155,7 @@ export function skipPhase(phaseId: string, userId: string) {
 }
 
 export function updatePhaseAssignee(phaseId: string, assigneeId: string, userId: string) {
-  return apiFetch<ApiPracticePhase>(`/api/phases/${phaseId}`, {
-    body: JSON.stringify({ assignee_id: assigneeId }),
-    method: "PUT",
-    userId,
-  });
+  return updatePhase(phaseId, { assignee_id: assigneeId }, userId);
 }
 
 export function createNote(input: components["schemas"]["NoteCreate"], userId: string) {

@@ -52,7 +52,7 @@ export function PracticeDetailClient({ code }: PracticeDetailClientProps) {
           Backend non raggiungibile: sto mostrando i dati demo locali.
         </div>
       ) : null}
-      <PracticeHeader practice={practice} />
+      <PracticeHeader phases={phases} practice={practice} />
       <section className="mx-auto max-w-7xl px-6 py-6 md:px-10">
         <PracticeTabs events={events} phases={phases} practice={practice} />
       </section>

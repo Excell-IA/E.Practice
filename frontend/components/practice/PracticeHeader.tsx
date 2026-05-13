@@ -1,10 +1,14 @@
+"use client";
+
 import { Building2, CalendarClock, CircleDot, FolderKanban, Tag } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
-import type { Practice } from "@/lib/types";
+import { useDemoStore } from "@/lib/demo-state";
+import type { Practice, PracticePhase, PracticeStatus } from "@/lib/types";
 
 type PracticeHeaderProps = {
   practice: Practice;
+  phases: PracticePhase[];
 };
 
 const labelVariant = {
@@ -15,7 +19,43 @@ const labelVariant = {
   neutral: "default",
 } as const;
 
-export function PracticeHeader({ practice }: PracticeHeaderProps) {
+type ExposedPracticeStatus = Extract<PracticeStatus, "aperta" | "sospesa" | "chiusa">;
+
+const statusLabel: Record<ExposedPracticeStatus, string> = {
+  aperta: "Aperta",
+  chiusa: "Chiusa",
+  sospesa: "Sospesa",
+};
+
+const statusVariant: Record<ExposedPracticeStatus, "info" | "success" | "warning"> = {
+  aperta: "info",
+  chiusa: "success",
+  sospesa: "warning",
+};
+
+function exposedStatus(status: PracticeStatus): ExposedPracticeStatus {
+  if (status === "chiusa" || status === "sospesa") return status;
+  return "aperta";
+}
+
+export function PracticeHeader({ practice, phases }: PracticeHeaderProps) {
+  const activeUser = useDemoStore((state) => state.activeUser);
+  const applyAction = useDemoStore((state) => state.applyAction);
+  const currentStatus = exposedStatus(practice.status);
+  const canClose = phases.length > 0 && phases.every((phase) => phase.status === "done" || phase.status === "skipped");
+  const canEdit = activeUser.permission !== "viewer";
+
+  function handleStatusChange(value: string) {
+    const nextStatus = value as ExposedPracticeStatus;
+    if (nextStatus === currentStatus) return;
+    if (nextStatus === "chiusa") {
+      if (!canClose) return;
+      const confirmed = window.confirm("Chiudere la pratica? L'operazione e' irreversibile in V0");
+      if (!confirmed) return;
+    }
+    applyAction({ type: "set_practice_status", status: nextStatus });
+  }
+
   return (
     <header className="rounded-b-[28px] border-b border-border bg-surface-low/80 px-6 py-3 shadow-electric backdrop-blur md:px-10">
       <div className="mx-auto flex max-w-7xl flex-col gap-2">
@@ -23,10 +63,32 @@ export function PracticeHeader({ practice }: PracticeHeaderProps) {
           <span className="font-label text-xs font-semibold text-muted">{practice.code}</span>
           <span className="h-1 w-1 rounded-full bg-muted" />
           <span className="font-semibold text-foreground">{practice.client.name}</span>
-          <Badge className="ml-auto" variant="info">
-            <CircleDot className="h-3.5 w-3.5" />
-            In corso
-          </Badge>
+          <div className="ml-auto flex items-center gap-2">
+            <Badge variant={statusVariant[currentStatus]}>
+              <CircleDot className="h-3.5 w-3.5" />
+              {statusLabel[currentStatus]}
+            </Badge>
+            <select
+              aria-label="Stato pratica"
+              className="h-9 rounded-xl border border-border bg-surface-container px-3 text-sm font-semibold text-foreground outline-none disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={!canEdit}
+              onChange={(event) => handleStatusChange(event.target.value)}
+              title={
+                !canEdit
+                  ? "Permesso non disponibile per utente viewer"
+                  : canClose
+                    ? "Cambia stato pratica"
+                    : "Completa tutte le fasi prima di chiudere"
+              }
+              value={currentStatus}
+            >
+              <option value="aperta">Aperta</option>
+              <option value="sospesa">Sospesa</option>
+              <option disabled={!canClose} value="chiusa">
+                Chiusa
+              </option>
+            </select>
+          </div>
         </div>
 
         <div className="grid gap-4 lg:grid-cols-[1fr_260px] lg:items-center">
