@@ -60,7 +60,7 @@ export function PracticeTabs({ practice, phases, events }: PracticeTabsProps) {
         <TabTimeline events={events} phases={phases} />
       </TabsContent>
       <TabsContent value="allegati">
-        <TabAllegati />
+        <TabAllegati phases={phases} practice={practice} />
       </TabsContent>
       <TabsContent value="note">
         <TabNotes phases={phases} />

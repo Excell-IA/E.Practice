@@ -1,47 +1,21 @@
 "use client";
 
-import { Download, FileText, UploadCloud } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Download, FileText, UploadCloud, X } from "lucide-react";
+import { useRef, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { V1Hint } from "@/components/ui/v1-hint";
-import { DEMO_USERS } from "@/lib/demo-state";
+import { attachAttachment, deleteAttachment, listAttachments, uploadAttachment } from "@/lib/api";
+import { DEMO_USERS, useDemoStore } from "@/lib/demo-state";
+import type { Practice, PracticePhase } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-const MOCK_ATTACHMENTS = [
-  {
-    author: DEMO_USERS[1],
-    id: "a1",
-    name: "Bilancio_2025_bozza.pdf",
-    phase: "Redazione bozza",
-    size: "1.2 MB",
-    uploadedAt: "2026-03-12",
-  },
-  {
-    author: DEMO_USERS[2],
-    id: "a2",
-    name: "Scritture_assestamento.xlsx",
-    phase: "Scritture assestamento",
-    size: "680 KB",
-    uploadedAt: "2026-02-12",
-  },
-  {
-    author: DEMO_USERS[1],
-    id: "a3",
-    name: "Riconciliazione_banche.xlsx",
-    phase: "Riconciliazione conti",
-    size: "410 KB",
-    uploadedAt: "2026-02-05",
-  },
-  {
-    author: DEMO_USERS[0],
-    id: "a4",
-    name: "Estratto_camera_di_commercio.pdf",
-    phase: "Raccolta scritture",
-    size: "220 KB",
-    uploadedAt: "2026-01-22",
-  },
-];
+type TabAllegatiProps = {
+  practice: Practice;
+  phases: PracticePhase[];
+};
 
 function avatarClass(userId: string) {
   if (userId.endsWith("0001")) return "bg-[#14532d]";
@@ -50,7 +24,61 @@ function avatarClass(userId: string) {
   return "bg-[#6b7280]";
 }
 
-export function TabAllegati() {
+function formatSize(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 102.4) / 10} KB`;
+  return `${Math.round(bytes / 1024 / 102.4) / 10} MB`;
+}
+
+export function TabAllegati({ phases, practice }: TabAllegatiProps) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const activeUser = useDemoStore((state) => state.activeUser);
+  const queryClient = useQueryClient();
+  const attachmentsQuery = useQuery({
+    queryFn: () => listAttachments(practice.id),
+    queryKey: ["attachments", practice.id],
+  });
+
+  async function addFiles(fileList: FileList | null) {
+    if (!fileList) return;
+    const files = Array.from(fileList);
+    if (!files.length) return;
+    setIsUploading(true);
+    setError(null);
+    try {
+      for (const file of files) {
+        const uploaded = await uploadAttachment(file, activeUser.id);
+        await attachAttachment(uploaded.id, practice.id, null, activeUser.id);
+      }
+      await queryClient.invalidateQueries({ queryKey: ["attachments", practice.id] });
+      await queryClient.invalidateQueries({ queryKey: ["practice-detail", practice.id] });
+    } catch (err) {
+      console.error("practice_attachment_upload_failed", err);
+      setError(err instanceof Error ? err.message : "Upload allegato non riuscito.");
+    } finally {
+      setIsUploading(false);
+      if (inputRef.current) inputRef.current.value = "";
+    }
+  }
+
+  async function removeAttachment(id: string, filename: string) {
+    if (!window.confirm(`Eliminare ${filename}?`)) return;
+    setError(null);
+    try {
+      await deleteAttachment(id, activeUser.id);
+      await queryClient.invalidateQueries({ queryKey: ["attachments", practice.id] });
+      await queryClient.invalidateQueries({ queryKey: ["practice-detail", practice.id] });
+    } catch (err) {
+      console.error("practice_attachment_delete_failed", err);
+      setError(err instanceof Error ? err.message : "Eliminazione allegato non riuscita.");
+    }
+  }
+
+  const attachments = attachmentsQuery.data ?? [];
+
   return (
     <section className="rounded-2xl border border-border bg-surface-low p-5">
       <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -58,13 +86,42 @@ export function TabAllegati() {
           <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">Allegati</p>
           <h3 className="font-display text-xl font-semibold text-foreground">Documenti pratica</h3>
         </div>
-        <V1Hint label="Disponibile in V1">
-          <div className="flex items-center gap-2 rounded-2xl border border-dashed border-electric/35 bg-electric/5 px-4 py-3 text-sm font-semibold text-electric">
-            <UploadCloud className="h-4 w-4" />
-            Trascina qui un file
-          </div>
-        </V1Hint>
+        <div
+          className={cn(
+            "flex items-center gap-2 rounded-2xl border border-dashed border-electric/35 bg-electric/5 px-4 py-3 text-sm font-semibold text-electric",
+            isDragging && "bg-electric/15",
+          )}
+          onDragEnter={(event) => {
+            event.preventDefault();
+            setIsDragging(true);
+          }}
+          onDragLeave={() => setIsDragging(false)}
+          onDragOver={(event) => event.preventDefault()}
+          onDrop={(event) => {
+            event.preventDefault();
+            setIsDragging(false);
+            void addFiles(event.dataTransfer.files);
+          }}
+        >
+          <UploadCloud className="h-4 w-4" />
+          <button disabled={isUploading} onClick={() => inputRef.current?.click()} type="button">
+            {isUploading ? "Caricamento..." : "Trascina qui per allegare"}
+          </button>
+          <input
+            className="hidden"
+            multiple
+            onChange={(event) => void addFiles(event.target.files)}
+            ref={inputRef}
+            type="file"
+          />
+        </div>
       </div>
+
+      {error ? (
+        <p className="mb-4 rounded-xl border border-danger/30 bg-danger/10 px-3 py-2 text-sm font-semibold text-danger">
+          {error}
+        </p>
+      ) : null}
 
       <div className="overflow-x-auto">
         <table className="w-full min-w-[820px] border-separate border-spacing-y-2 text-left">
@@ -79,45 +136,68 @@ export function TabAllegati() {
             </tr>
           </thead>
           <tbody>
-            {MOCK_ATTACHMENTS.map((attachment) => (
-              <tr className="rounded-2xl bg-surface-container text-sm text-foreground-variant" key={attachment.id}>
-                <td className="rounded-l-2xl px-3 py-3">
-                  <span className="flex items-center gap-2 font-mono text-xs text-foreground">
-                    <FileText className="h-4 w-4 text-electric" />
-                    {attachment.name}
-                  </span>
-                </td>
-                <td className="px-3 py-3">
-                  <Badge>{attachment.size}</Badge>
-                </td>
-                <td className="px-3 py-3">{attachment.phase}</td>
-                <td className="px-3 py-3">
-                  <span className="flex items-center gap-2">
-                    <span
-                      className={cn(
-                        "flex h-7 w-7 items-center justify-center rounded-full font-display text-[10px] font-bold text-white",
-                        avatarClass(attachment.author.id),
-                      )}
-                    >
-                      {attachment.author.initials}
+            {attachments.map((attachment) => {
+              const author = DEMO_USERS.find((user) => user.id === attachment.uploaded_by) ?? DEMO_USERS[0];
+              const phase = phases.find((item) => item.id === attachment.phase_id);
+              return (
+                <tr className="rounded-2xl bg-surface-container text-sm text-foreground-variant" key={attachment.id}>
+                  <td className="rounded-l-2xl px-3 py-3">
+                    <span className="flex items-center gap-2 font-mono text-xs text-foreground">
+                      <FileText className="h-4 w-4 text-electric" />
+                      {attachment.filename}
                     </span>
-                    {attachment.author.name}
-                  </span>
-                </td>
-                <td className="px-3 py-3">{new Intl.DateTimeFormat("it-IT").format(new Date(attachment.uploadedAt))}</td>
-                <td className="rounded-r-2xl px-3 py-3 text-right">
-                  <V1Hint label="Disponibile in V1">
-                    <Button size="sm" type="button" variant="outline">
-                      <Download className="h-4 w-4" />
-                      Scarica
-                    </Button>
-                  </V1Hint>
-                </td>
-              </tr>
-            ))}
+                  </td>
+                  <td className="px-3 py-3">
+                    <Badge>{formatSize(attachment.size_bytes)}</Badge>
+                  </td>
+                  <td className="px-3 py-3">{phase?.title ?? "Pratica"}</td>
+                  <td className="px-3 py-3">
+                    <span className="flex items-center gap-2">
+                      <span
+                        className={cn(
+                          "flex h-7 w-7 items-center justify-center rounded-full font-display text-[10px] font-bold text-white",
+                          avatarClass(author.id),
+                        )}
+                      >
+                        {author.initials}
+                      </span>
+                      {author.name}
+                    </span>
+                  </td>
+                  <td className="px-3 py-3">
+                    {new Intl.DateTimeFormat("it-IT").format(new Date(attachment.created_at))}
+                  </td>
+                  <td className="rounded-r-2xl px-3 py-3 text-right">
+                    <div className="flex justify-end gap-2">
+                      <V1Hint label="Disponibile in V1">
+                        <Button size="sm" type="button" variant="outline">
+                          <Download className="h-4 w-4" />
+                          Scarica
+                        </Button>
+                      </V1Hint>
+                      <Button
+                        aria-label={`Elimina ${attachment.filename}`}
+                        onClick={() => void removeAttachment(attachment.id, attachment.filename)}
+                        size="icon"
+                        type="button"
+                        variant="ghost"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
+
+      {!attachments.length && !attachmentsQuery.isLoading ? (
+        <p className="mt-4 rounded-xl border border-dashed border-border bg-surface-container px-3 py-4 text-center text-sm text-muted">
+          Nessun allegato collegato alla pratica.
+        </p>
+      ) : null}
     </section>
   );
 }
