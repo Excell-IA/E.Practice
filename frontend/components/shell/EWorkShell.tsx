@@ -200,7 +200,7 @@ export function EWorkShell({ children, code }: EWorkShellProps) {
                 IT
               </div>
             </V1Hint>
-            <div className="flex items-center gap-3" title="Cambia utente demo">
+            <label className="flex cursor-pointer items-center gap-3" htmlFor="demo-user-select" title="Cambia utente demo">
               <div
                 className={cn(
                   "flex h-8 w-8 items-center justify-center rounded-full font-display text-xs font-semibold text-white ring-0 transition-shadow hover:ring-2 hover:ring-primary/40",
@@ -212,7 +212,8 @@ export function EWorkShell({ children, code }: EWorkShellProps) {
               <div className="hidden leading-tight sm:block">
                 <select
                   aria-label="Utente demo"
-                  className="w-36 bg-transparent font-label text-xs font-semibold text-foreground outline-none"
+                  className="w-36 cursor-pointer bg-transparent font-label text-xs font-semibold text-foreground outline-none"
+                  id="demo-user-select"
                   onChange={(event) => applyAction({ type: "set_user", userId: event.target.value })}
                   value={activeUser.id}
                 >
@@ -224,7 +225,7 @@ export function EWorkShell({ children, code }: EWorkShellProps) {
                 </select>
                 <p className="text-[11px] text-muted">{activeUser.role}</p>
               </div>
-            </div>
+            </label>
           </div>
         </header>
 

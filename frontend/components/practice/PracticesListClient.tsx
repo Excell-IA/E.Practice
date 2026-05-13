@@ -4,6 +4,7 @@ import { differenceInCalendarDays, format } from "date-fns";
 import { it } from "date-fns/locale";
 import { Plus, Search } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 
 import { Badge, type BadgeProps } from "@/components/ui/badge";
@@ -63,6 +64,7 @@ function urgencyLabel(practice: DirectoryPractice) {
 }
 
 export function PracticesListClient() {
+  const router = useRouter();
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<PracticeFilter>("all");
   const practices = useMemo(() => {
@@ -138,15 +140,36 @@ export function PracticesListClient() {
             <tbody>
               {practices.map((practice) => {
                 const urgency = urgencyLabel(practice);
+                const href = `/pratiche/${practice.code}`;
                 return (
-                  <tr className="border-t border-border transition-colors hover:bg-surface-container" key={practice.id}>
+                  <tr
+                    className="cursor-pointer border-t border-border transition-colors hover:bg-surface-container"
+                    key={practice.id}
+                    onClick={() => router.push(href)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        router.push(href);
+                      }
+                    }}
+                    role="button"
+                    tabIndex={0}
+                  >
                     <td className="px-4 py-3">
-                      <Link className="font-label text-xs font-bold text-electric" href={`/pratiche/${practice.code}`}>
+                      <Link
+                        className="font-label text-xs font-bold text-electric"
+                        href={href}
+                        onClick={(event) => event.stopPropagation()}
+                      >
                         {practice.code}
                       </Link>
                     </td>
                     <td className="px-4 py-3">
-                      <Link className="font-semibold text-foreground" href={`/pratiche/${practice.code}`}>
+                      <Link
+                        className="font-semibold text-foreground"
+                        href={href}
+                        onClick={(event) => event.stopPropagation()}
+                      >
                         {practice.title}
                       </Link>
                     </td>

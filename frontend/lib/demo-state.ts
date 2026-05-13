@@ -291,7 +291,13 @@ export const useDemoStore = create<DemoState>((set) => ({
       }
 
       if (action.type === "hydrate_from_api") {
-        return action.detail;
+        const localNotes = state.notes.filter((note) => !isUuid(note.id));
+        const localEvents = state.events.filter((event) => !isUuid(event.id));
+        return {
+          ...action.detail,
+          events: [...action.detail.events, ...localEvents],
+          notes: [...localNotes, ...action.detail.notes],
+        };
       }
 
       if (state.activeUser.permission === "viewer") {
