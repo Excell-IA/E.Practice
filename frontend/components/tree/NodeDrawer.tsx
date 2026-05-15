@@ -446,9 +446,9 @@ export function NodeDrawer({ selection, open, onOpenChange, onSwitchTab }: NodeD
               <div className="flex flex-wrap items-center gap-2">
                 <Button disabled={!canEdit || !noteBody.trim()} onClick={addNote} type="button" variant="outline">
                   <FileText className="h-4 w-4" />
-                  Aggiungi nota
+                  Salva
                 </Button>
-                {noteAdded ? <Badge variant="success">Aggiunta ✓</Badge> : null}
+                {noteAdded ? <Badge variant="success">Salvata ✓</Badge> : null}
               </div>
             </section>
           ) : null}

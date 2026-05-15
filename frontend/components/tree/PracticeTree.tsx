@@ -194,12 +194,9 @@ export function PracticeTree({ practice, phases, events, onSwitchTab }: Practice
   }
 
   const phasePositions = useMemo(() => {
-    let previousX = timeline.startX;
     return new Map(
       orderedPhases.map((phase, index) => {
-        const dateX = dateToTimelineX(phaseTimelineDate(phase, index));
-        const x = index === 0 ? dateX : Math.max(dateX, previousX + 175);
-        previousX = x;
+        const x = dateToTimelineX(phaseTimelineDate(phase, index));
         return [phase.id, { x, y: timeline.y }];
       }),
     );
@@ -264,16 +261,8 @@ export function PracticeTree({ practice, phases, events, onSwitchTab }: Practice
 
   function openComposer(eventType: ComposerKind, date = todayIso, phaseId = currentPhase?.id) {
     const mappedType: PracticeEvent["type"] = eventType === "note" ? "warning" : eventType;
-    const defaultTitle =
-      eventType === "note"
-        ? "Nota operativa"
-        : eventType === "call"
-          ? "Telefonata cliente"
-          : eventType === "mail"
-            ? "Email integrativa"
-            : "Alert scadenza";
     setComposerType(mappedType);
-    setComposerTitle(defaultTitle);
+    setComposerTitle("");
     setComposerDescription("");
     setComposerDate(date);
     setComposerPhaseId(phaseId ?? null);
