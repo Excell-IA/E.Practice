@@ -278,6 +278,39 @@ export function NewPracticeWizard() {
     await deleteAttachment(id, activeUser.id).catch(console.warn);
   }
 
+  function distributePhasesBetween(list: PreviewPhase[], startIso: string, endIso: string): PreviewPhase[] {
+    if (!list.length || !startIso || !endIso) return list;
+    const start = new Date(startIso);
+    const end = new Date(endIso);
+    const totalDays = differenceInCalendarDays(end, start);
+    if (totalDays <= 0) return list;
+    const weights = list.map((phase) => Math.max(1, phase.duration_days || 1));
+    const totalWeight = weights.reduce((sum, w) => sum + w, 0);
+    let cursor = start;
+    return list.map((phase, index) => {
+      const isLast = index === list.length - 1;
+      const allocated = isLast
+        ? Math.max(1, differenceInCalendarDays(end, cursor))
+        : Math.max(1, Math.round((weights[index] / totalWeight) * totalDays));
+      const phaseEnd = addDays(cursor, allocated);
+      const next = {
+        ...phase,
+        planned_start: format(cursor, "yyyy-MM-dd"),
+        planned_end: format(phaseEnd, "yyyy-MM-dd"),
+        duration_days: allocated,
+      };
+      cursor = phaseEnd;
+      return next;
+    });
+  }
+
+  function handleScadenzaChange(value: string) {
+    setScadenza(value);
+    if (value) {
+      setPhases((current) => distributePhasesBetween(current, apertura, value));
+    }
+  }
+
   function reorderPhasesByDate(list: PreviewPhase[]): PreviewPhase[] {
     return [...list]
       .sort((a, b) => new Date(a.planned_start).getTime() - new Date(b.planned_start).getTime())
@@ -493,19 +526,34 @@ export function NewPracticeWizard() {
               <input className="h-11 rounded-xl border border-border bg-surface-container px-3 outline-none" onChange={(event) => { setTitle(event.target.value); setTitleError(false); }} placeholder="Titolo pratica" value={title} />
               <textarea className="min-h-24 rounded-xl border border-border bg-surface-container p-3 outline-none" onChange={(event) => setDescription(event.target.value)} placeholder="Descrizione" value={description} />
               <div className="grid gap-3 sm:grid-cols-2">
-                <select className="h-10 rounded-xl border border-border bg-surface-container px-3 outline-none" onChange={(event) => setCategoryId(event.target.value)} value={categoryId}>
-                  {categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
-                </select>
-                <select className="h-10 rounded-xl border border-border bg-surface-container px-3 outline-none" onChange={(event) => setResponsibleId(event.target.value)} value={responsibleId}>
-                  {users.map((user) => <option key={user.id} value={user.id}>{user.nome} {user.cognome}</option>)}
-                </select>
-                <input className="h-10 rounded-xl border border-border bg-surface-container px-3 outline-none" onChange={(event) => setApertura(event.target.value)} type="date" value={apertura} />
-                <input className="h-10 rounded-xl border border-border bg-surface-container px-3 outline-none" onChange={(event) => setScadenza(event.target.value)} type="date" value={scadenza} />
-                <select className="h-10 rounded-xl border border-border bg-surface-container px-3 outline-none" onChange={(event) => setPriority(event.target.value as typeof priority)} value={priority}>
-                  <option value="bassa">Priorita bassa</option>
-                  <option value="media">Priorita media</option>
-                  <option value="alta">Priorita alta</option>
-                </select>
+                <label className="space-y-1">
+                  <span className="block text-xs font-semibold text-muted">Tipologia pratica</span>
+                  <select className="h-10 w-full rounded-xl border border-border bg-surface-container px-3 outline-none" onChange={(event) => setCategoryId(event.target.value)} value={categoryId}>
+                    {categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
+                  </select>
+                </label>
+                <label className="space-y-1">
+                  <span className="block text-xs font-semibold text-muted">Responsabile pratica</span>
+                  <select className="h-10 w-full rounded-xl border border-border bg-surface-container px-3 outline-none" onChange={(event) => setResponsibleId(event.target.value)} value={responsibleId}>
+                    {users.map((user) => <option key={user.id} value={user.id}>{user.nome} {user.cognome}</option>)}
+                  </select>
+                </label>
+                <label className="space-y-1">
+                  <span className="block text-xs font-semibold text-muted">Apertura pratica</span>
+                  <input className="h-10 w-full rounded-xl border border-border bg-surface-container px-3 outline-none" onChange={(event) => setApertura(event.target.value)} title="Data di apertura della pratica" type="date" value={apertura} />
+                </label>
+                <label className="space-y-1">
+                  <span className="block text-xs font-semibold text-muted">Scadenza richiesta</span>
+                  <input className="h-10 w-full rounded-xl border border-border bg-surface-container px-3 outline-none" onChange={(event) => handleScadenzaChange(event.target.value)} title="Cambiando la scadenza, le fasi si ridistribuiscono automaticamente tra apertura e scadenza" type="date" value={scadenza} />
+                </label>
+                <label className="space-y-1 sm:col-span-2">
+                  <span className="block text-xs font-semibold text-muted">Priorità</span>
+                  <select className="h-10 w-full rounded-xl border border-border bg-surface-container px-3 outline-none" onChange={(event) => setPriority(event.target.value as typeof priority)} value={priority}>
+                    <option value="bassa">Bassa</option>
+                    <option value="media">Media</option>
+                    <option value="alta">Alta</option>
+                  </select>
+                </label>
               </div>
               <div className="flex flex-wrap gap-2">
                 {fallbackLabels.map((label) => (

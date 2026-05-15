@@ -38,6 +38,7 @@ export function NodeDrawer({ selection, open, onOpenChange, onSwitchTab }: NodeD
   });
   const [eventSaved, setEventSaved] = useState(false);
   const [noteSaved, setNoteSaved] = useState(false);
+  const [noteAdded, setNoteAdded] = useState(false);
   const [phaseSaved, setPhaseSaved] = useState(false);
 
   function flashPhaseSaved() {
@@ -80,6 +81,8 @@ export function NodeDrawer({ selection, open, onOpenChange, onSwitchTab }: NodeD
     if (!isPhase || !noteBody.trim()) return;
     applyAction({ type: "add_note", phaseId: selection.item.id, body: noteBody.trim() });
     setNoteBody("");
+    setNoteAdded(true);
+    window.setTimeout(() => setNoteAdded(false), 2000);
   }
 
   function startEditingNote(noteId: string, body: string) {
@@ -372,9 +375,12 @@ export function NodeDrawer({ selection, open, onOpenChange, onSwitchTab }: NodeD
 
           {isPhase ? (
             <section className="space-y-3">
-            <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
-                Note di questa fase
-              </p>
+              <div className="flex items-center justify-between gap-2">
+                <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
+                  Note di questa fase ({phaseNotes.length})
+                </p>
+                <span className="text-[11px] text-muted">Visibili anche nel tab Note</span>
+              </div>
               <div className="space-y-2">
                 {phaseNotes.map((note) => {
                   const canEditNote = note.author.id === activeUser.id || isAdmin;
@@ -437,10 +443,13 @@ export function NodeDrawer({ selection, open, onOpenChange, onSwitchTab }: NodeD
                 title={canEdit ? "Nota locale demo" : "Permesso non disponibile per utente viewer"}
                 value={noteBody}
               />
-              <Button disabled={!canEdit || !noteBody.trim()} onClick={addNote} type="button" variant="outline">
-                <FileText className="h-4 w-4" />
-                Aggiungi nota
-              </Button>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button disabled={!canEdit || !noteBody.trim()} onClick={addNote} type="button" variant="outline">
+                  <FileText className="h-4 w-4" />
+                  Aggiungi nota
+                </Button>
+                {noteAdded ? <Badge variant="success">Aggiunta ✓</Badge> : null}
+              </div>
             </section>
           ) : null}
 
