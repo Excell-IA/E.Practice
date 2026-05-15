@@ -113,6 +113,13 @@ export function createPractice(input: components["schemas"]["CreatePracticeReque
   });
 }
 
+export function deletePractice(practiceId: string, userId: string) {
+  return apiFetch<void>(`/api/practices/${practiceId}`, {
+    method: "DELETE",
+    userId,
+  });
+}
+
 export function updatePracticeStatus(
   practiceId: string,
   status: Extract<PracticeStatus, "aperta" | "sospesa" | "chiusa">,

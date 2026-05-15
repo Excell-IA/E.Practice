@@ -1,9 +1,9 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { differenceInCalendarDays, format } from "date-fns";
 import { it } from "date-fns/locale";
-import { FileText, Plus, Search } from "lucide-react";
+import { FileText, Plus, Search, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
@@ -11,8 +11,9 @@ import { useMemo, useState } from "react";
 import { Badge, type BadgeProps } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { getPractices, listAttachments, type ApiAttachment } from "@/lib/api";
+import { deletePractice, getPractices, listAttachments, type ApiAttachment } from "@/lib/api";
 import { directoryPractices, type DirectoryPractice } from "@/lib/demo-directory";
+import { useDemoStore } from "@/lib/demo-state";
 import { mapApiPracticeToDirectoryPractice } from "@/lib/mappers/practice-list";
 import { cn } from "@/lib/utils";
 
@@ -75,9 +76,12 @@ function formatFileSize(bytes: number) {
 
 export function PracticesListClient() {
   const router = useRouter();
+  const queryClient = useQueryClient();
+  const activeUser = useDemoStore((state) => state.activeUser);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<PracticeFilter>("all");
   const [attachmentsPractice, setAttachmentsPractice] = useState<DirectoryPractice | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const practicesQuery = useQuery({
     queryFn: () => getPractices(),
     queryKey: ["practices"],
@@ -110,6 +114,21 @@ export function PracticesListClient() {
 
   function count(filterId: PracticeFilter) {
     return sourcePractices.filter((practice) => matchesFilter(practice, filterId)).length;
+  }
+
+  async function removePractice(practice: DirectoryPractice) {
+    if (!window.confirm(`Eliminare la pratica ${practice.code} (${practice.title})?\n\nL'azione è irreversibile e cancella anche fasi, eventi, note e allegati collegati.`)) return;
+    setDeletingId(practice.id);
+    try {
+      await deletePractice(practice.id, activeUser.id);
+      await queryClient.invalidateQueries({ queryKey: ["practices"] });
+      await queryClient.invalidateQueries({ queryKey: ["attachments-all"] });
+    } catch (err) {
+      console.error("delete_practice_failed", err);
+      window.alert("Eliminazione non riuscita. Riprova.");
+    } finally {
+      setDeletingId(null);
+    }
   }
 
   return (
@@ -169,6 +188,7 @@ export function PracticesListClient() {
                 <th className="px-4 py-3">Stato</th>
                 <th className="px-4 py-3">Documenti</th>
                 <th className="px-4 py-3">Progress</th>
+                <th className="px-4 py-3 text-right">Azioni</th>
               </tr>
             </thead>
             <tbody>
@@ -267,6 +287,24 @@ export function PracticesListClient() {
                         </div>
                         <span className="font-label text-xs font-semibold text-muted">{practice.progress}%</span>
                       </div>
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <button
+                        aria-label={`Elimina pratica ${practice.code}`}
+                        className={cn(
+                          "inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted transition-colors hover:bg-danger/10 hover:text-danger",
+                          deletingId === practice.id && "cursor-wait opacity-50",
+                        )}
+                        disabled={deletingId === practice.id}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          void removePractice(practice);
+                        }}
+                        title="Elimina pratica"
+                        type="button"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
                     </td>
                   </tr>
                 );

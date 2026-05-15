@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Annotated, Any
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from pydantic import BaseModel
 
 from app.deps import (
@@ -471,6 +471,46 @@ async def archive_practice(
 ) -> Practice:
     svc = PracticeService(practice_repo, template_repo, phase_repo, ActivityService(activity_repo))
     return await svc.archive(practice_id, current_user_id)
+
+
+@router.delete("/{practice_id}", response_class=Response, status_code=status.HTTP_204_NO_CONTENT)
+async def delete_practice(
+    practice_id: UUID,
+    practice_repo: Annotated[Repository[Practice], Depends(get_practice_repo)],
+    phase_repo: Annotated[Repository[PracticePhase], Depends(get_practice_phase_repo)],
+    event_repo: Annotated[Repository[PracticeEvent], Depends(get_practice_event_repo)],
+    note_repo: Annotated[Repository[Note], Depends(get_note_repo)],
+    reminder_repo: Annotated[Repository[Reminder], Depends(get_reminder_repo)],
+    attachment_repo: Annotated[Repository[Attachment], Depends(get_attachment_repo)],
+    practice_label_repo: Annotated[InMemoryRepository[Any], Depends(get_practice_label_repo)],
+    activity_repo: Annotated[Repository[ActivityLog], Depends(get_activity_log_repo)],
+    current_user_id: Annotated[str, Depends(get_current_user_id)],
+) -> Response:
+    """Cancella la pratica e tutte le entità collegate (V0 in-memory)."""
+    existing = await practice_repo.get(str(practice_id))
+    if existing is None:
+        raise HTTPException(status_code=404, detail="Pratica non trovata")
+    for phase in await phase_repo.list(practice_id=practice_id):
+        await phase_repo.delete(str(phase.id))
+    for event in await event_repo.list(practice_id=practice_id):
+        await event_repo.delete(str(event.id))
+    for note in await note_repo.list(practice_id=practice_id):
+        await note_repo.delete(str(note.id))
+    for reminder in await reminder_repo.list(practice_id=practice_id):
+        await reminder_repo.delete(str(reminder.id))
+    for attachment in await attachment_repo.list(practice_id=practice_id):
+        await attachment_repo.delete(str(attachment.id))
+    for link in await practice_label_repo.list(practice_id=practice_id):
+        await practice_label_repo.delete(str(link.id))
+    await practice_repo.delete(str(practice_id))
+    await ActivityService(activity_repo).log(
+        actor_id=current_user_id,
+        action="deleted",
+        entity_type="practice",
+        entity_id=practice_id,
+        metadata={"code": existing.code},
+    )
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 # ---------------------------------------------------------------------------

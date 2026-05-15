@@ -47,6 +47,7 @@ export function ClientsListClient() {
     vat: "",
   });
   const [creatingClient, setCreatingClient] = useState(false);
+  const [newClientError, setNewClientError] = useState<string | null>(null);
   const activeUser = useDemoStore((state) => state.activeUser);
   const clients = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -84,23 +85,32 @@ export function ClientsListClient() {
   async function submitNewClient() {
     if (!newClient.name.trim()) return;
     setCreatingClient(true);
+    setNewClientError(null);
+    const raw = newClient.vat.trim().toUpperCase().replace(/\s/g, "");
+    const isPiva = /^\d{11}$/.test(raw);
+    const isCf = /^[A-Z0-9]{16}$/.test(raw);
+    const piva = isPiva ? raw : null;
+    const cf = !isPiva && isCf ? raw : null;
     try {
-      const created = await createClient(
+      await createClient(
         {
           code: "",
-          cf: newClient.vat || null,
-          email: newClient.email || null,
+          cf,
+          email: newClient.email.trim() || null,
           indirizzo_sede: null,
-          piva: newClient.vat || null,
+          piva,
           ragione_sociale: newClient.name.trim(),
           status: "attivo",
-          telefono: newClient.phone || null,
+          telefono: newClient.phone.trim() || null,
           type: newClient.type,
         },
         activeUser.id,
       );
+      setNewClient({ email: "", name: "", phone: "", type: "societa", vat: "" });
       setNewClientOpen(false);
-      router.push(`/pratiche/nuova?clientId=${created.id}`);
+    } catch (err) {
+      console.error("create_client_failed", err);
+      setNewClientError(err instanceof Error ? err.message : "Creazione cliente non riuscita.");
     } finally {
       setCreatingClient(false);
     }
@@ -165,19 +175,19 @@ export function ClientsListClient() {
                     <td className="px-4 py-3 font-label text-xs font-semibold text-muted">{client.code}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        <span className="font-semibold text-foreground">{client.name}</span>
                         <button
                           aria-label={`Nuova pratica per ${client.name}`}
-                          className="flex h-7 w-7 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-high hover:text-electric"
+                          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-high hover:text-electric"
                           onClick={(event) => {
                             event.stopPropagation();
                             router.push(`/pratiche/nuova?clientId=${client.id}`);
                           }}
-                          title="Nuova pratica per questo cliente"
+                          title="Aggiungi pratica per questo cliente"
                           type="button"
                         >
                           <Plus className="h-4 w-4" />
                         </button>
+                        <span className="font-semibold text-foreground">{client.name}</span>
                       </div>
                     </td>
                     <td className="px-4 py-3 text-foreground-variant">{client.type === "societa" ? "Societa" : "Persona"}</td>
@@ -265,9 +275,12 @@ export function ClientsListClient() {
         <SheetContent className="max-w-lg">
           <SheetHeader>
             <SheetTitle>Nuovo cliente</SheetTitle>
-            <SheetDescription>Crea un cliente e apri subito una nuova pratica collegata.</SheetDescription>
+            <SheetDescription>Aggiungi un cliente alla rubrica.</SheetDescription>
           </SheetHeader>
           <div className="space-y-3">
+            {newClientError ? (
+              <p className="rounded-xl border border-danger/40 bg-danger/10 px-3 py-2 text-sm font-semibold text-danger">{newClientError}</p>
+            ) : null}
             <input
               className="h-10 w-full rounded-xl border border-border bg-surface-low px-3 text-sm outline-none"
               onChange={(event) => setNewClient((value) => ({ ...value, name: event.target.value }))}
@@ -285,7 +298,7 @@ export function ClientsListClient() {
             <input
               className="h-10 w-full rounded-xl border border-border bg-surface-low px-3 text-sm outline-none"
               onChange={(event) => setNewClient((value) => ({ ...value, vat: event.target.value }))}
-              placeholder="P.IVA / CF"
+              placeholder="P.IVA (11 cifre) o CF (16 caratteri)"
               value={newClient.vat}
             />
             <input
@@ -302,7 +315,7 @@ export function ClientsListClient() {
             />
             <Button className="w-full" disabled={!newClient.name.trim() || creatingClient} onClick={submitNewClient} type="button">
               <Plus className="h-4 w-4" />
-              {creatingClient ? "Creazione..." : "Crea cliente e apri pratica"}
+              {creatingClient ? "Creazione..." : "Salva cliente"}
             </Button>
           </div>
         </SheetContent>
