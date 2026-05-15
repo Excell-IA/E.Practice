@@ -59,11 +59,6 @@ type TrunkHover = {
   y: number;
 };
 
-type TrunkDraft = {
-  date: string;
-  phaseId: string;
-};
-
 type EventGroup = {
   key: string;
   events: PracticeEvent[];
@@ -90,7 +85,6 @@ export function PracticeTree({ practice, phases, events, onSwitchTab }: Practice
   const [composerDate, setComposerDate] = useState(todayIso);
   const [composerPhaseId, setComposerPhaseId] = useState<string | null>(null);
   const [trunkHover, setTrunkHover] = useState<TrunkHover | null>(null);
-  const [trunkDraft, setTrunkDraft] = useState<TrunkDraft | null>(null);
   const [groupSelection, setGroupSelection] = useState<EventGroup | null>(null);
   const activeUser = useDemoStore((state) => state.activeUser);
   const applyAction = useDemoStore((state) => state.applyAction);
@@ -283,7 +277,6 @@ export function PracticeTree({ practice, phases, events, onSwitchTab }: Practice
     setComposerDescription("");
     setComposerDate(date);
     setComposerPhaseId(phaseId ?? null);
-    setTrunkDraft(null);
   }
 
   function createEvent() {
@@ -327,8 +320,8 @@ export function PracticeTree({ practice, phases, events, onSwitchTab }: Practice
     const point = svgPointFromPointer(event);
     if (!point) return;
     const date = isoDate(xToTimelineDate(point.x));
-    setTrunkDraft({ date, phaseId: closestPhaseId(date) });
-    setComposerType(null);
+    setComposerDate(date);
+    setComposerPhaseId(closestPhaseId(date));
   }
 
   useEffect(() => {
@@ -339,59 +332,82 @@ export function PracticeTree({ practice, phases, events, onSwitchTab }: Practice
     <>
       <Card className="overflow-hidden rounded-2xl bg-surface-low/90">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-4">
-          <div>
-            <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
-              Vista albero
-            </p>
-            <h2 className="font-display text-xl font-semibold text-foreground">{practice.title}</h2>
+          <div className="flex flex-wrap items-end gap-3">
+            <div>
+              <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-electric">
+                Aggiungi evento
+              </p>
+              <label className="mt-1 flex items-center gap-2">
+                <span className="text-xs font-semibold text-muted">Data</span>
+                <input
+                  className="h-9 rounded-xl border border-border bg-surface-container px-3 font-label text-sm font-semibold text-foreground outline-none"
+                  onChange={(event) => {
+                    setComposerDate(event.target.value);
+                    setComposerPhaseId(closestPhaseId(event.target.value));
+                  }}
+                  title="Imposta la data dell'evento o clicca sul tronco dell'albero"
+                  type="date"
+                  value={composerDate}
+                />
+              </label>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                disabled={activeUser.permission === "viewer"}
+                onClick={() => openComposer("note", composerDate, composerPhaseId ?? currentPhase?.id)}
+                title={activeUser.permission === "viewer" ? "Permesso non disponibile per utente viewer" : "Aggiungi nota all'albero"}
+                type="button"
+                variant="outline"
+              >
+                <MessageSquareText className="h-4 w-4" />
+                Nota
+              </Button>
+              <Button
+                disabled={activeUser.permission === "viewer"}
+                onClick={() => openComposer("call", composerDate, composerPhaseId ?? currentPhase?.id)}
+                title={activeUser.permission === "viewer" ? "Permesso non disponibile per utente viewer" : "Aggiungi telefonata"}
+                type="button"
+                variant="outline"
+              >
+                <PhoneCall className="h-4 w-4" />
+                Telefonata
+              </Button>
+              <Button
+                disabled={activeUser.permission === "viewer"}
+                onClick={() => openComposer("mail", composerDate, composerPhaseId ?? currentPhase?.id)}
+                title={activeUser.permission === "viewer" ? "Permesso non disponibile per utente viewer" : "Aggiungi email"}
+                type="button"
+                variant="outline"
+              >
+                <Mail className="h-4 w-4" />
+                Email
+              </Button>
+              <Button
+                disabled={activeUser.permission === "viewer"}
+                onClick={() => openComposer("warning", composerDate, composerPhaseId ?? currentPhase?.id)}
+                title={activeUser.permission === "viewer" ? "Permesso non disponibile per utente viewer" : "Aggiungi avviso"}
+                type="button"
+                variant="warning"
+              >
+                <AlertTriangle className="h-4 w-4" />
+                Avviso
+              </Button>
+            </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <Button onClick={() => scrollToTimelineX(todayX)} size="sm" title="Centra su oggi" type="button" variant="outline">
+            <Button onClick={() => scrollToTimelineX(todayX)} size="sm" title="Centra l'albero sulla data di oggi" type="button" variant="outline">
               <CalendarDays className="h-4 w-4" />
               Oggi
             </Button>
             <Button
               onClick={() => currentPhase && scrollToTimelineX(dateToTimelineX(currentPhase.plannedDate))}
               size="sm"
-              title="Centra sulla fase corrente"
+              title="Centra l'albero sulla fase in corso"
               type="button"
               variant="outline"
             >
               <MoveHorizontal className="h-4 w-4" />
               Fase corrente
-            </Button>
-            <Button
-              disabled={activeUser.permission === "viewer"}
-              onClick={() => openComposer("call")}
-              size="sm"
-              title={activeUser.permission === "viewer" ? "Permesso non disponibile per utente viewer" : "Aggiungi evento - Telefonata"}
-              type="button"
-              variant="outline"
-            >
-              <PhoneCall className="h-4 w-4" />
-              Telefonata
-            </Button>
-            <Button
-              disabled={activeUser.permission === "viewer"}
-              onClick={() => openComposer("mail")}
-              size="sm"
-              title={activeUser.permission === "viewer" ? "Permesso non disponibile per utente viewer" : "Aggiungi evento - Email"}
-              type="button"
-              variant="outline"
-            >
-              <Mail className="h-4 w-4" />
-              Email
-            </Button>
-            <Button
-              disabled={activeUser.permission === "viewer"}
-              onClick={() => openComposer("warning")}
-              size="sm"
-              title={activeUser.permission === "viewer" ? "Permesso non disponibile per utente viewer" : "Aggiungi evento - Avviso"}
-              type="button"
-              variant="warning"
-            >
-              <AlertTriangle className="h-4 w-4" />
-              Avviso
             </Button>
             {disabledToolbar.map((item) => {
               const Icon = item.icon;
@@ -417,66 +433,39 @@ export function PracticeTree({ practice, phases, events, onSwitchTab }: Practice
         <CardContent className="p-0">
           {composerType ? (
             <div className="border-b border-border bg-surface-container px-5 py-4">
-              <div className="grid gap-3 md:grid-cols-[180px_1fr_1.4fr_auto] md:items-end">
-                <div>
-                  <p className="mb-1 text-xs text-muted">Tipo evento</p>
-                  <Badge variant={composerType === "warning" ? "warning" : "info"}>{composerType}</Badge>
+              <div className="grid gap-3 md:grid-cols-[200px_1fr_1.4fr_auto] md:items-end">
+                <div className="flex flex-col gap-1">
+                  <Badge variant={composerType === "warning" ? "warning" : "info"}>
+                    <span className="font-display text-sm font-bold uppercase tracking-wide">
+                      {composerType === "call" ? "Telefonata" : composerType === "mail" ? "Email" : composerType === "warning" ? "Avviso" : "Nota"}
+                    </span>
+                  </Badge>
+                  <span className="text-xs text-muted">{displayDate(composerDate)}</span>
                 </div>
-                <label className="text-sm text-muted">
+                <label className="text-sm font-semibold text-muted">
                   Titolo
                   <input
-                    className="mt-1 h-10 w-full rounded-xl border border-border bg-surface-low px-3 text-foreground outline-none"
+                    autoFocus
+                    className="mt-1 h-10 w-full rounded-xl border border-border bg-surface-low px-3 font-normal text-foreground outline-none"
                     onChange={(event) => setComposerTitle(event.target.value)}
+                    placeholder="Titolo evento"
                     value={composerTitle}
                   />
                 </label>
-                <label className="text-sm text-muted">
+                <label className="text-sm font-semibold text-muted">
                   Descrizione
                   <input
-                    className="mt-1 h-10 w-full rounded-xl border border-border bg-surface-low px-3 text-foreground outline-none"
+                    className="mt-1 h-10 w-full rounded-xl border border-border bg-surface-low px-3 font-normal text-foreground outline-none"
                     onChange={(event) => setComposerDescription(event.target.value)}
                     placeholder={`Collegato a ${currentPhase?.title ?? "fase corrente"}`}
                     value={composerDescription}
                   />
                 </label>
                 <div className="flex gap-2">
-                  <Button disabled={!composerTitle.trim()} onClick={createEvent} type="button">
+                  <Button disabled={!composerTitle.trim() || !composerDate} onClick={createEvent} type="button">
                     Crea
                   </Button>
                   <Button onClick={() => setComposerType(null)} type="button" variant="ghost">
-                    Annulla
-                  </Button>
-                </div>
-              </div>
-            </div>
-          ) : null}
-          {trunkDraft && !composerType ? (
-            <div className="border-b border-border bg-surface-container px-5 py-4">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-electric">
-                    Aggiungi evento
-                  </p>
-                  <p className="text-sm font-semibold text-foreground">In data {displayDate(trunkDraft.date)}</p>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <Button onClick={() => openComposer("note", trunkDraft.date, trunkDraft.phaseId)} size="sm" type="button" variant="outline">
-                    <MessageSquareText className="h-4 w-4" />
-                    Nota
-                  </Button>
-                  <Button onClick={() => openComposer("call", trunkDraft.date, trunkDraft.phaseId)} size="sm" type="button" variant="outline">
-                    <PhoneCall className="h-4 w-4" />
-                    Telefonata
-                  </Button>
-                  <Button onClick={() => openComposer("mail", trunkDraft.date, trunkDraft.phaseId)} size="sm" type="button" variant="outline">
-                    <Mail className="h-4 w-4" />
-                    Mail
-                  </Button>
-                  <Button onClick={() => openComposer("warning", trunkDraft.date, trunkDraft.phaseId)} size="sm" type="button" variant="warning">
-                    <AlertTriangle className="h-4 w-4" />
-                    Alert
-                  </Button>
-                  <Button onClick={() => setTrunkDraft(null)} size="sm" type="button" variant="ghost">
                     Annulla
                   </Button>
                 </div>
@@ -715,24 +704,37 @@ function TreeHelpBox() {
   if (!visible) return null;
 
   return (
-    <div className="flex items-start gap-3 border-t border-border bg-surface-container/50 px-5 py-4 text-sm text-muted">
+    <div className="flex items-start gap-3 border-t border-border bg-surface-container px-5 py-4 text-sm text-foreground-variant">
       <HelpCircle className="mt-0.5 h-5 w-5 shrink-0 text-electric" />
-      <div className="flex-1 leading-6">
-        <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-electric">
-          Come si legge la vista albero
-        </p>
-        <p className="mt-1">
-          Il <strong className="text-foreground">tronco orizzontale</strong> è l&apos;asse del tempo. I cerchi grandi numerati sono le <strong className="text-foreground">fasi</strong> del template (pietre miliari della pratica). Sopra e sotto il tronco trovi gli <strong className="text-foreground">eventi</strong> agganciati alla fase corrispondente: telefonate, email, avvisi, note.
-        </p>
-        <p className="mt-1">
-          Dalla toolbar in alto puoi aggiungere un nuovo evento (Telefonata, Email, Avviso). Clicca su un cerchio per vedere il dettaglio nella sidebar destra; click sul tronco per aggiungere un evento ad-hoc nel punto cliccato.
-        </p>
+      <div className="flex-1 space-y-3 leading-6">
+        <div>
+          <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-electric">
+            Come leggere l&apos;albero
+          </p>
+          <ul className="mt-1 space-y-0.5">
+            <li>
+              <strong className="text-foreground">Cerchi grandi numerati</strong> sul tronco = fasi del template (pietre miliari).
+            </li>
+            <li>
+              <strong className="text-foreground">Icone sopra e sotto</strong> = eventi sulla fase: telefonate, email, avvisi.
+            </li>
+          </ul>
+        </div>
+        <div>
+          <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-electric">
+            Aggiungere un evento
+          </p>
+          <p className="mt-1">
+            Click sul tronco per scegliere la data, poi sul bottone <strong className="text-foreground">Telefonata / Email / Avviso</strong> in alto.
+            Click su un cerchio o su un&apos;icona per aprire il dettaglio nella sidebar destra.
+          </p>
+        </div>
       </div>
       <button
         aria-label="Nascondi la guida"
         className="rounded-lg p-1.5 text-muted transition-colors hover:bg-surface-high hover:text-foreground"
         onClick={close}
-        title="Nascondi guida (la riapri dalle impostazioni)"
+        title="Nascondi guida (la riattivi dalle impostazioni)"
         type="button"
       >
         <X className="h-4 w-4" />
