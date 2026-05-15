@@ -565,14 +565,21 @@ export function NewPracticeWizard() {
             </section>
             <section className="rounded-2xl border border-border bg-surface-container p-4">
               <p className="font-semibold text-foreground">{preview.category_name}</p>
-              <p className="mt-1 text-sm text-muted">Durata {preview.total_duration_days} giorni - scadenza {format(new Date(preview.scadenza_calcolata), "dd MMM yyyy", { locale: it })}</p>
+              <p className="mt-1 text-sm text-muted">
+                {phases.length} fasi
+                {phases.length ? ` · ultima il ${format(new Date(phases[phases.length - 1].planned_end), "dd MMM yyyy", { locale: it })}` : ""}
+                {scadenza && phases.length ? (phases[phases.length - 1].planned_end !== scadenza ? ` (scadenza richiesta ${format(new Date(scadenza), "dd MMM yyyy", { locale: it })})` : "") : ""}
+              </p>
               <div className="mt-4 space-y-2">
-                {preview.phases.slice(0, 5).map((phase) => (
-                  <div className="flex items-center justify-between rounded-xl bg-surface-low p-2 text-sm" key={phase.order_index}>
-                    <span>{phase.order_index}. {phase.name}</span>
-                    <span className="text-muted">{format(new Date(phase.planned_end), "dd/MM")}</span>
+                {phases.slice(0, 6).map((phase, index) => (
+                  <div className="flex items-center justify-between rounded-xl bg-surface-low p-2 text-sm" key={`preview-${phase.order_index}-${index}`}>
+                    <span className="truncate">{phase.order_index}. {phase.name}</span>
+                    <span className="ml-2 shrink-0 text-muted">{format(new Date(phase.planned_end), "dd/MM")}</span>
                   </div>
                 ))}
+                {phases.length > 6 ? (
+                  <p className="text-xs text-muted">+{phases.length - 6} altre fasi</p>
+                ) : null}
               </div>
             </section>
           </CardContent>
