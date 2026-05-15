@@ -197,15 +197,18 @@ export function NewPracticeWizard() {
       .then((data) => {
         setPreview(data);
         setPhases(data.phases.map((phase) => ({ ...phase, enabled: true })));
-        if (!scadenza) setScadenza(data.scadenza_calcolata);
+        setScadenza(data.scadenza_calcolata);
       })
       .catch(() => {
         const data = fallbackPreview(selectedCategory, apertura);
         setPreview(data);
         setPhases(data.phases.map((phase) => ({ ...phase, enabled: true })));
-        if (!scadenza) setScadenza(data.scadenza_calcolata);
+        setScadenza(data.scadenza_calcolata);
       });
-  }, [apertura, categoryId, scadenza, selectedCategory]);
+    // intentionally NOT depending on `scadenza`: changing the deadline
+    // should not refetch the template and overwrite the redistributed phases.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [apertura, categoryId, selectedCategory]);
 
   async function createClientFromSheet() {
     if (!clientDraft.name.trim()) return;
@@ -594,18 +597,17 @@ export function NewPracticeWizard() {
               <label className="flex items-center gap-2 text-sm text-foreground"><input checked={reminders} onChange={(event) => setReminders(event.target.checked)} type="checkbox" /> Crea reminders automatici</label>
               <Button onClick={addCustomPhase} type="button" variant="outline"><Plus className="h-4 w-4" />Aggiungi fase</Button>
             </div>
-            <div className="hidden gap-3 px-3 pb-2 text-[10px] font-display font-semibold uppercase tracking-[0.14em] text-muted md:grid md:grid-cols-[40px_1fr_140px_90px_110px_180px_40px]">
+            <div className="hidden gap-3 px-3 pb-2 text-[10px] font-display font-semibold uppercase tracking-[0.14em] text-muted md:grid md:grid-cols-[40px_1fr_150px_110px_200px_40px]">
               <span>#</span>
               <span>Nome fase</span>
-              <span>Inizio</span>
+              <span>Data</span>
               <span>Durata</span>
-              <span>Fine</span>
               <span>Assegnatario</span>
               <span />
             </div>
             <div className="space-y-2">
               {phases.map((phase, index) => (
-                <div className="grid gap-3 rounded-xl border border-border bg-surface-container p-3 text-sm md:grid-cols-[40px_1fr_140px_90px_110px_180px_40px] md:items-center" key={`phase-${phase.order_index}-${index}`}>
+                <div className="grid gap-3 rounded-xl border border-border bg-surface-container p-3 text-sm md:grid-cols-[40px_1fr_150px_110px_200px_40px] md:items-center" key={`phase-${phase.order_index}-${index}`}>
                   <span className="font-label text-muted">#{index + 1}</span>
                   <input className="rounded-lg bg-surface-low px-2 py-1.5 outline-none" onChange={(event) => updatePhaseName(index, event.target.value)} placeholder="Nome fase" value={phase.name} />
                   <input className="rounded-lg bg-surface-low px-2 py-1.5 outline-none" onChange={(event) => updatePhaseStart(index, event.target.value)} type="date" value={phase.planned_start} />
@@ -613,7 +615,6 @@ export function NewPracticeWizard() {
                     <input className="w-16 rounded-lg bg-surface-low px-2 py-1.5 outline-none" min={1} onChange={(event) => updatePhaseDuration(index, Number(event.target.value))} type="number" value={phase.duration_days} />
                     <span className="text-xs text-muted">gg</span>
                   </div>
-                  <span className="text-xs text-muted">{phase.planned_end ? format(new Date(phase.planned_end), "dd/MM/yyyy") : "-"}</span>
                   <select className="rounded-lg bg-surface-low px-2 py-1.5 text-xs outline-none" onChange={(event) => updatePhaseAssignee(index, event.target.value)} value={phase.assignee_id ?? responsibleId}>
                     {users.map((user) => (
                       <option className="bg-surface text-foreground" key={user.id} value={user.id}>
