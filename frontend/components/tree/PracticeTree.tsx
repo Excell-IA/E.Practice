@@ -43,7 +43,6 @@ const timeline = {
   startX: 120,
   endX: 2060,
   y: 250,
-  todayDate: new Date("2026-03-16"),
 };
 
 const svgWidth = 2200;
@@ -63,12 +62,14 @@ type TrunkDraft = {
 
 export function PracticeTree({ practice, phases, events, onSwitchTab }: PracticeTreeProps) {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const [todayDate] = useState<Date>(() => new Date());
+  const todayIso = useMemo(() => todayDate.toISOString().slice(0, 10), [todayDate]);
   const [selection, setSelection] = useState<TreeSelection | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [composerType, setComposerType] = useState<PracticeEvent["type"] | null>(null);
   const [composerTitle, setComposerTitle] = useState("");
   const [composerDescription, setComposerDescription] = useState("");
-  const [composerDate, setComposerDate] = useState("2026-03-16");
+  const [composerDate, setComposerDate] = useState(todayIso);
   const [composerPhaseId, setComposerPhaseId] = useState<string | null>(null);
   const [trunkHover, setTrunkHover] = useState<TrunkHover | null>(null);
   const [trunkDraft, setTrunkDraft] = useState<TrunkDraft | null>(null);
@@ -93,7 +94,7 @@ export function PracticeTree({ practice, phases, events, onSwitchTab }: Practice
     },
     [timelineRange.endDate, timelineRange.startDate],
   );
-  const todayX = useMemo(() => dateToTimelineX(timeline.todayDate), [dateToTimelineX]);
+  const todayX = useMemo(() => dateToTimelineX(todayDate), [dateToTimelineX, todayDate]);
   const monthMarkers = useMemo(() => {
     const markers: { date: Date; label: string }[] = [];
     const cursor = new Date(timelineRange.startDate);
@@ -210,7 +211,7 @@ export function PracticeTree({ practice, phases, events, onSwitchTab }: Practice
     scrollArea.scrollTo({ behavior: "smooth", left: Math.max(targetLeft, 0) });
   }
 
-  function openComposer(eventType: ComposerKind, date = isoDate(timeline.todayDate), phaseId = currentPhase?.id) {
+  function openComposer(eventType: ComposerKind, date = todayIso, phaseId = currentPhase?.id) {
     const mappedType: PracticeEvent["type"] = eventType === "note" ? "warning" : eventType;
     const defaultTitle =
       eventType === "note"
