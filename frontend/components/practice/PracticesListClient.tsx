@@ -10,6 +10,7 @@ import { useMemo, useState } from "react";
 
 import { Badge, type BadgeProps } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { HelpButton } from "@/components/ui/help-button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { deletePractice, getPractices, listAttachments, type ApiAttachment } from "@/lib/api";
 import { directoryPractices, type DirectoryPractice } from "@/lib/demo-directory";
@@ -135,9 +136,28 @@ export function PracticesListClient() {
     <main className="min-h-[calc(100vh-120px)] bg-surface px-6 md:px-10">
       <div className="mx-auto max-w-7xl">
         <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-electric">Home</p>
-            <h1 className="mt-2 font-display text-3xl font-semibold text-foreground">Elenco pratiche</h1>
+          <div className="flex items-start gap-3">
+            <div>
+              <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-electric">Home</p>
+              <h1 className="mt-2 font-display text-3xl font-semibold text-foreground">Elenco pratiche</h1>
+            </div>
+            <HelpButton title="Elenco pratiche" subtitle="Come orientarsi in questa schermata">
+              <section>
+                <p>L&apos;elenco mostra tutte le pratiche dello studio. Usa i <strong className="text-foreground">filtri</strong> in alto (Tutte / Aperte / In corso / Completate / In ritardo) o la <strong className="text-foreground">ricerca</strong> per nome cliente o codice.</p>
+              </section>
+              <section>
+                <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-electric">Colonne</p>
+                <ul className="mt-2 list-disc space-y-1 pl-5">
+                  <li><strong className="text-foreground">Scadenza</strong>: la data + i giorni rimanenti. Rosso = già scaduta, arancio = scade entro 7 giorni.</li>
+                  <li><strong className="text-foreground">Documenti</strong>: click sull&apos;icona se ci sono allegati → si apre la lista completa.</li>
+                  <li><strong className="text-foreground">Progress</strong>: percentuale di fasi completate.</li>
+                  <li><strong className="text-foreground">Cestino</strong> a destra: elimina pratica (con conferma).</li>
+                </ul>
+              </section>
+              <section>
+                <p>Click su una riga → apri il dettaglio della pratica. Click su <strong className="text-foreground">+ Nuova pratica</strong> in alto a destra → wizard di creazione.</p>
+              </section>
+            </HelpButton>
           </div>
           <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
             <label className="relative w-full max-w-sm sm:w-72">

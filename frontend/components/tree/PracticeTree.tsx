@@ -3,7 +3,6 @@
 import {
   AlertTriangle,
   CalendarDays,
-  HelpCircle,
   Mail,
   Maximize2,
   MessageSquareText,
@@ -11,9 +10,10 @@ import {
   MoveHorizontal,
   PhoneCall,
   Plus,
-  X,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent, type PointerEvent } from "react";
+
+import { HelpButton } from "@/components/ui/help-button";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -437,6 +437,35 @@ export function PracticeTree({ practice, phases, events, onSwitchTab }: Practice
                 </V1Hint>
               );
             })}
+            <HelpButton title="Come funziona la vista albero" subtitle="Linea del tempo + eventi + note">
+              <section>
+                <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-electric">Come si legge</p>
+                <ul className="mt-2 list-disc space-y-1 pl-5">
+                  <li><strong className="text-foreground">Tronco orizzontale</strong>: asse del tempo della pratica.</li>
+                  <li><strong className="text-foreground">Cerchi numerati</strong> sul tronco: fasi del template, ognuna con la sua data e il suo assegnatario.</li>
+                  <li><strong className="text-foreground">Icone sopra</strong> il tronco: eventi (telefonate, email) agganciati alla fase più vicina.</li>
+                  <li><strong className="text-foreground">Puntini electric sotto</strong>: note libere registrate sulla data scelta.</li>
+                </ul>
+              </section>
+              <section>
+                <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-electric">Aggiungere qualcosa</p>
+                <p className="mt-2">
+                  Imposta la <strong className="text-foreground">Data</strong> nel toolbar (o click sul tronco), poi scegli il tipo: <strong className="text-foreground">Nota</strong>, <strong className="text-foreground">Telefonata</strong> o <strong className="text-foreground">Email</strong>. Compila titolo/testo e Crea.
+                </p>
+              </section>
+              <section>
+                <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-electric">Modificare</p>
+                <p className="mt-2">
+                  Click su una fase o un evento → si apre la sidebar destra. Stato, assegnatario, data e note si salvano automaticamente; l&apos;evento ha un bottone Salva.
+                </p>
+              </section>
+              <section>
+                <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-electric">Più eventi nello stesso giorno</p>
+                <p className="mt-2">
+                  Eventi dello stesso tipo, stessa fase e stesso giorno vengono raggruppati in un nodo con il contatore. Click → drawer storico con la lista cronologica.
+                </p>
+              </section>
+            </HelpButton>
           </div>
         </div>
 
@@ -676,7 +705,6 @@ export function PracticeTree({ practice, phases, events, onSwitchTab }: Practice
             <span>{orderedPhases.filter((phase) => phase.status === "done").length} fasi completate</span>
             <span>{events.length} eventi collegati</span>
           </div>
-          <TreeHelpBox />
         </CardContent>
       </Card>
 
@@ -732,65 +760,3 @@ export function PracticeTree({ practice, phases, events, onSwitchTab }: Practice
   );
 }
 
-const TREE_HELP_STORAGE_KEY = "epractice:tree_help_visible";
-
-function TreeHelpBox() {
-  const [visible, setVisible] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const raw = window.localStorage.getItem(TREE_HELP_STORAGE_KEY);
-    setVisible(raw === null ? true : raw === "true");
-  }, []);
-
-  function close() {
-    setVisible(false);
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem(TREE_HELP_STORAGE_KEY, "false");
-    }
-  }
-
-  if (!visible) return null;
-
-  return (
-    <div className="flex items-start gap-3 border-t border-border bg-surface-container px-5 py-4 text-sm text-foreground-variant">
-      <HelpCircle className="mt-0.5 h-5 w-5 shrink-0 text-electric" />
-      <div className="flex-1 space-y-3 leading-6">
-        <div>
-          <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-electric">
-            Come leggere l&apos;albero
-          </p>
-          <ul className="mt-1 space-y-0.5">
-            <li>
-              <strong className="text-foreground">Cerchi grandi numerati</strong> sul tronco = fasi del template (pietre miliari).
-            </li>
-            <li>
-              <strong className="text-foreground">Icone sopra e sotto</strong> = eventi sulla fase: telefonate, email.
-            </li>
-            <li>
-              <strong className="text-foreground">Puntini electric sotto il tronco</strong> = note registrate sulla pratica.
-            </li>
-          </ul>
-        </div>
-        <div>
-          <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-electric">
-            Aggiungere un evento
-          </p>
-          <p className="mt-1">
-            Click sul tronco per scegliere la data, poi sul bottone <strong className="text-foreground">Nota / Telefonata / Email</strong> in alto.
-            Click su un cerchio o su un&apos;icona per aprire il dettaglio nella sidebar destra; i puntini elettric sotto il tronco sono le note (click apre il tab Note).
-          </p>
-        </div>
-      </div>
-      <button
-        aria-label="Nascondi la guida"
-        className="rounded-lg p-1.5 text-muted transition-colors hover:bg-surface-high hover:text-foreground"
-        onClick={close}
-        title="Nascondi guida (la riattivi dalle impostazioni)"
-        type="button"
-      >
-        <X className="h-4 w-4" />
-      </button>
-    </div>
-  );
-}

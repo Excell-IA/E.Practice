@@ -7,6 +7,7 @@ import { useMemo, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { HelpButton } from "@/components/ui/help-button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { createClient } from "@/lib/api";
 import { directoryClients, directoryPractices, type DirectoryClient } from "@/lib/demo-directory";
@@ -129,9 +130,25 @@ export function ClientsListClient() {
     <main className="min-h-[calc(100vh-60px)] bg-surface px-6 py-6 md:px-10">
       <div className="mx-auto max-w-7xl">
         <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-electric">Home</p>
-            <h1 className="mt-2 font-display text-3xl font-semibold text-foreground">Rubrica clienti</h1>
+          <div className="flex items-start gap-3">
+            <div>
+              <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-electric">Home</p>
+              <h1 className="mt-2 font-display text-3xl font-semibold text-foreground">Rubrica clienti</h1>
+            </div>
+            <HelpButton title="Rubrica clienti" subtitle="Anagrafica + pratiche aperte per cliente">
+              <section>
+                <p>La rubrica raccoglie tutti i clienti dello studio. Ogni riga mostra codice, ragione sociale, tipo (Società/Persona), P.IVA o CF, città, etichette e numero di pratiche aperte.</p>
+              </section>
+              <section>
+                <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-electric">Azioni rapide</p>
+                <ul className="mt-2 list-disc space-y-1 pl-5">
+                  <li><strong className="text-foreground">Click su una riga</strong>: drawer con dettaglio anagrafica e lista pratiche del cliente.</li>
+                  <li><strong className="text-foreground">+ accanto al nome</strong>: apre il wizard nuova pratica con cliente già selezionato.</li>
+                  <li><strong className="text-foreground">Header colonna</strong> (codice, ragione sociale, città, pratiche aperte): ordina la lista.</li>
+                  <li><strong className="text-foreground">+ Nuovo cliente</strong> in alto a destra: apre la modale per aggiungere un cliente.</li>
+                </ul>
+              </section>
+            </HelpButton>
           </div>
           <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
             <label className="relative w-full max-w-sm sm:w-72">

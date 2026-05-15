@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { Badge } from "@/components/ui/badge";
 import { EWorkShell } from "@/components/shell/EWorkShell";
+import { HelpButton } from "@/components/ui/help-button";
 import { getUsers, type ApiUser } from "@/lib/api";
 import { useDemoStore } from "@/lib/demo-state";
 
@@ -60,9 +61,32 @@ export default function UsersPage() {
     <EWorkShell code="Utenti studio">
       <main className="min-h-[calc(100vh-120px)] bg-surface px-6 py-6 md:px-10">
         <div className="mx-auto max-w-7xl">
-          <div className="mb-5">
-            <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-electric">Studio</p>
-            <h1 className="mt-2 font-display text-3xl font-semibold text-foreground">Utenti studio</h1>
+          <div className="mb-5 flex items-start gap-3">
+            <div>
+              <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-electric">Studio</p>
+              <h1 className="mt-2 font-display text-3xl font-semibold text-foreground">Utenti studio</h1>
+            </div>
+            <HelpButton title="Utenti studio" subtitle="Gestione dei collaboratori e dei ruoli">
+              <section>
+                <p>La pagina elenca gli utenti dello studio con avatar, email e ruolo. Solo gli utenti con ruolo <strong className="text-foreground">Admin</strong> possono modificare ruoli e stato degli altri.</p>
+              </section>
+              <section>
+                <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-electric">Ruoli disponibili</p>
+                <ul className="mt-2 list-disc space-y-1 pl-5">
+                  <li><strong className="text-foreground">Admin</strong>: visibilità totale, gestisce studio e utenti.</li>
+                  <li><strong className="text-foreground">Operatore</strong>: lavora sulle pratiche, può creare/editare.</li>
+                  <li><strong className="text-foreground">Centralino</strong>: gestisce note, telefonate e contatti senza editare le fasi.</li>
+                  <li><strong className="text-foreground">Esterno</strong>: collaboratore in sola lettura.</li>
+                </ul>
+              </section>
+              <section>
+                <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-electric">Azioni</p>
+                <ul className="mt-2 list-disc space-y-1 pl-5">
+                  <li><strong className="text-foreground">Cambia ruolo</strong>: dropdown nella colonna Ruolo.</li>
+                  <li><strong className="text-foreground">Attiva/sospendi</strong>: click sul badge Stato.</li>
+                </ul>
+              </section>
+            </HelpButton>
           </div>
           <div className="overflow-hidden rounded-2xl border border-border bg-surface-low">
             <table className="w-full min-w-[760px] border-collapse text-sm">

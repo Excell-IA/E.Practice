@@ -10,6 +10,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Badge, type BadgeProps } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { HelpButton } from "@/components/ui/help-button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
   attachAttachment,
@@ -445,9 +446,34 @@ export function NewPracticeWizard() {
   return (
     <main className="min-h-[calc(100vh-120px)] bg-surface px-6 pb-28 pt-6 md:px-10">
       <div className="mx-auto max-w-7xl space-y-5">
-        <div>
-          <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-electric">Nuova pratica</p>
-          <h1 className="mt-2 font-display text-3xl font-semibold text-foreground">Crea pratica</h1>
+        <div className="flex items-start gap-3">
+          <div>
+            <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-electric">Nuova pratica</p>
+            <h1 className="mt-2 font-display text-3xl font-semibold text-foreground">Crea pratica</h1>
+          </div>
+          <HelpButton title="Creare una nuova pratica" subtitle="2 step: cliente + dati, poi fasi + allegati">
+            <section>
+              <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-electric">Step 1 — Cliente e dati</p>
+              <ul className="mt-2 list-disc space-y-1 pl-5">
+                <li><strong className="text-foreground">Cerca</strong> il cliente in rubrica per nome o P.IVA, oppure premi <strong className="text-foreground">+ Nuovo cliente</strong> per crearlo al volo.</li>
+                <li><strong className="text-foreground">Tipologia pratica</strong>: scegli la categoria. Le fasi del template arrivano in automatico nello step 2.</li>
+                <li><strong className="text-foreground">Apertura</strong>: data di inizio (default oggi). <strong className="text-foreground">Scadenza richiesta</strong>: quando vuoi chiudere — le fasi si ridistribuiscono per finire entro quella data.</li>
+                <li><strong className="text-foreground">Responsabile</strong>: utente che vedrà la pratica in agenda. <strong className="text-foreground">Priorità + etichette</strong>: tag liberi.</li>
+              </ul>
+            </section>
+            <section>
+              <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-electric">Step 2 — Fasi e allegati</p>
+              <ul className="mt-2 list-disc space-y-1 pl-5">
+                <li>Le fasi del template sono modificabili: cambia <strong className="text-foreground">nome</strong>, <strong className="text-foreground">data inizio</strong>, <strong className="text-foreground">assegnatario</strong>; rimuovile con il cestino.</li>
+                <li>Cambiando una data le fasi si riordinano automaticamente per data; il numero di fase si riassegna al volo.</li>
+                <li><strong className="text-foreground">+ Aggiungi fase</strong>: aggiunge una fase personalizzata in coda.</li>
+                <li><strong className="text-foreground">Documenti allegati</strong>: trascina file o clicca Seleziona file. Vengono collegati alla pratica al momento della creazione.</li>
+              </ul>
+            </section>
+            <section>
+              <p>Puoi tornare allo Step 1 in qualsiasi momento con <strong className="text-foreground">Indietro</strong>. Il pulsante <strong className="text-foreground">Crea pratica</strong> è attivo solo se cliente e titolo sono compilati.</p>
+            </section>
+          </HelpButton>
         </div>
 
         <div className="flex items-center gap-3 rounded-2xl border border-border bg-surface-low px-4 py-3 text-sm">
