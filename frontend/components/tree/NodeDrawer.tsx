@@ -3,12 +3,10 @@
 import { useQueryClient } from "@tanstack/react-query";
 import {
   CalendarDays,
-  Check,
   FileText,
   Lock,
   Pencil,
   Save,
-  SkipForward,
   UserRound,
 } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -183,36 +181,57 @@ export function NodeDrawer({ selection, open, onOpenChange, onSwitchTab }: NodeD
 
         <div className="flex flex-1 flex-col gap-6 overflow-y-auto">
           <section className="space-y-3">
-            <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">Stato</p>
-            <Badge variant={isPhase && selection.item.status === "in_progress" ? "info" : "default"}>
-              <span className="h-2 w-2 rounded-full bg-current" />
-              {isPhase ? selection.item.status.replace("_", " ") : selection?.item.type}
-            </Badge>
+            <div className="flex items-center justify-between gap-2">
+              <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">Stato</p>
+              {isPhase && phaseSaved ? <Badge variant="success">Salvato ✓</Badge> : null}
+            </div>
             {isPhase ? (
-              <div className="flex items-center gap-2">
-                <select
-                  className="h-10 w-full rounded-xl border border-border bg-surface-low px-3 text-sm text-foreground outline-none disabled:cursor-not-allowed disabled:opacity-50"
-                  disabled={!canEdit}
-                  onChange={(event) => {
-                    applyAction({
-                      type: "set_phase_status",
-                      phaseId: selection.item.id,
-                      status: event.target.value as typeof selection.item.status,
-                    });
-                    flashPhaseSaved();
-                  }}
-                  title={canEdit ? "Cambia stato fase (salvataggio automatico)" : "Permesso non disponibile per utente viewer"}
-                  value={selection.item.status}
-                >
-                  <option value="pending">Da fare</option>
-                  <option value="in_progress">In corso</option>
-                  <option value="done">Completata</option>
-                  <option value="skipped">Saltata</option>
-                  <option value="blocked">Bloccata</option>
-                </select>
-                {phaseSaved ? <Badge variant="success">Salvato ✓</Badge> : null}
+              <div className="flex flex-wrap gap-2">
+                {(
+                  [
+                    { value: "pending", label: "Da fare", variant: "default" as const },
+                    { value: "in_progress", label: "In corso", variant: "info" as const },
+                    { value: "done", label: "Completata", variant: "success" as const },
+                    { value: "skipped", label: "Saltata", variant: "warning" as const },
+                    { value: "blocked", label: "Bloccata", variant: "danger" as const },
+                  ] as const
+                ).map((option) => {
+                  const isActive = selection.item.status === option.value;
+                  return (
+                    <button
+                      className={cn(
+                        "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors",
+                        isActive
+                          ? "border-electric/50 bg-electric/15 text-foreground"
+                          : "border-border bg-surface-low text-muted hover:border-electric/30 hover:text-foreground",
+                        !canEdit && "cursor-not-allowed opacity-50 hover:border-border hover:text-muted",
+                      )}
+                      disabled={!canEdit}
+                      key={option.value}
+                      onClick={() => {
+                        if (selection.item.status === option.value) return;
+                        applyAction({
+                          type: "set_phase_status",
+                          phaseId: selection.item.id,
+                          status: option.value,
+                        });
+                        flashPhaseSaved();
+                      }}
+                      title={canEdit ? `Imposta stato: ${option.label}` : "Permesso non disponibile per utente viewer"}
+                      type="button"
+                    >
+                      <span className={cn("h-2 w-2 rounded-full", isActive ? "bg-electric" : "bg-muted/50")} />
+                      {option.label}
+                    </button>
+                  );
+                })}
               </div>
-            ) : null}
+            ) : (
+              <Badge variant="default">
+                <span className="h-2 w-2 rounded-full bg-current" />
+                {selection?.item.type}
+              </Badge>
+            )}
           </section>
 
           <section className="space-y-3">
@@ -426,38 +445,18 @@ export function NodeDrawer({ selection, open, onOpenChange, onSwitchTab }: NodeD
           ) : null}
 
           {isPhase ? (
-            <div className="mt-auto grid gap-2 border-t border-border pt-4 sm:grid-cols-2">
-              <Button
-                disabled={!canEdit}
-                onClick={() => {
-                  applyAction({ type: "complete_phase", phaseId: selection.item.id });
-                  flashPhaseSaved();
-                }}
-                title={canEdit ? "Completa fase" : "Permesso non disponibile per utente viewer"}
-                type="button"
-              >
-                <Check className="h-4 w-4" />
-                Completa
-              </Button>
-              <Button
-                disabled={!canEdit}
-                onClick={() => {
-                  applyAction({ type: "skip_phase", phaseId: selection.item.id });
-                  flashPhaseSaved();
-                }}
-                title={canEdit ? "Salta fase" : "Permesso non disponibile per utente viewer"}
-                type="button"
-                variant="warning"
-              >
-                <SkipForward className="h-4 w-4" />
-                Salta
-              </Button>
+            <div className="mt-auto flex items-center justify-between gap-3 border-t border-border pt-4">
               {!canEdit ? (
-                <p className="col-span-full flex items-center gap-2 text-xs text-muted">
+                <p className="flex items-center gap-2 text-xs text-muted">
                   <Lock className="h-3.5 w-3.5" />
                   Utente viewer: azioni disponibili solo in lettura.
                 </p>
-              ) : null}
+              ) : (
+                <p className="text-xs text-muted">Le modifiche sono salvate automaticamente.</p>
+              )}
+              <Button onClick={() => onOpenChange(false)} type="button" variant="outline">
+                Chiudi
+              </Button>
             </div>
           ) : null}
         </div>
