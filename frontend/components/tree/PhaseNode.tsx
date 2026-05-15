@@ -20,11 +20,33 @@ const statusLabel = {
   blocked: "Bloccata",
 };
 
-function splitTitle(title: string) {
+function splitTitle(title: string): string[] {
+  const maxPerLine = 14;
+  const ellipsis = "…";
+  if (title.length <= maxPerLine) return [title];
   const words = title.split(" ");
-  if (words.length < 3) return [title];
-  const midpoint = Math.ceil(words.length / 2);
-  return [words.slice(0, midpoint).join(" "), words.slice(midpoint).join(" ")];
+  if (words.length < 2) {
+    return [title.slice(0, maxPerLine - 1).trimEnd() + ellipsis];
+  }
+  let line1 = "";
+  let line2 = "";
+  for (const word of words) {
+    if (line1 === "") {
+      line1 = word;
+    } else if ((line1 + " " + word).length <= maxPerLine) {
+      line1 = line1 + " " + word;
+    } else if (line2 === "") {
+      line2 = word;
+    } else if ((line2 + " " + word).length <= maxPerLine) {
+      line2 = line2 + " " + word;
+    } else {
+      line2 = (line2 + " " + word).slice(0, maxPerLine - 1).trimEnd() + ellipsis;
+      break;
+    }
+  }
+  if (line1.length > maxPerLine) line1 = line1.slice(0, maxPerLine - 1).trimEnd() + ellipsis;
+  if (line2.length > maxPerLine) line2 = line2.slice(0, maxPerLine - 1).trimEnd() + ellipsis;
+  return line2 ? [line1, line2] : [line1];
 }
 
 function StatusIcon({ phase }: { phase: PracticePhase }) {

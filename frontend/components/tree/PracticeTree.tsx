@@ -79,7 +79,7 @@ export function PracticeTree({ practice, phases, events, onSwitchTab }: Practice
   const todayIso = useMemo(() => todayDate.toISOString().slice(0, 10), [todayDate]);
   const [selection, setSelection] = useState<TreeSelection | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [composerType, setComposerType] = useState<PracticeEvent["type"] | null>(null);
+  const [composerType, setComposerType] = useState<PracticeEvent["type"] | "note" | null>(null);
   const [composerTitle, setComposerTitle] = useState("");
   const [composerDescription, setComposerDescription] = useState("");
   const [composerDate, setComposerDate] = useState(todayIso);
@@ -88,6 +88,7 @@ export function PracticeTree({ practice, phases, events, onSwitchTab }: Practice
   const [groupSelection, setGroupSelection] = useState<EventGroup | null>(null);
   const activeUser = useDemoStore((state) => state.activeUser);
   const applyAction = useDemoStore((state) => state.applyAction);
+  const allNotes = useDemoStore((state) => state.notes);
   const orderedPhases = useMemo(() => [...phases].sort((a, b) => a.order - b.order), [phases]);
   const currentPhase = orderedPhases.find((phase) => phase.status === "in_progress") ?? orderedPhases[0];
   const timelineRange = useMemo(() => {
@@ -202,6 +203,24 @@ export function PracticeTree({ practice, phases, events, onSwitchTab }: Practice
     );
   }, [dateToTimelineX, orderedPhases, phaseTimelineDate]);
 
+  const noteMarks = useMemo(() => {
+    return allNotes
+      .map((note, index) => {
+        const dateIso = note.occurredAt ?? note.createdAt?.slice(0, 10) ?? "";
+        if (!dateIso) return null;
+        const above = index % 2 === 0;
+        return {
+          id: note.id,
+          x: dateToTimelineX(dateIso),
+          y: above ? 200 : 300,
+          body: note.body,
+          authorName: note.author.name,
+          dateIso,
+        };
+      })
+      .filter((mark): mark is NonNullable<typeof mark> => mark !== null);
+  }, [allNotes, dateToTimelineX]);
+
   const eventGroups = useMemo<EventGroup[]>(() => {
     const map = new Map<string, EventGroup>();
     for (const event of events) {
@@ -260,8 +279,7 @@ export function PracticeTree({ practice, phases, events, onSwitchTab }: Practice
   }
 
   function openComposer(eventType: ComposerKind, date = todayIso, phaseId = currentPhase?.id) {
-    const mappedType: PracticeEvent["type"] = eventType === "note" ? "warning" : eventType;
-    setComposerType(mappedType);
+    setComposerType(eventType);
     setComposerTitle("");
     setComposerDescription("");
     setComposerDate(date);
@@ -270,15 +288,26 @@ export function PracticeTree({ practice, phases, events, onSwitchTab }: Practice
 
   function createEvent() {
     const phaseId = composerPhaseId ?? currentPhase?.id;
-    if (!composerType || !composerTitle.trim() || !phaseId) return;
-    applyAction({
-      type: "create_event",
-      description: composerDescription.trim() || "Evento demo creato durante walkthrough.",
-      eventType: composerType,
-      occurredAt: composerDate,
-      phaseId,
-      title: composerTitle.trim(),
-    });
+    if (!composerType || !phaseId) return;
+    if (composerType === "note") {
+      if (!composerDescription.trim()) return;
+      applyAction({
+        type: "add_note",
+        body: composerDescription.trim(),
+        occurredAt: composerDate,
+        phaseId,
+      });
+    } else {
+      if (!composerTitle.trim()) return;
+      applyAction({
+        type: "create_event",
+        description: composerDescription.trim() || "",
+        eventType: composerType,
+        occurredAt: composerDate,
+        phaseId,
+        title: composerTitle.trim(),
+      });
+    }
     setComposerType(null);
   }
 
@@ -371,16 +400,6 @@ export function PracticeTree({ practice, phases, events, onSwitchTab }: Practice
                 <Mail className="h-4 w-4" />
                 Email
               </Button>
-              <Button
-                disabled={activeUser.permission === "viewer"}
-                onClick={() => openComposer("warning", composerDate, composerPhaseId ?? currentPhase?.id)}
-                title={activeUser.permission === "viewer" ? "Permesso non disponibile per utente viewer" : "Aggiungi avviso"}
-                type="button"
-                variant="warning"
-              >
-                <AlertTriangle className="h-4 w-4" />
-                Avviso
-              </Button>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -422,43 +441,72 @@ export function PracticeTree({ practice, phases, events, onSwitchTab }: Practice
         <CardContent className="p-0">
           {composerType ? (
             <div className="border-b border-border bg-surface-container px-5 py-4">
-              <div className="grid gap-3 md:grid-cols-[200px_1fr_1.4fr_auto] md:items-end">
-                <div className="flex flex-col gap-1">
-                  <Badge variant={composerType === "warning" ? "warning" : "info"}>
-                    <span className="font-display text-sm font-bold uppercase tracking-wide">
-                      {composerType === "call" ? "Telefonata" : composerType === "mail" ? "Email" : composerType === "warning" ? "Avviso" : "Nota"}
-                    </span>
-                  </Badge>
-                  <span className="text-xs text-muted">{displayDate(composerDate)}</span>
+              {composerType === "note" ? (
+                <div className="grid gap-3 md:grid-cols-[200px_1fr_auto] md:items-end">
+                  <div className="flex flex-col gap-1">
+                    <Badge variant="info">
+                      <span className="font-display text-sm font-bold uppercase tracking-wide">Nota</span>
+                    </Badge>
+                    <span className="text-xs text-muted">{displayDate(composerDate)}</span>
+                  </div>
+                  <label className="text-sm font-semibold text-muted">
+                    Testo della nota
+                    <textarea
+                      autoFocus
+                      className="mt-1 min-h-20 w-full resize-none rounded-xl border border-border bg-surface-low p-3 font-normal text-foreground outline-none"
+                      onChange={(event) => setComposerDescription(event.target.value)}
+                      placeholder="Scrivi qui la nota..."
+                      value={composerDescription}
+                    />
+                  </label>
+                  <div className="flex gap-2">
+                    <Button disabled={!composerDescription.trim() || !composerDate} onClick={createEvent} type="button">
+                      Salva
+                    </Button>
+                    <Button onClick={() => setComposerType(null)} type="button" variant="ghost">
+                      Annulla
+                    </Button>
+                  </div>
                 </div>
-                <label className="text-sm font-semibold text-muted">
-                  Titolo
-                  <input
-                    autoFocus
-                    className="mt-1 h-10 w-full rounded-xl border border-border bg-surface-low px-3 font-normal text-foreground outline-none"
-                    onChange={(event) => setComposerTitle(event.target.value)}
-                    placeholder="Titolo evento"
-                    value={composerTitle}
-                  />
-                </label>
-                <label className="text-sm font-semibold text-muted">
-                  Descrizione
-                  <input
-                    className="mt-1 h-10 w-full rounded-xl border border-border bg-surface-low px-3 font-normal text-foreground outline-none"
-                    onChange={(event) => setComposerDescription(event.target.value)}
-                    placeholder={`Collegato a ${currentPhase?.title ?? "fase corrente"}`}
-                    value={composerDescription}
-                  />
-                </label>
-                <div className="flex gap-2">
-                  <Button disabled={!composerTitle.trim() || !composerDate} onClick={createEvent} type="button">
-                    Crea
-                  </Button>
-                  <Button onClick={() => setComposerType(null)} type="button" variant="ghost">
-                    Annulla
-                  </Button>
+              ) : (
+                <div className="grid gap-3 md:grid-cols-[200px_1fr_1.4fr_auto] md:items-end">
+                  <div className="flex flex-col gap-1">
+                    <Badge variant={composerType === "warning" ? "warning" : "info"}>
+                      <span className="font-display text-sm font-bold uppercase tracking-wide">
+                        {composerType === "call" ? "Telefonata" : composerType === "mail" ? "Email" : "Avviso"}
+                      </span>
+                    </Badge>
+                    <span className="text-xs text-muted">{displayDate(composerDate)}</span>
+                  </div>
+                  <label className="text-sm font-semibold text-muted">
+                    Titolo
+                    <input
+                      autoFocus
+                      className="mt-1 h-10 w-full rounded-xl border border-border bg-surface-low px-3 font-normal text-foreground outline-none"
+                      onChange={(event) => setComposerTitle(event.target.value)}
+                      placeholder="Titolo evento"
+                      value={composerTitle}
+                    />
+                  </label>
+                  <label className="text-sm font-semibold text-muted">
+                    Descrizione
+                    <input
+                      className="mt-1 h-10 w-full rounded-xl border border-border bg-surface-low px-3 font-normal text-foreground outline-none"
+                      onChange={(event) => setComposerDescription(event.target.value)}
+                      placeholder={`Collegato a ${currentPhase?.title ?? "fase corrente"}`}
+                      value={composerDescription}
+                    />
+                  </label>
+                  <div className="flex gap-2">
+                    <Button disabled={!composerTitle.trim() || !composerDate} onClick={createEvent} type="button">
+                      Crea
+                    </Button>
+                    <Button onClick={() => setComposerType(null)} type="button" variant="ghost">
+                      Annulla
+                    </Button>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           ) : null}
           <div className="overflow-x-auto" ref={scrollAreaRef}>
@@ -594,6 +642,22 @@ export function PracticeTree({ practice, phases, events, onSwitchTab }: Practice
                 );
               })}
 
+              {noteMarks.map((mark) => (
+                <g
+                  aria-label={`Nota di ${mark.authorName}`}
+                  className="cursor-pointer group"
+                  key={`note-${mark.id}`}
+                  onClick={() => onSwitchTab("note")}
+                  role="button"
+                  tabIndex={0}
+                  transform={`translate(${mark.x} 290)`}
+                >
+                  <title>{`Nota — ${mark.authorName} — ${displayDate(mark.dateIso)}\n${mark.body.slice(0, 120)}`}</title>
+                  <circle className="fill-electric/20 stroke-electric/50 stroke-[1.5] transition-colors group-hover:fill-electric/40 group-hover:stroke-electric" r="6" />
+                  <circle className="fill-electric" r="2.5" />
+                </g>
+              ))}
+
               {orderedPhases.map((phase) => {
                 const position = phasePositions.get(phase.id);
                 if (!position) return null;
@@ -705,7 +769,10 @@ function TreeHelpBox() {
               <strong className="text-foreground">Cerchi grandi numerati</strong> sul tronco = fasi del template (pietre miliari).
             </li>
             <li>
-              <strong className="text-foreground">Icone sopra e sotto</strong> = eventi sulla fase: telefonate, email, avvisi.
+              <strong className="text-foreground">Icone sopra e sotto</strong> = eventi sulla fase: telefonate, email.
+            </li>
+            <li>
+              <strong className="text-foreground">Puntini electric sotto il tronco</strong> = note registrate sulla pratica.
             </li>
           </ul>
         </div>
@@ -714,8 +781,8 @@ function TreeHelpBox() {
             Aggiungere un evento
           </p>
           <p className="mt-1">
-            Click sul tronco per scegliere la data, poi sul bottone <strong className="text-foreground">Telefonata / Email / Avviso</strong> in alto.
-            Click su un cerchio o su un&apos;icona per aprire il dettaglio nella sidebar destra.
+            Click sul tronco per scegliere la data, poi sul bottone <strong className="text-foreground">Nota / Telefonata / Email</strong> in alto.
+            Click su un cerchio o su un&apos;icona per aprire il dettaglio nella sidebar destra; i puntini elettric sotto il tronco sono le note (click apre il tab Note).
           </p>
         </div>
       </div>

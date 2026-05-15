@@ -29,6 +29,7 @@ export type DemoNote = {
   author: DemoUser;
   body: string;
   createdAt: string;
+  occurredAt?: string | null;
 };
 
 export const DEMO_USERS = [

@@ -1147,6 +1147,11 @@ export interface components {
              */
             author_id: string;
             /**
+             * Occurred At
+             * Format: date
+             */
+            occurred_at?: string | null;
+            /**
              * Id
              * Format: uuid
              */
