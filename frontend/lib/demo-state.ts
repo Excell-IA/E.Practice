@@ -157,29 +157,15 @@ const initialEvents: PracticeEvent[] = [
   },
 ];
 
-const initialNotes: DemoNote[] = [
-  {
-    id: "note-01",
-    author: DEMO_USERS[1],
-    body: "Bozza avviata, in attesa del dettaglio immobilizzazioni aggiornato.",
-    createdAt: "2026-03-12T10:30:00",
-    phaseId: "phase-04",
-  },
-  {
-    id: "note-02",
-    author: DEMO_USERS[0],
-    body: "Verificare esposizione leasing prima della revisione titolare.",
-    createdAt: "2026-03-13T15:15:00",
-    phaseId: "phase-04",
-  },
-];
+const initialNotes: DemoNote[] = [];
 
 function readStoredNotes() {
   if (typeof window === "undefined") return initialNotes;
   const raw = window.localStorage.getItem("epractice:notes");
   if (!raw) return initialNotes;
   try {
-    return JSON.parse(raw) as DemoNote[];
+    const parsed = JSON.parse(raw) as DemoNote[];
+    return parsed.filter((note) => note.id !== "note-01" && note.id !== "note-02");
   } catch {
     return initialNotes;
   }
@@ -340,13 +326,7 @@ export const useDemoStore = create<DemoState>((set) => ({
       }
 
       if (action.type === "hydrate_from_api") {
-        const localNotes = state.notes.filter((note) => !isUuid(note.id));
-        const localEvents = state.events.filter((event) => !isUuid(event.id));
-        return {
-          ...action.detail,
-          events: [...action.detail.events, ...localEvents],
-          notes: [...localNotes, ...action.detail.notes],
-        };
+        return { ...action.detail };
       }
 
       if (state.activeUser.permission === "viewer") {
