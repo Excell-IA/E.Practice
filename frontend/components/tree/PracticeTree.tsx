@@ -23,10 +23,12 @@ import { useDemoStore } from "@/lib/demo-state";
 import type { Practice, PracticeEvent, PracticePhase, TreeSelection } from "@/lib/types";
 
 import { BezierEdge } from "./BezierEdge";
+import { EventGroupNode } from "./EventGroupNode";
 import { EventNode } from "./EventNode";
 import { NodeDrawer } from "./NodeDrawer";
 import { PhaseNode } from "./PhaseNode";
 import { TodayLine } from "./TodayLine";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 
 type PracticeTreeProps = {
   practice: Practice;
@@ -62,6 +64,20 @@ type TrunkDraft = {
   phaseId: string;
 };
 
+type EventGroup = {
+  key: string;
+  events: PracticeEvent[];
+  date: string;
+  type: PracticeEvent["type"];
+  phase: PracticePhase;
+};
+
+const groupTypeLabel = {
+  call: "Telefonate",
+  mail: "Email",
+  warning: "Avvisi",
+};
+
 export function PracticeTree({ practice, phases, events, onSwitchTab }: PracticeTreeProps) {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [todayDate] = useState<Date>(() => new Date());
@@ -75,6 +91,7 @@ export function PracticeTree({ practice, phases, events, onSwitchTab }: Practice
   const [composerPhaseId, setComposerPhaseId] = useState<string | null>(null);
   const [trunkHover, setTrunkHover] = useState<TrunkHover | null>(null);
   const [trunkDraft, setTrunkDraft] = useState<TrunkDraft | null>(null);
+  const [groupSelection, setGroupSelection] = useState<EventGroup | null>(null);
   const activeUser = useDemoStore((state) => state.activeUser);
   const applyAction = useDemoStore((state) => state.applyAction);
   const orderedPhases = useMemo(() => [...phases].sort((a, b) => a.order - b.order), [phases]);
@@ -194,15 +211,34 @@ export function PracticeTree({ practice, phases, events, onSwitchTab }: Practice
     );
   }, [dateToTimelineX, orderedPhases, phaseTimelineDate]);
 
-  const eventPositions = useMemo(
+  const eventGroups = useMemo<EventGroup[]>(() => {
+    const map = new Map<string, EventGroup>();
+    for (const event of events) {
+      const phase =
+        orderedPhases.find((item) => item.id === event.phaseId) ?? orderedPhases[0];
+      if (!phase) continue;
+      const dateOnly = (event.occurredAt ?? "").slice(0, 10);
+      if (!dateOnly) continue;
+      const key = `${dateOnly}__${event.type}__${phase.id}`;
+      const existing = map.get(key);
+      if (existing) {
+        existing.events.push(event);
+      } else {
+        map.set(key, { key, events: [event], date: dateOnly, type: event.type, phase });
+      }
+    }
+    return Array.from(map.values()).sort((a, b) => a.date.localeCompare(b.date));
+  }, [events, orderedPhases]);
+
+  const groupPositions = useMemo(
     () =>
       new Map(
-        events.map((event, index) => {
+        eventGroups.map((group, index) => {
           const above = index % 2 === 0;
-          return [event.id, { x: dateToTimelineX(event.occurredAt), y: above ? 132 : 360 }];
+          return [group.key, { x: dateToTimelineX(group.date), y: above ? 132 : 360 }];
         }),
       ),
-    [dateToTimelineX, events],
+    [dateToTimelineX, eventGroups],
   );
   const freshSelection = useMemo((): TreeSelection | null => {
     if (!selection) return null;
@@ -533,33 +569,46 @@ export function PracticeTree({ practice, phases, events, onSwitchTab }: Practice
               ) : null}
               <TodayLine x={todayX} />
 
-              {events.map((event) => {
-                const phase = resolveEventPhase(event);
-                const eventPosition = eventPositions.get(event.id);
-                if (!phase || !eventPosition) return null;
+              {eventGroups.map((group) => {
+                const position = groupPositions.get(group.key);
+                if (!position) return null;
                 return (
                   <BezierEdge
-                    fromX={eventPosition.x}
-                    fromY={timeline.y + (eventPosition.y < timeline.y ? -10 : 10)}
-                    key={`edge-${event.id}`}
-                    toX={eventPosition.x}
-                    toY={eventPosition.y + (eventPosition.y < timeline.y ? 24 : -24)}
+                    fromX={position.x}
+                    fromY={timeline.y + (position.y < timeline.y ? -10 : 10)}
+                    key={`edge-${group.key}`}
+                    toX={position.x}
+                    toY={position.y + (position.y < timeline.y ? 24 : -24)}
                     arrow
-                    tone={event.type}
+                    tone={group.type}
                   />
                 );
               })}
 
-              {events.map((event) => {
-                const phase = resolveEventPhase(event);
-                const position = eventPositions.get(event.id);
-                if (!phase || !position) return null;
+              {eventGroups.map((group) => {
+                const position = groupPositions.get(group.key);
+                if (!position) return null;
+                if (group.events.length > 1) {
+                  return (
+                    <EventGroupNode
+                      count={group.events.length}
+                      date={group.date}
+                      key={group.key}
+                      onSelect={() => setGroupSelection(group)}
+                      timelineY={timeline.y}
+                      type={group.type}
+                      x={position.x}
+                      y={position.y}
+                    />
+                  );
+                }
+                const event = group.events[0];
                 return (
                   <EventNode
                     event={event}
-                    key={event.id}
+                    key={group.key}
                     onSelect={selectEvent}
-                    phase={phase}
+                    phase={group.phase}
                     timelineY={timeline.y}
                     x={position.x}
                     y={position.y}
@@ -594,6 +643,53 @@ export function PracticeTree({ practice, phases, events, onSwitchTab }: Practice
       </Card>
 
       <NodeDrawer onOpenChange={setDrawerOpen} onSwitchTab={onSwitchTab} open={drawerOpen} selection={freshSelection} />
+
+      <Sheet onOpenChange={(open) => !open && setGroupSelection(null)} open={groupSelection !== null}>
+        <SheetContent>
+          {groupSelection ? (
+            <>
+              <SheetHeader>
+                <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-electric">
+                  {groupTypeLabel[groupSelection.type]} - Fase {groupSelection.phase.order}
+                </p>
+                <SheetTitle>
+                  {groupSelection.events.length} {groupTypeLabel[groupSelection.type].toLowerCase()} il{" "}
+                  {displayDate(groupSelection.date)}
+                </SheetTitle>
+                <SheetDescription>
+                  Clicca su una voce per aprirne il dettaglio.
+                </SheetDescription>
+              </SheetHeader>
+
+              <div className="mt-4 flex flex-1 flex-col gap-2 overflow-y-auto">
+                {[...groupSelection.events]
+                  .sort((a, b) => (a.occurredAt ?? "").localeCompare(b.occurredAt ?? ""))
+                  .map((event) => (
+                    <button
+                      className="flex flex-col gap-1 rounded-xl border border-border bg-surface-container px-4 py-3 text-left transition-colors hover:border-electric/40 hover:bg-surface-high"
+                      key={event.id}
+                      onClick={() => {
+                        selectEvent(event, groupSelection.phase);
+                        setGroupSelection(null);
+                      }}
+                      type="button"
+                    >
+                      <span className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
+                        {event.author.name}
+                      </span>
+                      <span className="font-label text-sm font-semibold text-foreground">
+                        {event.title}
+                      </span>
+                      {event.description ? (
+                        <span className="line-clamp-2 text-xs text-muted">{event.description}</span>
+                      ) : null}
+                    </button>
+                  ))}
+              </div>
+            </>
+          ) : null}
+        </SheetContent>
+      </Sheet>
     </>
   );
 }
@@ -626,7 +722,7 @@ function TreeHelpBox() {
           Come si legge la vista albero
         </p>
         <p className="mt-1">
-          Il <strong className="text-foreground">tronco orizzontale</strong> è l'asse del tempo. I cerchi grandi numerati sono le <strong className="text-foreground">fasi</strong> del template (pietre miliari della pratica). Sopra e sotto il tronco trovi gli <strong className="text-foreground">eventi</strong> agganciati alla fase corrispondente: telefonate, email, avvisi, note.
+          Il <strong className="text-foreground">tronco orizzontale</strong> è l&apos;asse del tempo. I cerchi grandi numerati sono le <strong className="text-foreground">fasi</strong> del template (pietre miliari della pratica). Sopra e sotto il tronco trovi gli <strong className="text-foreground">eventi</strong> agganciati alla fase corrispondente: telefonate, email, avvisi, note.
         </p>
         <p className="mt-1">
           Dalla toolbar in alto puoi aggiungere un nuovo evento (Telefonata, Email, Avviso). Clicca su un cerchio per vedere il dettaglio nella sidebar destra; click sul tronco per aggiungere un evento ad-hoc nel punto cliccato.
