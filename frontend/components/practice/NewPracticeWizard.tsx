@@ -3,7 +3,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { addDays, differenceInCalendarDays, format } from "date-fns";
 import { it } from "date-fns/locale";
-import { Check, FileSpreadsheet, Plus, Search, Trash2, UploadCloud, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, FileSpreadsheet, Plus, Search, Trash2, UploadCloud, X } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -151,6 +151,7 @@ export function NewPracticeWizard() {
   const [isDragging, setIsDragging] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [step, setStep] = useState<1 | 2>(1);
   const selectedCategory = categories.find((category) => category.id === categoryId) ?? categories[0];
   const selectedClient = clientHits.find((client) => client.id === selectedClientId) ?? fallbackClients.find((client) => client.id === selectedClientId);
   const preloadedAttachmentIds = useMemo(
@@ -316,6 +317,17 @@ export function NewPracticeWizard() {
     return !missingClient && !missingTitle;
   }
 
+  function goNext() {
+    if (!validate()) return;
+    setStep(2);
+    window.scrollTo({ behavior: "smooth", top: 0 });
+  }
+
+  function goBack() {
+    setStep(1);
+    window.scrollTo({ behavior: "smooth", top: 0 });
+  }
+
   async function submit() {
     if (!validate()) return;
     setSubmitting(true);
@@ -365,49 +377,64 @@ export function NewPracticeWizard() {
           <h1 className="mt-2 font-display text-3xl font-semibold text-foreground">Crea pratica</h1>
         </div>
 
+        <div className="flex items-center gap-3 rounded-2xl border border-border bg-surface-low px-4 py-3 text-sm">
+          <div className="flex items-center gap-2">
+            <span className={cn("flex h-6 w-6 items-center justify-center rounded-full font-display text-xs font-bold", step === 1 ? "bg-electric text-[var(--on-primary)]" : "bg-success/80 text-[var(--on-primary)]")}>
+              {step === 1 ? "1" : <Check className="h-3.5 w-3.5" />}
+            </span>
+            <span className={cn("font-semibold", step === 1 ? "text-foreground" : "text-muted")}>Cliente e dati pratica</span>
+          </div>
+          <span className="h-px flex-1 bg-border" />
+          <div className="flex items-center gap-2">
+            <span className={cn("flex h-6 w-6 items-center justify-center rounded-full font-display text-xs font-bold", step === 2 ? "bg-electric text-[var(--on-primary)]" : "bg-surface-high text-muted")}>2</span>
+            <span className={cn("font-semibold", step === 2 ? "text-foreground" : "text-muted")}>Fasi e allegati</span>
+          </div>
+        </div>
+
         {error ? <div className="rounded-2xl border border-danger/40 bg-danger/10 px-4 py-3 text-sm font-semibold text-danger">{error}</div> : null}
 
+        {step === 1 ? (
         <Card className={cn(clientError && "border-danger")} ref={clientSectionRef as React.RefObject<HTMLDivElement>}>
           <CardHeader><CardTitle>Cliente</CardTitle></CardHeader>
-          <CardContent className="grid gap-3 lg:grid-cols-[1fr_auto] lg:items-end">
-            <label className="space-y-2">
-              <span className="text-sm font-semibold text-muted">Cliente</span>
-              <div className="grid gap-2 md:grid-cols-[280px_1fr]">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
-                  <input
-                    className="h-10 w-full rounded-xl border border-border bg-surface-container pl-9 pr-3 text-sm outline-none"
-                    onChange={(event) => setClientQuery(event.target.value)}
-                    placeholder="Filtra cliente"
-                    value={clientQuery}
-                  />
-                </div>
-                <select
-                  className="h-10 rounded-xl border border-border bg-surface-container px-3 text-sm outline-none"
-                  onChange={(event) => {
-                    setSelectedClientId(event.target.value);
-                    setClientError(false);
-                  }}
-                  value={selectedClientId}
-                >
-                  {clientHits.map((client) => (
-                    <option key={client.id} value={client.id}>
-                      {client.ragione_sociale}
-                    </option>
-                  ))}
-                </select>
+          <CardContent className="space-y-2">
+            <span className="block text-sm font-semibold text-muted">Cliente</span>
+            <div className="grid gap-2 md:grid-cols-[260px_1fr_auto]">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+                <input
+                  className="h-10 w-full rounded-xl border border-border bg-surface-container pl-9 pr-3 text-sm outline-none"
+                  onChange={(event) => setClientQuery(event.target.value)}
+                  placeholder="Filtra cliente"
+                  value={clientQuery}
+                />
               </div>
-              <span className="text-xs text-muted">
-                {selectedClient ? `${selectedClient.code} - ${selectedClient.piva ?? selectedClient.cf ?? "senza P.IVA"}` : "Seleziona un cliente"}
-              </span>
-            </label>
-            <Button onClick={() => setClientSheetOpen(true)} type="button" variant="outline">
-              <Plus className="h-4 w-4" />
-              Nuovo cliente
-            </Button>
+              <select
+                className="h-10 rounded-xl border border-border bg-surface-container px-3 text-sm outline-none"
+                onChange={(event) => {
+                  setSelectedClientId(event.target.value);
+                  setClientError(false);
+                }}
+                value={selectedClientId}
+              >
+                {clientHits.map((client) => (
+                  <option key={client.id} value={client.id}>
+                    {client.ragione_sociale}
+                  </option>
+                ))}
+              </select>
+              <Button onClick={() => setClientSheetOpen(true)} type="button" variant="outline">
+                <Plus className="h-4 w-4" />
+                Nuovo cliente
+              </Button>
+            </div>
+            <span className="block text-xs text-muted">
+              {selectedClient ? `${selectedClient.code} - ${selectedClient.piva ?? selectedClient.cf ?? "senza P.IVA"}` : "Seleziona un cliente"}
+            </span>
           </CardContent>
         </Card>
+        ) : null}
 
+        {step === 1 ? (
         <Card className={cn(titleError && "border-danger")} ref={titleSectionRef as React.RefObject<HTMLDivElement>}>
           <CardHeader><CardTitle>Dati pratica</CardTitle></CardHeader>
           <CardContent className="grid gap-5 lg:grid-cols-[1fr_420px]">
@@ -451,7 +478,9 @@ export function NewPracticeWizard() {
             </section>
           </CardContent>
         </Card>
+        ) : null}
 
+        {step === 2 ? (
         <Card>
           <CardHeader><CardTitle>Fasi</CardTitle></CardHeader>
           <CardContent>
@@ -476,7 +505,9 @@ export function NewPracticeWizard() {
             </div>
           </CardContent>
         </Card>
+        ) : null}
 
+        {step === 2 ? (
         <Card>
           <CardHeader><CardTitle>Documenti allegati</CardTitle></CardHeader>
           <CardContent className="grid gap-4 lg:grid-cols-[1fr_360px]">
@@ -508,14 +539,33 @@ export function NewPracticeWizard() {
             </div>
           </CardContent>
         </Card>
+        ) : null}
       </div>
 
       <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-surface-low/95 px-6 py-3 backdrop-blur lg:left-60">
-        <div className="mx-auto flex max-w-7xl justify-end">
-          <Button disabled={submitting} onClick={submit} type="button">
-            <Check className="h-4 w-4" />
-            {submitting ? "Creazione..." : "Crea pratica"}
-          </Button>
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-3">
+          <p className="text-xs text-muted">
+            {step === 1 ? "Step 1 di 2 — completa cliente e dati prima di proseguire" : "Step 2 di 2 — rivedi fasi e aggiungi eventuali allegati"}
+          </p>
+          <div className="flex items-center gap-2">
+            {step === 2 ? (
+              <Button onClick={goBack} type="button" variant="outline">
+                <ArrowLeft className="h-4 w-4" />
+                Indietro
+              </Button>
+            ) : null}
+            {step === 1 ? (
+              <Button onClick={goNext} type="button">
+                Avanti
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            ) : (
+              <Button disabled={submitting} onClick={submit} type="button">
+                <Check className="h-4 w-4" />
+                {submitting ? "Creazione..." : "Crea pratica"}
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 

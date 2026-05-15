@@ -5,6 +5,7 @@ import {
   CalendarDays,
   Clock3,
   FileText,
+  FolderKanban,
   Gauge,
   Home,
   LogOut,
@@ -38,6 +39,7 @@ const navItems = [
   { label: "Nuovo documento", icon: FileText, section: "Modulo", href: "/pratiche/importa" },
   { label: "Agenda", icon: CalendarDays, section: "Modulo" },
   { label: "Scadenze", icon: Clock3, section: "Modulo", badge: 7 },
+  { label: "Tipologie pratica", icon: FolderKanban, section: "Studio", href: "/tipologie" },
   { label: "Utenti studio", icon: UserSquare2, section: "Studio", href: "/utenti" },
   { label: "Configurazione", icon: Settings, section: "Studio" },
 ];
