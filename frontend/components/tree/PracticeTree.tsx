@@ -77,13 +77,32 @@ export function PracticeTree({ practice, phases, events, onSwitchTab }: Practice
   const applyAction = useDemoStore((state) => state.applyAction);
   const orderedPhases = useMemo(() => [...phases].sort((a, b) => a.order - b.order), [phases]);
   const currentPhase = orderedPhases.find((phase) => phase.status === "in_progress") ?? orderedPhases[0];
-  const timelineRange = useMemo(
-    () => ({
-      endDate: new Date(practice.dueDate),
-      startDate: new Date(practice.startDate),
-    }),
-    [practice.dueDate, practice.startDate],
-  );
+  const timelineRange = useMemo(() => {
+    const candidates: number[] = [];
+    const push = (value: string | Date | undefined) => {
+      if (!value) return;
+      const t = new Date(value).getTime();
+      if (!Number.isNaN(t)) candidates.push(t);
+    };
+    push(practice.startDate);
+    push(practice.dueDate);
+    push(todayDate);
+    for (const phase of phases) {
+      push(phase.plannedDate);
+      push(phase.dueDate);
+    }
+    for (const event of events) {
+      push(event.occurredAt);
+    }
+    if (candidates.length === 0) {
+      return { startDate: new Date(practice.startDate), endDate: new Date(practice.dueDate) };
+    }
+    const padding = 7 * 24 * 60 * 60 * 1000;
+    return {
+      startDate: new Date(Math.min(...candidates) - padding),
+      endDate: new Date(Math.max(...candidates) + padding),
+    };
+  }, [practice.startDate, practice.dueDate, phases, events, todayDate]);
   const dateToTimelineX = useCallback(
     (value: string | Date) => {
       const date = typeof value === "string" ? new Date(value) : value;
