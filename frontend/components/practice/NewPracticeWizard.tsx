@@ -11,7 +11,6 @@ import { Badge, type BadgeProps } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { V1Hint } from "@/components/ui/v1-hint";
 import {
   attachAttachment,
   createClient,
@@ -33,7 +32,7 @@ import { directoryClients } from "@/lib/demo-directory";
 import { DEMO_USERS, useDemoStore } from "@/lib/demo-state";
 import { cn } from "@/lib/utils";
 
-type PreviewPhase = ApiTemplatePreview["phases"][number] & { custom?: boolean; enabled: boolean };
+type PreviewPhase = ApiTemplatePreview["phases"][number] & { custom?: boolean; enabled: boolean; assignee_id?: string };
 type LabelOption = { id: string; name: string; variant: BadgeProps["variant"] };
 type ClientDraft = { email: string; name: string; phone: string; type: "societa" | "persona_fisica"; vat: string };
 
@@ -279,43 +278,71 @@ export function NewPracticeWizard() {
     await deleteAttachment(id, activeUser.id).catch(console.warn);
   }
 
-  function updatePhaseDate(index: number, field: "planned_start" | "planned_end", value: string) {
+  function reorderPhasesByDate(list: PreviewPhase[]): PreviewPhase[] {
+    return [...list]
+      .sort((a, b) => new Date(a.planned_start).getTime() - new Date(b.planned_start).getTime())
+      .map((phase, index) => ({ ...phase, order_index: index + 1 }));
+  }
+
+  function updatePhaseStart(index: number, value: string) {
+    setPhases((current) => {
+      const updated = current.map((phase, itemIndex) => {
+        if (itemIndex !== index) return phase;
+        const start = new Date(value);
+        const end = addDays(start, phase.duration_days);
+        return { ...phase, planned_start: value, planned_end: format(end, "yyyy-MM-dd") };
+      });
+      return reorderPhasesByDate(updated);
+    });
+  }
+
+  function updatePhaseDuration(index: number, value: number) {
+    const duration = Number.isFinite(value) && value > 0 ? Math.floor(value) : 1;
     setPhases((current) =>
       current.map((phase, itemIndex) => {
         if (itemIndex !== index) return phase;
-        const next = { ...phase, [field]: value };
-        let start = new Date(next.planned_start);
-        let end = new Date(next.planned_end);
-        if (end < start) {
-          const swap = start;
-          start = end;
-          end = swap;
-          next.planned_start = format(start, "yyyy-MM-dd");
-          next.planned_end = format(end, "yyyy-MM-dd");
-        }
-        next.duration_days = Math.max(1, differenceInCalendarDays(end, start));
-        return next;
+        const end = addDays(new Date(phase.planned_start), duration);
+        return { ...phase, duration_days: duration, planned_end: format(end, "yyyy-MM-dd") };
       }),
     );
   }
 
+  function updatePhaseAssignee(index: number, userId: string) {
+    setPhases((current) =>
+      current.map((phase, itemIndex) =>
+        itemIndex === index ? { ...phase, assignee_id: userId } : phase,
+      ),
+    );
+  }
+
+  function updatePhaseName(index: number, value: string) {
+    setPhases((current) =>
+      current.map((phase, itemIndex) =>
+        itemIndex === index ? { ...phase, name: value } : phase,
+      ),
+    );
+  }
+
   function addCustomPhase() {
-    const index = phases.length + 1;
     const lastEnd = phases.length ? phases[phases.length - 1].planned_end : apertura;
     const start = addDays(new Date(lastEnd), 1);
-    setPhases((current) => [
-      ...current,
-      {
-        custom: true,
-        description: null,
-        duration_days: 2,
-        enabled: true,
-        name: "Fase custom",
-        order_index: index,
-        planned_end: format(addDays(start, 2), "yyyy-MM-dd"),
-        planned_start: format(start, "yyyy-MM-dd"),
-      },
-    ]);
+    const duration = 15;
+    setPhases((current) =>
+      reorderPhasesByDate([
+        ...current,
+        {
+          assignee_id: responsibleId,
+          custom: true,
+          description: null,
+          duration_days: duration,
+          enabled: true,
+          name: "Nuova fase",
+          order_index: current.length + 1,
+          planned_end: format(addDays(start, duration), "yyyy-MM-dd"),
+          planned_start: format(start, "yyyy-MM-dd"),
+        },
+      ]),
+    );
   }
 
   function validate() {
@@ -355,6 +382,7 @@ export function NewPracticeWizard() {
           description,
           label_ids: selectedLabels,
           phase_overrides: activePhases.map((phase) => ({
+            assignee_id: phase.assignee_id ?? responsibleId,
             enabled: phase.enabled,
             name: phase.name,
             order_index: phase.order_index,
@@ -434,7 +462,7 @@ export function NewPracticeWizard() {
                   value={selectedClientId}
                 >
                   {clientHits.length === 0 ? (
-                    <option value="">Nessun cliente — usa "+ Nuovo cliente"</option>
+                    <option value="">Nessun cliente — usa &quot;+ Nuovo cliente&quot;</option>
                   ) : null}
                   {clientHits.map((client) => (
                     <option key={client.id} value={client.id}>
@@ -511,16 +539,34 @@ export function NewPracticeWizard() {
               <label className="flex items-center gap-2 text-sm text-foreground"><input checked={reminders} onChange={(event) => setReminders(event.target.checked)} type="checkbox" /> Crea reminders automatici</label>
               <Button onClick={addCustomPhase} type="button" variant="outline"><Plus className="h-4 w-4" />Aggiungi fase</Button>
             </div>
+            <div className="hidden gap-3 px-3 pb-2 text-[10px] font-display font-semibold uppercase tracking-[0.14em] text-muted md:grid md:grid-cols-[40px_1fr_140px_90px_110px_180px_40px]">
+              <span>#</span>
+              <span>Nome fase</span>
+              <span>Inizio</span>
+              <span>Durata</span>
+              <span>Fine</span>
+              <span>Assegnatario</span>
+              <span />
+            </div>
             <div className="space-y-2">
               {phases.map((phase, index) => (
-                <div className="grid gap-3 rounded-xl border border-border bg-surface-container p-3 text-sm md:grid-cols-[40px_1fr_140px_140px_80px_auto_40px]" key={`phase-${phase.order_index}-${index}`}>
+                <div className="grid gap-3 rounded-xl border border-border bg-surface-container p-3 text-sm md:grid-cols-[40px_1fr_140px_90px_110px_180px_40px] md:items-center" key={`phase-${phase.order_index}-${index}`}>
                   <span className="font-label text-muted">#{index + 1}</span>
-                  <input className="rounded-lg bg-surface-low px-2 py-1 outline-none" onChange={(event) => setPhases((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, name: event.target.value } : item))} value={phase.name} />
-                  <input className="rounded-lg bg-surface-low px-2 py-1 outline-none" onChange={(event) => updatePhaseDate(index, "planned_start", event.target.value)} type="date" value={phase.planned_start} />
-                  <input className="rounded-lg bg-surface-low px-2 py-1 outline-none" onChange={(event) => updatePhaseDate(index, "planned_end", event.target.value)} type="date" value={phase.planned_end} />
-                  <span>{phase.duration_days} giorni</span>
-                  {phase.custom ? <V1Hint><button className="rounded-lg border border-electric/40 bg-electric/10 px-2 py-1 text-xs font-semibold text-electric" type="button">Salva nel template</button></V1Hint> : <span />}
-                  <button aria-label="Rimuovi fase" onClick={() => setPhases((current) => current.filter((_, itemIndex) => itemIndex !== index))} type="button">
+                  <input className="rounded-lg bg-surface-low px-2 py-1.5 outline-none" onChange={(event) => updatePhaseName(index, event.target.value)} placeholder="Nome fase" value={phase.name} />
+                  <input className="rounded-lg bg-surface-low px-2 py-1.5 outline-none" onChange={(event) => updatePhaseStart(index, event.target.value)} type="date" value={phase.planned_start} />
+                  <div className="flex items-center gap-1">
+                    <input className="w-16 rounded-lg bg-surface-low px-2 py-1.5 outline-none" min={1} onChange={(event) => updatePhaseDuration(index, Number(event.target.value))} type="number" value={phase.duration_days} />
+                    <span className="text-xs text-muted">gg</span>
+                  </div>
+                  <span className="text-xs text-muted">{phase.planned_end ? format(new Date(phase.planned_end), "dd/MM/yyyy") : "-"}</span>
+                  <select className="rounded-lg bg-surface-low px-2 py-1.5 text-xs outline-none" onChange={(event) => updatePhaseAssignee(index, event.target.value)} value={phase.assignee_id ?? responsibleId}>
+                    {users.map((user) => (
+                      <option className="bg-surface text-foreground" key={user.id} value={user.id}>
+                        {user.nome} {user.cognome}
+                      </option>
+                    ))}
+                  </select>
+                  <button aria-label="Rimuovi fase" onClick={() => setPhases((current) => current.filter((_, itemIndex) => itemIndex !== index))} title="Rimuovi fase" type="button">
                     <Trash2 className="h-4 w-4 text-muted hover:text-danger" />
                   </button>
                 </div>

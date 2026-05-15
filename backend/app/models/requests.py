@@ -16,6 +16,7 @@ class PhaseOverride(BaseModel):
     name: str | None = None
     planned_start: date | None = None
     planned_end: date | None = None
+    assignee_id: UUID | None = None
     enabled: bool = True
 
 

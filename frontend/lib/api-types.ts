@@ -1250,6 +1250,8 @@ export interface components {
             planned_start?: string | null;
             /** Planned End */
             planned_end?: string | null;
+            /** Assignee Id */
+            assignee_id?: string | null;
             /**
              * Enabled
              * @default true

@@ -135,7 +135,9 @@ class PracticeService:
                 order_index=tpl.order_index,
                 name=override.name if override and override.name else tpl.name,
                 description=tpl.description,
-                assignee_id=request.responsible_id,
+                assignee_id=override.assignee_id
+                if override and override.assignee_id
+                else request.responsible_id,
                 planned_start=planned_start,
                 planned_end=planned_end,
                 actual_start=None,
