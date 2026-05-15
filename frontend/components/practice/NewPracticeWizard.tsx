@@ -121,6 +121,7 @@ export function NewPracticeWizard() {
   const [clientSheetOpen, setClientSheetOpen] = useState(false);
   const [clientDraft, setClientDraft] = useState<ClientDraft>({ email: "", name: "", phone: "", type: "societa", vat: "" });
   const [creatingClient, setCreatingClient] = useState(false);
+  const [clientSheetError, setClientSheetError] = useState<string | null>(null);
   const [categories, setCategories] = useState<ApiCategory[]>(fallbackCategories);
   const [users, setUsers] = useState<ApiUser[]>(
     DEMO_USERS.map((user) => ({
@@ -210,17 +211,23 @@ export function NewPracticeWizard() {
   async function createClientFromSheet() {
     if (!clientDraft.name.trim()) return;
     setCreatingClient(true);
+    setClientSheetError(null);
+    const raw = clientDraft.vat.trim().toUpperCase().replace(/\s/g, "");
+    const isPiva = /^\d{11}$/.test(raw);
+    const isCf = /^[A-Z0-9]{16}$/.test(raw) || /^\d{11}$/.test(raw);
+    const piva = isPiva ? raw : null;
+    const cf = !isPiva && isCf && raw ? raw : null;
     try {
       const created = await createClient(
         {
           code: "",
-          cf: clientDraft.vat || null,
-          email: clientDraft.email || null,
+          cf,
+          email: clientDraft.email.trim() || null,
           indirizzo_sede: null,
-          piva: clientDraft.vat || null,
+          piva,
           ragione_sociale: clientDraft.name.trim(),
           status: "attivo",
-          telefono: clientDraft.phone || null,
+          telefono: clientDraft.phone.trim() || null,
           type: clientDraft.type,
         },
         activeUser.id,
@@ -239,8 +246,12 @@ export function NewPracticeWizard() {
       };
       setClientHits((current) => [hit, ...current.filter((client) => client.id !== hit.id)]);
       setSelectedClientId(hit.id);
+      setClientError(false);
       setClientSheetOpen(false);
       setClientDraft({ email: "", name: "", phone: "", type: "societa", vat: "" });
+    } catch (err) {
+      console.error("create_client_failed", err);
+      setClientSheetError(err instanceof Error ? err.message : "Creazione cliente non riuscita.");
     } finally {
       setCreatingClient(false);
     }
@@ -397,35 +408,47 @@ export function NewPracticeWizard() {
         <Card className={cn(clientError && "border-danger")} ref={clientSectionRef as React.RefObject<HTMLDivElement>}>
           <CardHeader><CardTitle>Cliente</CardTitle></CardHeader>
           <CardContent className="space-y-2">
-            <span className="block text-sm font-semibold text-muted">Cliente</span>
             <div className="grid gap-2 md:grid-cols-[260px_1fr_auto]">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
-                <input
-                  className="h-10 w-full rounded-xl border border-border bg-surface-container pl-9 pr-3 text-sm outline-none"
-                  onChange={(event) => setClientQuery(event.target.value)}
-                  placeholder="Filtra cliente"
-                  value={clientQuery}
-                />
+              <label className="space-y-1.5">
+                <span className="block text-xs font-semibold text-muted">Cerca in rubrica</span>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+                  <input
+                    className="h-10 w-full rounded-xl border border-border bg-surface-container pl-9 pr-3 text-sm outline-none"
+                    onChange={(event) => setClientQuery(event.target.value)}
+                    placeholder="Nome cliente, P.IVA o CF"
+                    value={clientQuery}
+                  />
+                </div>
+              </label>
+              <label className="space-y-1.5">
+                <span className="block text-xs font-semibold text-muted">
+                  Cliente {clientQuery.trim() ? `(${clientHits.length} ${clientHits.length === 1 ? "risultato" : "risultati"})` : `(${clientHits.length} in rubrica)`}
+                </span>
+                <select
+                  className="h-10 w-full rounded-xl border border-border bg-surface-container px-3 text-sm outline-none"
+                  onChange={(event) => {
+                    setSelectedClientId(event.target.value);
+                    setClientError(false);
+                  }}
+                  value={selectedClientId}
+                >
+                  {clientHits.length === 0 ? (
+                    <option value="">Nessun cliente — usa "+ Nuovo cliente"</option>
+                  ) : null}
+                  {clientHits.map((client) => (
+                    <option key={client.id} value={client.id}>
+                      {client.ragione_sociale}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <div className="flex items-end">
+                <Button onClick={() => setClientSheetOpen(true)} type="button" variant="outline">
+                  <Plus className="h-4 w-4" />
+                  Nuovo cliente
+                </Button>
               </div>
-              <select
-                className="h-10 rounded-xl border border-border bg-surface-container px-3 text-sm outline-none"
-                onChange={(event) => {
-                  setSelectedClientId(event.target.value);
-                  setClientError(false);
-                }}
-                value={selectedClientId}
-              >
-                {clientHits.map((client) => (
-                  <option key={client.id} value={client.id}>
-                    {client.ragione_sociale}
-                  </option>
-                ))}
-              </select>
-              <Button onClick={() => setClientSheetOpen(true)} type="button" variant="outline">
-                <Plus className="h-4 w-4" />
-                Nuovo cliente
-              </Button>
             </div>
             <span className="block text-xs text-muted">
               {selectedClient ? `${selectedClient.code} - ${selectedClient.piva ?? selectedClient.cf ?? "senza P.IVA"}` : "Seleziona un cliente"}
@@ -576,6 +599,9 @@ export function NewPracticeWizard() {
             <SheetDescription>Compila solo i dati essenziali per aprire subito la pratica.</SheetDescription>
           </SheetHeader>
           <div className="space-y-3">
+            {clientSheetError ? (
+              <p className="rounded-xl border border-danger/40 bg-danger/10 px-3 py-2 text-sm font-semibold text-danger">{clientSheetError}</p>
+            ) : null}
             <input className="h-10 w-full rounded-xl border border-border bg-surface-low px-3 text-sm outline-none" onChange={(event) => setClientDraft((value) => ({ ...value, name: event.target.value }))} placeholder="Ragione sociale" value={clientDraft.name} />
             <select className="h-10 w-full rounded-xl border border-border bg-surface-low px-3 text-sm outline-none" onChange={(event) => setClientDraft((value) => ({ ...value, type: event.target.value as ClientDraft["type"] }))} value={clientDraft.type}>
               <option value="societa">Societa</option>
