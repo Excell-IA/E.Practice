@@ -3,6 +3,7 @@
 import {
   AlertTriangle,
   CalendarDays,
+  HelpCircle,
   Mail,
   Maximize2,
   MessageSquareText,
@@ -10,6 +11,7 @@ import {
   MoveHorizontal,
   PhoneCall,
   Plus,
+  X,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent, type PointerEvent } from "react";
 
@@ -587,10 +589,58 @@ export function PracticeTree({ practice, phases, events, onSwitchTab }: Practice
             <span>{orderedPhases.filter((phase) => phase.status === "done").length} fasi completate</span>
             <span>{events.length} eventi collegati</span>
           </div>
+          <TreeHelpBox />
         </CardContent>
       </Card>
 
       <NodeDrawer onOpenChange={setDrawerOpen} onSwitchTab={onSwitchTab} open={drawerOpen} selection={freshSelection} />
     </>
+  );
+}
+
+const TREE_HELP_STORAGE_KEY = "epractice:tree_help_visible";
+
+function TreeHelpBox() {
+  const [visible, setVisible] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const raw = window.localStorage.getItem(TREE_HELP_STORAGE_KEY);
+    setVisible(raw === null ? true : raw === "true");
+  }, []);
+
+  function close() {
+    setVisible(false);
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(TREE_HELP_STORAGE_KEY, "false");
+    }
+  }
+
+  if (!visible) return null;
+
+  return (
+    <div className="flex items-start gap-3 border-t border-border bg-surface-container/50 px-5 py-4 text-sm text-muted">
+      <HelpCircle className="mt-0.5 h-5 w-5 shrink-0 text-electric" />
+      <div className="flex-1 leading-6">
+        <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-electric">
+          Come si legge la vista albero
+        </p>
+        <p className="mt-1">
+          Il <strong className="text-foreground">tronco orizzontale</strong> è l'asse del tempo. I cerchi grandi numerati sono le <strong className="text-foreground">fasi</strong> del template (pietre miliari della pratica). Sopra e sotto il tronco trovi gli <strong className="text-foreground">eventi</strong> agganciati alla fase corrispondente: telefonate, email, avvisi, note.
+        </p>
+        <p className="mt-1">
+          Dalla toolbar in alto puoi aggiungere un nuovo evento (Telefonata, Email, Avviso). Clicca su un cerchio per vedere il dettaglio nella sidebar destra; click sul tronco per aggiungere un evento ad-hoc nel punto cliccato.
+        </p>
+      </div>
+      <button
+        aria-label="Nascondi la guida"
+        className="rounded-lg p-1.5 text-muted transition-colors hover:bg-surface-high hover:text-foreground"
+        onClick={close}
+        title="Nascondi guida (la riapri dalle impostazioni)"
+        type="button"
+      >
+        <X className="h-4 w-4" />
+      </button>
+    </div>
   );
 }
