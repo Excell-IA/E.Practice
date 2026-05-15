@@ -3,9 +3,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { FolderKanban } from "lucide-react";
 
+import Link from "next/link";
+
 import { EWorkShell } from "@/components/shell/EWorkShell";
 import { HelpButton } from "@/components/ui/help-button";
-import { V1Hint } from "@/components/ui/v1-hint";
 import { getCategories, getTemplatePreview, type ApiCategory } from "@/lib/api";
 
 function todayIso() {
@@ -35,14 +36,12 @@ function CategoryCard({ category }: { category: ApiCategory }) {
             {category.description ? <p className="mt-1 text-xs text-muted">{category.description}</p> : null}
           </div>
         </div>
-        <V1Hint label="Disponibile in V1">
-          <button
-            className="rounded-lg border border-electric/40 bg-electric/10 px-3 py-1 text-xs font-semibold text-electric"
-            type="button"
-          >
-            Modifica template
-          </button>
-        </V1Hint>
+        <Link
+          className="rounded-lg border border-electric/40 bg-electric/10 px-3 py-1 text-xs font-semibold text-electric transition-colors hover:bg-electric/20"
+          href={`/tipologie/${category.id}`}
+        >
+          Modifica template
+        </Link>
       </header>
 
       {previewQuery.isLoading ? (

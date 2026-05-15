@@ -97,6 +97,29 @@ export function getTemplatePreview(categoryId: string, apertura: string) {
   return apiFetch<ApiTemplatePreview>(`/api/templates/category/${categoryId}/preview?${params.toString()}`);
 }
 
+export type TemplatePhaseInput = {
+  name: string;
+  description?: string | null;
+  duration_days: number;
+  default_role?: string | null;
+};
+
+export function replaceTemplateForCategory(
+  categoryId: string,
+  phases: TemplatePhaseInput[],
+  userId: string,
+) {
+  return apiFetch<components["schemas"]["PhaseTemplate"][]>(`/api/templates/${categoryId}`, {
+    body: JSON.stringify({ phases }),
+    method: "PUT",
+    userId,
+  });
+}
+
+export function getTemplate(categoryId: string) {
+  return apiFetch<components["schemas"]["PhaseTemplate"][]>(`/api/templates/${categoryId}`);
+}
+
 export function createClient(input: components["schemas"]["ClientCreate"], userId: string) {
   return apiFetch<ApiClient>("/api/clients", {
     body: JSON.stringify(input),
