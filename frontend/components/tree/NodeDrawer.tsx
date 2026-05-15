@@ -1,5 +1,6 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import {
   CalendarDays,
   Check,
@@ -17,6 +18,7 @@ import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import type { ApiPracticeDetail } from "@/lib/api";
 import { useDemoStore } from "@/lib/demo-state";
 import type { TreeSelection } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -38,6 +40,9 @@ export function NodeDrawer({ selection, open, onOpenChange, onSwitchTab }: NodeD
     occurredAt: "",
     title: "",
   });
+  const [eventSaved, setEventSaved] = useState(false);
+  const [noteSaved, setNoteSaved] = useState(false);
+  const queryClient = useQueryClient();
   const activeUser = useDemoStore((state) => state.activeUser);
   const users = useDemoStore((state) => state.users);
   const notes = useDemoStore((state) => state.notes);
@@ -81,14 +86,27 @@ export function NodeDrawer({ selection, open, onOpenChange, onSwitchTab }: NodeD
   }
 
   function saveNoteEdit() {
-    if (!editingNoteId || !editingNoteBody.trim()) return;
+    if (!editingNoteId || !editingNoteBody.trim() || noteSaved) return;
     applyAction({ type: "update_note", noteId: editingNoteId, body: editingNoteBody.trim() });
+    queryClient.setQueriesData<ApiPracticeDetail>({ queryKey: ["practice-detail"] }, (detail) => {
+      if (!detail) return detail;
+      return {
+        ...detail,
+        notes: detail.notes.map((item) =>
+          item.note.id === editingNoteId ? { ...item, note: { ...item.note, content: editingNoteBody.trim() } } : item,
+        ),
+      };
+    });
     setEditingNoteId(null);
     setEditingNoteBody("");
+    setNoteSaved(true);
+    window.setTimeout(() => setNoteSaved(false), 2000);
   }
 
   function saveEventEdit() {
-    if (selection?.kind !== "event" || !eventDraft.title.trim() || !eventDraft.occurredAt) return;
+    if (selection?.kind !== "event" || !eventDraft.title.trim() || !eventDraft.occurredAt || eventSaved) return;
+    const selectedAuthor = users.find((user) => user.id === eventDraft.authorId);
+    const [nome = "", ...cognomeParts] = selectedAuthor?.name.split(" ") ?? [];
     applyAction({
       type: "update_event",
       authorId: eventDraft.authorId,
@@ -98,6 +116,49 @@ export function NodeDrawer({ selection, open, onOpenChange, onSwitchTab }: NodeD
       phaseId: selection.item.phaseId,
       title: eventDraft.title.trim(),
     });
+    queryClient.setQueriesData<ApiPracticeDetail>({ queryKey: ["practice-detail"] }, (detail) => {
+      if (!detail) return detail;
+      return {
+        ...detail,
+        events: detail.events.map((item) =>
+          item.event.id === selection.item.id
+            ? {
+                ...item,
+                event: {
+                  ...item.event,
+                  author_id: eventDraft.authorId,
+                  description: eventDraft.description.trim(),
+                  event_date: eventDraft.occurredAt,
+                  title: eventDraft.title.trim(),
+                },
+              }
+            : item,
+        ),
+      };
+    });
+    queryClient.setQueriesData<ApiPracticeDetail>({ queryKey: ["practice-detail"] }, (detail) => {
+      if (!detail || !selectedAuthor) return detail;
+      return {
+        ...detail,
+        events: detail.events.map((item) =>
+          item.event.id === selection.item.id
+            ? {
+                ...item,
+                author: {
+                  avatar_color: selectedAuthor.avatarColor,
+                  cognome: cognomeParts.join(" "),
+                  id: selectedAuthor.id,
+                  initials: selectedAuthor.initials,
+                  nome,
+                  role: selectedAuthor.role,
+                },
+              }
+            : item,
+        ),
+      };
+    });
+    setEventSaved(true);
+    window.setTimeout(() => setEventSaved(false), 2000);
   }
 
   function switchTab(tab: "allegati" | "note") {
@@ -232,10 +293,13 @@ export function NodeDrawer({ selection, open, onOpenChange, onSwitchTab }: NodeD
                     </select>
                   </label>
                 </div>
-                <Button disabled={!canEdit || !eventDraft.title.trim()} onClick={saveEventEdit} type="button">
-                  <Save className="h-4 w-4" />
-                  Salva modifiche
-                </Button>
+                <div className="flex flex-wrap items-center gap-3">
+                  <Button disabled={!canEdit || !eventDraft.title.trim() || eventSaved} onClick={saveEventEdit} type="button">
+                    <Save className="h-4 w-4" />
+                    Salva modifiche
+                  </Button>
+                  {eventSaved ? <Badge variant="success">Salvato ✓</Badge> : null}
+                </div>
               </div>
             </section>
           ) : null}
@@ -344,13 +408,14 @@ export function NodeDrawer({ selection, open, onOpenChange, onSwitchTab }: NodeD
                           onChange={(event) => setEditingNoteBody(event.target.value)}
                           value={editingNoteBody}
                         />
-                        <div className="flex gap-2">
-                          <Button disabled={!editingNoteBody.trim()} onClick={saveNoteEdit} size="sm" type="button">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Button disabled={!editingNoteBody.trim() || noteSaved} onClick={saveNoteEdit} size="sm" type="button">
                             Salva
                           </Button>
                           <Button onClick={() => setEditingNoteId(null)} size="sm" type="button" variant="ghost">
                             Annulla
                           </Button>
+                          {noteSaved ? <Badge variant="success">Salvato ✓</Badge> : null}
                         </div>
                       </div>
                     ) : (
@@ -359,6 +424,7 @@ export function NodeDrawer({ selection, open, onOpenChange, onSwitchTab }: NodeD
                   </div>
                 );
                 })}
+                {noteSaved && editingNoteId === null ? <Badge variant="success">Salvato ✓</Badge> : null}
               </div>
               <textarea
                 className="min-h-20 w-full resize-none rounded-2xl border border-border bg-surface-low p-3 text-sm text-foreground outline-none placeholder:text-muted disabled:cursor-not-allowed disabled:opacity-50"
