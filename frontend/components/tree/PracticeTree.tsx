@@ -555,6 +555,7 @@ export function PracticeTree({ practice, phases, events, onSwitchTab }: Practice
                     onSelect={selectPhase}
                     phase={phase}
                     selected={selection?.kind === "phase" && selection.item.id === phase.id}
+                    totalPhases={orderedPhases.length}
                     x={position.x}
                     y={position.y}
                   />

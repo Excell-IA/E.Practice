@@ -24,36 +24,46 @@ const eventIcon = {
   warning: AlertTriangle,
 };
 
+const eventTypeLabel = {
+  call: "Telefonata",
+  mail: "Email",
+  warning: "Avviso",
+};
+
 export function EventNode({ event, phase, timelineY, x, y, onSelect }: EventNodeProps) {
   const Icon = eventIcon[event.type];
+  const typeLabel = eventTypeLabel[event.type];
   const labelY = y < timelineY ? -40 : 54;
   const eventDate = new Intl.DateTimeFormat("it-IT", {
     day: "2-digit",
     month: "short",
     year: "numeric",
   }).format(new Date(event.occurredAt));
-  const dateChipY = y < timelineY ? timelineY + 24 : timelineY - 18;
+  const dateChipY = y < timelineY ? timelineY + 30 : timelineY - 24;
 
   return (
     <g
-      aria-label={event.title}
+      aria-label={`${typeLabel}: ${event.title}`}
       className="group cursor-pointer"
       onClick={() => onSelect(event, phase)}
       role="button"
       tabIndex={0}
       transform={`translate(${x} 0)`}
     >
-      <title>{`${event.title} - ${eventDate}`}</title>
+      <title>{`${typeLabel} — ${event.title} — ${eventDate}`}</title>
       <circle className="fill-transparent" cy={timelineY} r="24" />
       <circle className="fill-electric/10 stroke-electric/20 stroke-2 transition-colors group-hover:fill-electric/20 group-hover:stroke-electric/50" cy={timelineY} r="18" />
       <circle className="fill-surface-high stroke-electric stroke-2" cy={timelineY} r="12" />
       <circle className="fill-electric" cy={timelineY} r="5" />
       <g className="opacity-0 transition-opacity group-hover:opacity-100">
-        <rect className="fill-surface-high stroke-border" height="38" rx="12" width="154" x="-77" y={dateChipY - 24} />
-        <text className="fill-foreground text-[11px] font-semibold" textAnchor="middle" y={dateChipY - 5}>
+        <rect className="fill-surface-high stroke-border" height="50" rx="12" width="164" x="-82" y={dateChipY - 30} />
+        <text className="fill-electric text-[10px] font-semibold uppercase tracking-wider" textAnchor="middle" y={dateChipY - 16}>
+          {typeLabel}
+        </text>
+        <text className="fill-foreground text-[11px] font-semibold" textAnchor="middle" y={dateChipY - 1}>
           {eventDate}
         </text>
-        <text className="fill-muted text-[10px] font-semibold" textAnchor="middle" y={dateChipY + 10}>
+        <text className="fill-muted text-[10px] font-semibold" textAnchor="middle" y={dateChipY + 13}>
           {event.author.name}
         </text>
       </g>
