@@ -3,14 +3,15 @@
 import { useQuery } from "@tanstack/react-query";
 import { differenceInCalendarDays, format } from "date-fns";
 import { it } from "date-fns/locale";
-import { Plus, Search } from "lucide-react";
+import { FileText, Plus, Search } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 
 import { Badge, type BadgeProps } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { getPractices } from "@/lib/api";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { getPractices, listAttachments, type ApiAttachment } from "@/lib/api";
 import { directoryPractices, type DirectoryPractice } from "@/lib/demo-directory";
 import { mapApiPracticeToDirectoryPractice } from "@/lib/mappers/practice-list";
 import { cn } from "@/lib/utils";
@@ -66,18 +67,39 @@ function urgencyLabel(practice: DirectoryPractice) {
   return { label: `${days} gg`, variant: "info" as const };
 }
 
+function formatFileSize(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 export function PracticesListClient() {
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<PracticeFilter>("all");
+  const [attachmentsPractice, setAttachmentsPractice] = useState<DirectoryPractice | null>(null);
   const practicesQuery = useQuery({
     queryFn: () => getPractices(),
     queryKey: ["practices"],
+  });
+  const attachmentsQuery = useQuery({
+    queryFn: () => listAttachments(),
+    queryKey: ["attachments-all"],
   });
   const sourcePractices = useMemo(() => {
     const apiPractices = practicesQuery.data?.items.map(mapApiPracticeToDirectoryPractice) ?? [];
     return apiPractices.length ? apiPractices : directoryPractices;
   }, [practicesQuery.data?.items]);
+  const attachmentsByPracticeId = useMemo(() => {
+    const map = new Map<string, ApiAttachment[]>();
+    for (const att of attachmentsQuery.data ?? []) {
+      if (!att.practice_id) continue;
+      const list = map.get(att.practice_id) ?? [];
+      list.push(att);
+      map.set(att.practice_id, list);
+    }
+    return map;
+  }, [attachmentsQuery.data]);
   const practices = useMemo(() => {
     const needle = query.trim().toLowerCase();
     return sourcePractices.filter((practice) => {
@@ -145,6 +167,7 @@ export function PracticesListClient() {
                 <th className="px-4 py-3">Responsabile</th>
                 <th className="px-4 py-3">Scadenza</th>
                 <th className="px-4 py-3">Stato</th>
+                <th className="px-4 py-3">Documenti</th>
                 <th className="px-4 py-3">Progress</th>
               </tr>
             </thead>
@@ -209,6 +232,35 @@ export function PracticesListClient() {
                       <Badge variant={statusVariant(practice.status)}>{statusLabel(practice.status)}</Badge>
                     </td>
                     <td className="px-4 py-3">
+                      {(() => {
+                        const docs = attachmentsByPracticeId.get(practice.id) ?? [];
+                        const hasDocs = docs.length > 0;
+                        return (
+                          <button
+                            aria-label={hasDocs ? `${docs.length} documenti — apri elenco` : "Nessun documento"}
+                            className={cn(
+                              "inline-flex items-center gap-1.5 rounded-lg px-2 py-1 transition-colors",
+                              hasDocs
+                                ? "text-electric hover:bg-electric/10 cursor-pointer"
+                                : "text-muted cursor-default",
+                            )}
+                            disabled={!hasDocs}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              if (hasDocs) setAttachmentsPractice(practice);
+                            }}
+                            title={hasDocs ? `${docs.length} documenti — clicca per aprire` : "Nessun documento"}
+                            type="button"
+                          >
+                            <FileText className="h-4 w-4" />
+                            {hasDocs ? (
+                              <span className="font-label text-xs font-semibold">{docs.length}</span>
+                            ) : null}
+                          </button>
+                        );
+                      })()}
+                    </td>
+                    <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         <div className="h-2 w-24 overflow-hidden rounded-full bg-surface-high">
                           <div className="h-full rounded-full bg-brand" style={{ width: `${practice.progress}%` }} />
@@ -223,6 +275,52 @@ export function PracticesListClient() {
           </table>
         </div>
       </div>
+
+      <Sheet onOpenChange={(open) => !open && setAttachmentsPractice(null)} open={attachmentsPractice !== null}>
+        <SheetContent>
+          {attachmentsPractice ? (
+            <>
+              <SheetHeader>
+                <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-electric">
+                  Documenti pratica {attachmentsPractice.code}
+                </p>
+                <SheetTitle>{attachmentsPractice.title}</SheetTitle>
+                <SheetDescription>
+                  Cliente: {attachmentsPractice.clientName}
+                </SheetDescription>
+              </SheetHeader>
+
+              <div className="mt-4 flex flex-1 flex-col gap-2 overflow-y-auto">
+                {(attachmentsByPracticeId.get(attachmentsPractice.id) ?? [])
+                  .slice()
+                  .sort((a, b) => (b.created_at ?? "").localeCompare(a.created_at ?? ""))
+                  .map((att) => (
+                    <div
+                      className="flex flex-col gap-1 rounded-xl border border-border bg-surface-container px-4 py-3"
+                      key={att.id}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate font-label text-sm font-semibold text-foreground">
+                            <FileText className="mr-1.5 inline h-4 w-4 align-text-bottom text-electric" />
+                            {att.filename}
+                          </p>
+                          <p className="mt-1 text-xs text-muted">
+                            {format(new Date(att.created_at), "dd MMM yyyy - HH:mm", { locale: it })}
+                            {" - "}
+                            {formatFileSize(att.size_bytes)}
+                            {att.mime_type ? ` - ${att.mime_type}` : ""}
+                          </p>
+                        </div>
+                        <Badge variant="info">{att.source}</Badge>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </>
+          ) : null}
+        </SheetContent>
+      </Sheet>
     </main>
   );
 }
