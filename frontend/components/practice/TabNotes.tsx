@@ -1,18 +1,24 @@
 "use client";
 
-import { formatDistanceToNow } from "date-fns";
+import { format, formatDistanceToNow } from "date-fns";
 import { it } from "date-fns/locale";
-import { FileText, Pencil } from "lucide-react";
+import { FileText, Pencil, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { useDemoStore } from "@/lib/demo-state";
+import { useDemoStore, type DemoNote } from "@/lib/demo-state";
 import type { PracticePhase } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 type TabNotesProps = {
   phases: PracticePhase[];
 };
+
+type EditableNote = DemoNote & {
+  occurredAt?: string | null;
+};
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 function avatarClass(userId: string) {
   if (userId.endsWith("0001")) return "bg-[#14532d]";
@@ -21,10 +27,55 @@ function avatarClass(userId: string) {
   return "bg-[#6b7280]";
 }
 
+function noteDate(note: DemoNote) {
+  const editableNote = note as EditableNote;
+  return editableNote.occurredAt ?? note.createdAt.slice(0, 10);
+}
+
+function persistNotes(notes: DemoNote[]) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem("epractice:notes", JSON.stringify(notes));
+}
+
+function isUuid(value: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
+
+async function updateNoteOnApi(noteId: string, body: string, occurredAt: string, userId: string) {
+  if (!isUuid(noteId)) return;
+  const response = await fetch(`${API_BASE_URL}/api/notes/${noteId}`, {
+    body: JSON.stringify({ body, occurred_at: occurredAt }),
+    headers: {
+      "Accept": "application/json",
+      "Content-Type": "application/json",
+      "X-User-Id": userId,
+    },
+    method: "PUT",
+  });
+  if (!response.ok) {
+    throw new Error(`Errore update nota: ${response.status}`);
+  }
+}
+
+async function deleteNoteOnApi(noteId: string, userId: string) {
+  if (!isUuid(noteId)) return;
+  const response = await fetch(`${API_BASE_URL}/api/notes/${noteId}`, {
+    headers: {
+      "Accept": "application/json",
+      "X-User-Id": userId,
+    },
+    method: "DELETE",
+  });
+  if (!response.ok) {
+    throw new Error(`Errore delete nota: ${response.status}`);
+  }
+}
+
 export function TabNotes({ phases }: TabNotesProps) {
   const [body, setBody] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingBody, setEditingBody] = useState("");
+  const [editingDate, setEditingDate] = useState("");
   const activeUser = useDemoStore((state) => state.activeUser);
   const notes = useDemoStore((state) => state.notes);
   const applyAction = useDemoStore((state) => state.applyAction);
@@ -32,7 +83,7 @@ export function TabNotes({ phases }: TabNotesProps) {
     () => phases.find((phase) => phase.status === "in_progress") ?? phases[0],
     [phases],
   );
-  const sortedNotes = [...notes].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  const sortedNotes = [...notes].sort((a, b) => new Date(noteDate(b)).getTime() - new Date(noteDate(a)).getTime());
   const canEdit = activeUser.permission !== "viewer";
 
   function saveNote() {
@@ -41,16 +92,33 @@ export function TabNotes({ phases }: TabNotesProps) {
     setBody("");
   }
 
-  function startEditing(noteId: string, noteBody: string) {
-    setEditingId(noteId);
-    setEditingBody(noteBody);
+  function startEditing(note: DemoNote) {
+    setEditingId(note.id);
+    setEditingBody(note.body);
+    setEditingDate(noteDate(note));
   }
 
-  function saveEdit() {
-    if (!editingId || !editingBody.trim()) return;
-    applyAction({ body: editingBody.trim(), noteId: editingId, type: "update_note" });
+  async function saveEdit() {
+    if (!editingId || !editingBody.trim() || !editingDate) return;
+    const currentNotes = useDemoStore.getState().notes;
+    const updatedNotes = currentNotes.map((note) =>
+      note.id === editingId ? ({ ...note, body: editingBody.trim(), occurredAt: editingDate } satisfies EditableNote) : note,
+    );
+    useDemoStore.setState({ notes: updatedNotes });
+    persistNotes(updatedNotes);
+    void updateNoteOnApi(editingId, editingBody.trim(), editingDate, activeUser.id).catch(console.warn);
     setEditingId(null);
     setEditingBody("");
+    setEditingDate("");
+  }
+
+  function deleteNote(noteId: string) {
+    const confirmed = window.confirm("Eliminare questa nota?");
+    if (!confirmed) return;
+    const updatedNotes = useDemoStore.getState().notes.filter((note) => note.id !== noteId);
+    useDemoStore.setState({ notes: updatedNotes });
+    persistNotes(updatedNotes);
+    void deleteNoteOnApi(noteId, activeUser.id).catch(console.warn);
   }
 
   return (
@@ -67,8 +135,9 @@ export function TabNotes({ phases }: TabNotesProps) {
           {sortedNotes.map((note) => {
             const canEditNote = note.author.id === activeUser.id || activeUser.permission === "admin";
             const isEditing = editingId === note.id;
+            const visibleDate = noteDate(note);
             return (
-            <article className="rounded-2xl border border-border bg-surface-container p-4" key={note.id}>
+            <article className="rounded-2xl border border-border bg-surface-container p-4" id={`note-${note.id}`} key={note.id}>
               <div className="mb-3 flex items-center gap-3">
                 <div
                   className={cn(
@@ -81,22 +150,42 @@ export function TabNotes({ phases }: TabNotesProps) {
                 <div className="min-w-0 flex-1">
                   <p className="font-label text-sm font-semibold text-foreground">{note.author.name}</p>
                   <p className="text-xs text-muted">
-                    {formatDistanceToNow(new Date(note.createdAt), { addSuffix: true, locale: it })}
+                    {format(new Date(visibleDate), "dd MMM yyyy", { locale: it })} ·{" "}
+                    {formatDistanceToNow(new Date(visibleDate), { addSuffix: true, locale: it })}
                   </p>
                 </div>
                 {canEditNote ? (
-                  <button
-                    aria-label="Modifica nota"
-                    className="rounded-lg p-1.5 text-muted transition-colors hover:bg-surface-high hover:text-foreground"
-                    onClick={() => startEditing(note.id, note.body)}
-                    type="button"
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </button>
+                  <div className="flex items-center gap-1">
+                    <button
+                      aria-label="Modifica nota"
+                      className="rounded-lg p-1.5 text-muted transition-colors hover:bg-surface-high hover:text-foreground"
+                      onClick={() => startEditing(note)}
+                      type="button"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </button>
+                    <button
+                      aria-label="Elimina nota"
+                      className="rounded-lg p-1.5 text-muted transition-colors hover:bg-danger/10 hover:text-danger"
+                      onClick={() => deleteNote(note.id)}
+                      type="button"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
                 ) : null}
               </div>
               {isEditing ? (
                 <div className="space-y-2">
+                  <label className="block space-y-1.5">
+                    <span className="text-xs font-semibold text-muted">Data nota</span>
+                    <input
+                      className="h-10 w-full rounded-xl border border-border bg-surface-low px-3 text-sm text-foreground outline-none"
+                      onChange={(event) => setEditingDate(event.target.value)}
+                      type="date"
+                      value={editingDate}
+                    />
+                  </label>
                   <textarea
                     className="min-h-24 w-full resize-none rounded-xl border border-border bg-surface-low p-3 text-sm text-foreground outline-none"
                     onChange={(event) => setEditingBody(event.target.value)}

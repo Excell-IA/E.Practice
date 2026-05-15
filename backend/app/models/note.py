@@ -1,6 +1,6 @@
 """Pydantic schemas for notes."""
 
-from datetime import datetime
+from datetime import date, datetime
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
@@ -14,6 +14,7 @@ class NoteBase(BaseModel):
     event_id: UUID | None = None
     content: str
     author_id: UUID
+    occurred_at: date | None = None
 
 
 # L2 OPERATIVO - esposta all'AI solo tramite view L3
@@ -34,3 +35,4 @@ class NoteUpdate(BaseModel):
     event_id: UUID | None = None
     content: str | None = None
     author_id: UUID | None = None
+    occurred_at: date | None = None

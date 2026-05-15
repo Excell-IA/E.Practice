@@ -20,20 +20,23 @@ type TimelineFilter = "all" | "phases" | "events" | "notes";
 
 type TimelineEntry = {
   id: string;
-  kind: "phase_start" | "phase_done" | "event" | "note";
+  kind: "phase" | "event" | "note";
   date: string;
   title: string;
   subtitle: string;
   author?: User;
   icon: ReactNode;
+  iconTitle: string;
   colorClass: string;
+  phaseOrder?: number;
+  phaseStatus?: PracticePhase["status"];
 };
 
-const filters: { label: string; value: TimelineFilter }[] = [
-  { label: "Tutti", value: "all" },
-  { label: "Fasi", value: "phases" },
-  { label: "Eventi", value: "events" },
-  { label: "Note", value: "notes" },
+const filters: { label: string; title: string; value: TimelineFilter }[] = [
+  { label: "Tutti", title: "Mostra fasi, eventi e note", value: "all" },
+  { label: "Fasi", title: "Mostra solo le fasi del template", value: "phases" },
+  { label: "Eventi", title: "Mostra solo eventi (mail, alert, call, ecc.)", value: "events" },
+  { label: "Note", title: "Mostra solo note interne", value: "notes" },
 ];
 
 function avatarClass(userId?: string) {
@@ -44,9 +47,9 @@ function avatarClass(userId?: string) {
 }
 
 function eventIcon(event: PracticeEvent) {
-  if (event.type === "call") return <PhoneCall className="h-4 w-4" />;
-  if (event.type === "mail") return <Mail className="h-4 w-4" />;
-  return <TriangleAlert className="h-4 w-4" />;
+  if (event.type === "call") return { icon: <PhoneCall className="h-4 w-4" />, title: "Telefonata" };
+  if (event.type === "mail") return { icon: <Mail className="h-4 w-4" />, title: "Email" };
+  return { icon: <TriangleAlert className="h-4 w-4" />, title: "Avviso" };
 }
 
 function eventColor(event: PracticeEvent) {
@@ -56,49 +59,40 @@ function eventColor(event: PracticeEvent) {
 }
 
 function buildEntries(phases: PracticePhase[], events: PracticeEvent[], notes: DemoNote[]) {
-  const phaseEntries = phases.flatMap((phase): TimelineEntry[] => {
-    const entries: TimelineEntry[] = [];
-    if (phase.status !== "pending") {
-      entries.push({
-        colorClass: "border-l-electric",
-        date: phase.plannedDate,
-        icon: <PlayCircle className="h-4 w-4" />,
-        id: `${phase.id}-start`,
-        kind: "phase_start",
-        subtitle: "Avvio fase",
-        title: phase.title,
-      });
-    }
-    if (phase.status === "done") {
-      entries.push({
-        colorClass: "border-l-success",
-        date: phase.dueDate,
-        icon: <CheckCircle2 className="h-4 w-4" />,
-        id: `${phase.id}-done`,
-        kind: "phase_done",
-        subtitle: "Fase completata",
-        title: phase.title,
-      });
-    }
-    return entries;
-  });
-
-  const eventEntries = events.map((event): TimelineEntry => ({
-    author: event.author,
-    colorClass: eventColor(event),
-    date: event.occurredAt,
-    icon: eventIcon(event),
-    id: event.id,
-    kind: "event",
-    subtitle: event.description,
-    title: event.title,
+  const phaseEntries = phases.map((phase): TimelineEntry => ({
+    colorClass: phase.status === "done" ? "border-l-success" : "border-l-electric",
+    date: phase.plannedDate || phase.dueDate,
+    icon: phase.status === "done" ? <CheckCircle2 className="h-4 w-4" /> : <PlayCircle className="h-4 w-4" />,
+    iconTitle: phase.status === "done" ? "Scadenza" : "Scadenza",
+    id: phase.id,
+    kind: "phase",
+    phaseOrder: phase.order,
+    phaseStatus: phase.status,
+    subtitle: `Fase ${phase.order} del template`,
+    title: phase.title,
   }));
+
+  const eventEntries = events.map((event): TimelineEntry => {
+    const eventIconData = eventIcon(event);
+    return {
+      author: event.author,
+      colorClass: eventColor(event),
+      date: event.occurredAt,
+      icon: eventIconData.icon,
+      iconTitle: eventIconData.title,
+      id: event.id,
+      kind: "event",
+      subtitle: event.description,
+      title: event.title,
+    };
+  });
 
   const noteEntries = notes.map((note): TimelineEntry => ({
     author: note.author,
     colorClass: "border-l-purple-400",
-    date: note.createdAt,
+    date: noteDate(note),
     icon: <MessageSquareText className="h-4 w-4" />,
+    iconTitle: "Nota",
     id: note.id,
     kind: "note",
     subtitle: note.body.length > 80 ? `${note.body.slice(0, 80)}...` : note.body,
@@ -112,9 +106,14 @@ function buildEntries(phases: PracticePhase[], events: PracticeEvent[], notes: D
 
 function matchesFilter(entry: TimelineEntry, filter: TimelineFilter) {
   if (filter === "all") return true;
-  if (filter === "phases") return entry.kind === "phase_start" || entry.kind === "phase_done";
+  if (filter === "phases") return entry.kind === "phase";
   if (filter === "events") return entry.kind === "event";
   return entry.kind === "note";
+}
+
+function noteDate(note: DemoNote) {
+  const noteWithOccurredAt = note as DemoNote & { occurredAt?: string | null };
+  return noteWithOccurredAt.occurredAt ?? note.createdAt;
 }
 
 export function TabTimeline({ events, phases }: TabTimelineProps) {
@@ -136,13 +135,14 @@ export function TabTimeline({ events, phases }: TabTimelineProps) {
           {filters.map((item) => (
             <button
               className={cn(
-                "rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors",
+                "h-10 rounded-full border px-5 text-base font-semibold transition-colors",
                 filter === item.value
                   ? "border-electric bg-electric/10 text-electric"
                   : "border-border bg-surface-container text-muted hover:text-foreground",
               )}
               key={item.value}
               onClick={() => setFilter(item.value)}
+              title={item.title}
               type="button"
             >
               {item.label}
@@ -154,9 +154,26 @@ export function TabTimeline({ events, phases }: TabTimelineProps) {
       {visibleEntries.length ? (
         <div className="space-y-3">
           {visibleEntries.map((entry) => (
-            <Card className={cn("border-l-4 bg-surface-container p-4", entry.colorClass)} key={entry.id}>
+            <Card
+              className={cn(
+                "border-l-4 bg-surface-container p-4 transition-colors",
+                entry.colorClass,
+                entry.kind === "note" ? "cursor-pointer hover:bg-surface-high" : "",
+              )}
+              key={entry.id}
+              onClick={() => {
+                if (entry.kind !== "note") return;
+                document.querySelector<HTMLButtonElement>('button[value="note"]')?.click();
+                window.setTimeout(() => document.getElementById(`note-${entry.id}`)?.scrollIntoView({ block: "center" }), 80);
+              }}
+              role={entry.kind === "note" ? "button" : undefined}
+              tabIndex={entry.kind === "note" ? 0 : undefined}
+            >
               <div className="flex gap-3">
-                <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-border bg-surface-low text-electric">
+                <div
+                  className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-border bg-surface-low text-electric"
+                  title={entry.iconTitle}
+                >
                   {entry.icon}
                 </div>
                 <div className="min-w-0 flex-1">
@@ -164,6 +181,12 @@ export function TabTimeline({ events, phases }: TabTimelineProps) {
                     <div>
                       <p className="font-label text-sm font-semibold text-foreground">{entry.title}</p>
                       <p className="mt-1 text-sm leading-5 text-foreground-variant">{entry.subtitle}</p>
+                      {entry.kind === "phase" ? (
+                        <div className="mt-2 flex flex-wrap items-center gap-2">
+                          <Badge>Fase {entry.phaseOrder}</Badge>
+                          <Badge variant={entry.phaseStatus === "done" ? "success" : "default"}>{entry.phaseStatus}</Badge>
+                        </div>
+                      ) : null}
                     </div>
                     <Badge className="w-fit shrink-0">
                       {format(new Date(entry.date), "dd MMM yyyy - HH:mm", { locale: it })}
