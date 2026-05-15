@@ -95,8 +95,8 @@ export function PracticesListClient() {
       <div className="mx-auto max-w-7xl">
         <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-electric">Pratiche</p>
-            <h1 className="mt-2 font-display text-3xl font-semibold text-foreground">Situazione operativa</h1>
+            <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-electric">Home</p>
+            <h1 className="mt-2 font-display text-3xl font-semibold text-foreground">Elenco pratiche</h1>
           </div>
           <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
             <label className="relative w-full max-w-sm sm:w-72">

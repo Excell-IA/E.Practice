@@ -1,12 +1,27 @@
 "use client";
 
-import { Search, UserRound } from "lucide-react";
+import { ArrowDown, ArrowUp, Plus, Search, UserRound } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { createClient } from "@/lib/api";
 import { directoryClients, directoryPractices, type DirectoryClient } from "@/lib/demo-directory";
+import { useDemoStore } from "@/lib/demo-state";
+
+type SortKey = "code" | "name" | "city" | "openCount";
+type SortDirection = "asc" | "desc";
+
+type NewClientDraft = {
+  email: string;
+  name: string;
+  phone: string;
+  type: "societa" | "persona_fisica";
+  vat: string;
+};
 
 function initials(name: string) {
   return name
@@ -18,16 +33,87 @@ function initials(name: string) {
 }
 
 export function ClientsListClient() {
+  const router = useRouter();
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<DirectoryClient | null>(null);
+  const [sortKey, setSortKey] = useState<SortKey>("code");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
+  const [newClientOpen, setNewClientOpen] = useState(false);
+  const [newClient, setNewClient] = useState<NewClientDraft>({
+    email: "",
+    name: "",
+    phone: "",
+    type: "societa",
+    vat: "",
+  });
+  const [creatingClient, setCreatingClient] = useState(false);
+  const activeUser = useDemoStore((state) => state.activeUser);
   const clients = useMemo(() => {
     const needle = query.trim().toLowerCase();
-    if (!needle) return directoryClients;
-    return directoryClients.filter((client) =>
+    const filtered = needle ? directoryClients.filter((client) =>
       `${client.name} ${client.vat} ${client.taxCode}`.toLowerCase().includes(needle),
-    );
-  }, [query]);
+    ) : directoryClients;
+    return [...filtered].sort((a, b) => {
+      const openA = directoryPractices.filter((practice) => practice.clientId === a.id && practice.status !== "chiusa").length;
+      const openB = directoryPractices.filter((practice) => practice.clientId === b.id && practice.status !== "chiusa").length;
+      const left = sortKey === "openCount" ? openA : a[sortKey];
+      const right = sortKey === "openCount" ? openB : b[sortKey];
+      const result = typeof left === "number" && typeof right === "number"
+        ? left - right
+        : String(left).localeCompare(String(right), "it");
+      return sortDirection === "asc" ? result : -result;
+    });
+  }, [query, sortDirection, sortKey]);
   const clientPractices = selected ? directoryPractices.filter((practice) => practice.clientId === selected.id) : [];
+
+  function toggleSort(nextKey: SortKey) {
+    if (sortKey === nextKey) {
+      setSortDirection((current) => (current === "asc" ? "desc" : "asc"));
+      return;
+    }
+    setSortKey(nextKey);
+    setSortDirection("asc");
+  }
+
+  function sortIcon(key: SortKey) {
+    if (sortKey !== key) return null;
+    const Icon = sortDirection === "asc" ? ArrowUp : ArrowDown;
+    return <Icon className="h-3.5 w-3.5" />;
+  }
+
+  async function submitNewClient() {
+    if (!newClient.name.trim()) return;
+    setCreatingClient(true);
+    try {
+      const created = await createClient(
+        {
+          code: "",
+          cf: newClient.vat || null,
+          email: newClient.email || null,
+          indirizzo_sede: null,
+          piva: newClient.vat || null,
+          ragione_sociale: newClient.name.trim(),
+          status: "attivo",
+          telefono: newClient.phone || null,
+          type: newClient.type,
+        },
+        activeUser.id,
+      );
+      setNewClientOpen(false);
+      router.push(`/pratiche/nuova?clientId=${created.id}`);
+    } finally {
+      setCreatingClient(false);
+    }
+  }
+
+  function SortButton({ children, sort }: { children: string; sort: SortKey }) {
+    return (
+      <button className="inline-flex items-center gap-1.5 hover:text-foreground" onClick={() => toggleSort(sort)} type="button">
+        {children}
+        {sortIcon(sort)}
+      </button>
+    );
+  }
 
   return (
     <main className="min-h-[calc(100vh-60px)] bg-surface px-6 py-6 md:px-10">
@@ -37,28 +123,34 @@ export function ClientsListClient() {
             <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-electric">Rubrica clienti</p>
             <h1 className="mt-2 font-display text-3xl font-semibold text-foreground">Clienti Studio Leali</h1>
           </div>
-          <label className="relative w-full max-w-sm">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
-            <input
-              className="h-10 w-full rounded-xl border border-border bg-surface-low pl-9 pr-3 text-sm text-foreground outline-none"
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Cerca cliente o P.IVA"
-              value={query}
-            />
-          </label>
+          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+            <label className="relative w-full max-w-sm sm:w-72">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+              <input
+                className="h-10 w-full rounded-xl border border-border bg-surface-low pl-9 pr-3 text-sm text-foreground outline-none"
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Cerca cliente o P.IVA"
+                value={query}
+              />
+            </label>
+            <Button onClick={() => setNewClientOpen(true)} type="button">
+              <Plus className="h-4 w-4" />
+              Nuovo cliente
+            </Button>
+          </div>
         </div>
 
         <div className="overflow-hidden rounded-2xl border border-border bg-surface-low">
           <table className="w-full min-w-[920px] border-collapse text-sm">
             <thead className="bg-surface-container text-left font-display text-[11px] uppercase tracking-[0.14em] text-muted">
               <tr>
-                <th className="px-4 py-3">Codice</th>
-                <th className="px-4 py-3">Ragione sociale</th>
+                <th className="px-4 py-3"><SortButton sort="code">Codice</SortButton></th>
+                <th className="px-4 py-3"><SortButton sort="name">Ragione sociale</SortButton></th>
                 <th className="px-4 py-3">Tipo</th>
                 <th className="px-4 py-3">P.IVA</th>
-                <th className="px-4 py-3">Citta</th>
+                <th className="px-4 py-3"><SortButton sort="city">Citta</SortButton></th>
                 <th className="px-4 py-3">Etichette</th>
-                <th className="px-4 py-3 text-right">Pratiche aperte</th>
+                <th className="px-4 py-3 text-right"><SortButton sort="openCount">Pratiche aperte</SortButton></th>
               </tr>
             </thead>
             <tbody>
@@ -71,7 +163,23 @@ export function ClientsListClient() {
                     onClick={() => setSelected(client)}
                   >
                     <td className="px-4 py-3 font-label text-xs font-semibold text-muted">{client.code}</td>
-                    <td className="px-4 py-3 font-semibold text-foreground">{client.name}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-foreground">{client.name}</span>
+                        <button
+                          aria-label={`Nuova pratica per ${client.name}`}
+                          className="flex h-7 w-7 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-high hover:text-electric"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            router.push(`/pratiche/nuova?clientId=${client.id}`);
+                          }}
+                          title="Nuova pratica per questo cliente"
+                          type="button"
+                        >
+                          <Plus className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
                     <td className="px-4 py-3 text-foreground-variant">{client.type === "societa" ? "Societa" : "Persona"}</td>
                     <td className="px-4 py-3 font-label text-foreground-variant">{client.vat}</td>
                     <td className="px-4 py-3 text-foreground-variant">{client.city}</td>
@@ -150,6 +258,53 @@ export function ClientsListClient() {
               </div>
             </>
           ) : null}
+        </SheetContent>
+      </Sheet>
+
+      <Sheet onOpenChange={setNewClientOpen} open={newClientOpen}>
+        <SheetContent className="max-w-lg">
+          <SheetHeader>
+            <SheetTitle>Nuovo cliente</SheetTitle>
+            <SheetDescription>Crea un cliente e apri subito una nuova pratica collegata.</SheetDescription>
+          </SheetHeader>
+          <div className="space-y-3">
+            <input
+              className="h-10 w-full rounded-xl border border-border bg-surface-low px-3 text-sm outline-none"
+              onChange={(event) => setNewClient((value) => ({ ...value, name: event.target.value }))}
+              placeholder="Ragione sociale"
+              value={newClient.name}
+            />
+            <select
+              className="h-10 w-full rounded-xl border border-border bg-surface-low px-3 text-sm outline-none"
+              onChange={(event) => setNewClient((value) => ({ ...value, type: event.target.value as NewClientDraft["type"] }))}
+              value={newClient.type}
+            >
+              <option value="societa">Societa</option>
+              <option value="persona_fisica">Persona fisica</option>
+            </select>
+            <input
+              className="h-10 w-full rounded-xl border border-border bg-surface-low px-3 text-sm outline-none"
+              onChange={(event) => setNewClient((value) => ({ ...value, vat: event.target.value }))}
+              placeholder="P.IVA / CF"
+              value={newClient.vat}
+            />
+            <input
+              className="h-10 w-full rounded-xl border border-border bg-surface-low px-3 text-sm outline-none"
+              onChange={(event) => setNewClient((value) => ({ ...value, email: event.target.value }))}
+              placeholder="Email"
+              value={newClient.email}
+            />
+            <input
+              className="h-10 w-full rounded-xl border border-border bg-surface-low px-3 text-sm outline-none"
+              onChange={(event) => setNewClient((value) => ({ ...value, phone: event.target.value }))}
+              placeholder="Telefono"
+              value={newClient.phone}
+            />
+            <Button className="w-full" disabled={!newClient.name.trim() || creatingClient} onClick={submitNewClient} type="button">
+              <Plus className="h-4 w-4" />
+              {creatingClient ? "Creazione..." : "Crea cliente e apri pratica"}
+            </Button>
+          </div>
         </SheetContent>
       </Sheet>
     </main>

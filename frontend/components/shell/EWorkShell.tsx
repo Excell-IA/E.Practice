@@ -6,7 +6,7 @@ import {
   Clock3,
   FileText,
   Gauge,
-  LayoutDashboard,
+  Home,
   Moon,
   Plus,
   Search,
@@ -30,14 +30,14 @@ type EWorkShellProps = {
 };
 
 const navItems = [
-  { label: "Dashboard", icon: LayoutDashboard, section: "Modulo" },
+  { label: "Home", icon: Home, section: "Modulo", href: "/pratiche" },
   { label: "Rubrica clienti", icon: UsersRound, section: "Modulo", href: "/clienti" },
   { label: "Pratiche", icon: Gauge, section: "Modulo", badge: 8, href: "/pratiche" },
   { label: "Nuova pratica", icon: Plus, section: "Modulo", href: "/pratiche/nuova" },
-  { label: "Carica documento", icon: FileText, section: "Modulo", href: "/pratiche/importa" },
+  { label: "Nuovo documento", icon: FileText, section: "Modulo", href: "/pratiche/importa" },
   { label: "Agenda", icon: CalendarDays, section: "Modulo" },
   { label: "Scadenze", icon: Clock3, section: "Modulo", badge: 7 },
-  { label: "Utenti studio", icon: UserSquare2, section: "Studio" },
+  { label: "Utenti studio", icon: UserSquare2, section: "Studio", href: "/utenti" },
   { label: "Configurazione", icon: Settings, section: "Studio" },
 ];
 

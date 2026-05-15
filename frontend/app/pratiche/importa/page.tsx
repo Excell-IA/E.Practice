@@ -3,7 +3,7 @@ import { EWorkShell } from "@/components/shell/EWorkShell";
 
 export default function ImportPracticePage() {
   return (
-    <EWorkShell code="Importa">
+    <EWorkShell code="Nuovo documento">
       <ImportPracticeClient />
     </EWorkShell>
   );

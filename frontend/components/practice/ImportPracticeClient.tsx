@@ -65,7 +65,7 @@ export function ImportPracticeClient() {
       <header className="border-b border-border bg-surface-low/80 px-6 py-[14px] md:px-10">
         <div className="mx-auto flex max-w-7xl flex-wrap items-end justify-between gap-4">
           <h1 className="font-display text-3xl font-semibold text-foreground md:text-4xl">
-            Carica documento
+            Nuovo documento
           </h1>
         </div>
       </header>

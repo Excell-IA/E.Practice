@@ -1,6 +1,6 @@
 "use client";
 
-import { format } from "date-fns";
+import { format, isAfter, isSameDay, startOfDay } from "date-fns";
 import { it } from "date-fns/locale";
 import { CheckCircle2, Mail, MessageSquareText, PhoneCall, PlayCircle, TriangleAlert } from "lucide-react";
 import { useMemo, useState, type ReactNode } from "react";
@@ -28,6 +28,8 @@ type TimelineEntry = {
   icon: ReactNode;
   iconTitle: string;
   colorClass: string;
+  badgeLabel: string;
+  badgeVariant: "default" | "info" | "success" | "warning" | "danger";
   phaseOrder?: number;
   phaseStatus?: PracticePhase["status"];
 };
@@ -61,6 +63,8 @@ function eventColor(event: PracticeEvent) {
 function buildEntries(phases: PracticePhase[], events: PracticeEvent[], notes: DemoNote[]) {
   const phaseEntries = phases.map((phase): TimelineEntry => ({
     colorClass: phase.status === "done" ? "border-l-success" : "border-l-electric",
+    badgeLabel: "FASE - Template",
+    badgeVariant: "info",
     date: phase.plannedDate || phase.dueDate,
     icon: phase.status === "done" ? <CheckCircle2 className="h-4 w-4" /> : <PlayCircle className="h-4 w-4" />,
     iconTitle: phase.status === "done" ? "Scadenza" : "Scadenza",
@@ -76,6 +80,8 @@ function buildEntries(phases: PracticePhase[], events: PracticeEvent[], notes: D
     const eventIconData = eventIcon(event);
     return {
       author: event.author,
+      badgeLabel: `EVENTO - ${eventIconData.title}`,
+      badgeVariant: event.type === "mail" ? "info" : event.type === "call" ? "warning" : "danger",
       colorClass: eventColor(event),
       date: event.occurredAt,
       icon: eventIconData.icon,
@@ -89,6 +95,8 @@ function buildEntries(phases: PracticePhase[], events: PracticeEvent[], notes: D
 
   const noteEntries = notes.map((note): TimelineEntry => ({
     author: note.author,
+    badgeLabel: "NOTA",
+    badgeVariant: "default",
     colorClass: "border-l-purple-400",
     date: noteDate(note),
     icon: <MessageSquareText className="h-4 w-4" />,
@@ -99,9 +107,7 @@ function buildEntries(phases: PracticePhase[], events: PracticeEvent[], notes: D
     title: `Nota da ${note.author.name}`,
   }));
 
-  return [...phaseEntries, ...eventEntries, ...noteEntries].sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
-  );
+  return [...phaseEntries, ...eventEntries, ...noteEntries];
 }
 
 function matchesFilter(entry: TimelineEntry, filter: TimelineFilter) {
@@ -121,6 +127,28 @@ export function TabTimeline({ events, phases }: TabTimelineProps) {
   const notes = useDemoStore((state) => state.notes);
   const entries = useMemo(() => buildEntries(phases, events, notes), [events, notes, phases]);
   const visibleEntries = entries.filter((entry) => matchesFilter(entry, filter));
+  const todayDate = startOfDay(new Date());
+  const todayEntries = visibleEntries
+    .filter((entry) => isSameDay(new Date(entry.date), todayDate))
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  const pastEntries = visibleEntries
+    .filter((entry) => !isSameDay(new Date(entry.date), todayDate) && !isAfter(startOfDay(new Date(entry.date)), todayDate))
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  const futureEntries = visibleEntries
+    .filter((entry) => isAfter(startOfDay(new Date(entry.date)), todayDate))
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  const groupedEntries = [
+    { entries: todayEntries, label: "OGGI" },
+    { entries: pastEntries, label: "" },
+    { entries: futureEntries, label: "FUTURO" },
+  ].filter((group) => group.entries.length > 0);
+
+  function cardClass(entry: TimelineEntry) {
+    const date = startOfDay(new Date(entry.date));
+    if (isSameDay(date, todayDate)) return "border-electric/60 bg-electric/10";
+    if (isAfter(date, todayDate)) return "border-dashed border-muted/40 bg-surface-high";
+    return "bg-surface-container";
+  }
 
   return (
     <section className="rounded-2xl border border-border bg-surface-low p-5">
@@ -153,61 +181,75 @@ export function TabTimeline({ events, phases }: TabTimelineProps) {
 
       {visibleEntries.length ? (
         <div className="space-y-3">
-          {visibleEntries.map((entry) => (
-            <Card
-              className={cn(
-                "border-l-4 bg-surface-container p-4 transition-colors",
-                entry.colorClass,
-                entry.kind === "note" ? "cursor-pointer hover:bg-surface-high" : "",
-              )}
-              key={entry.id}
-              onClick={() => {
-                if (entry.kind !== "note") return;
-                document.querySelector<HTMLButtonElement>('button[value="note"]')?.click();
-                window.setTimeout(() => document.getElementById(`note-${entry.id}`)?.scrollIntoView({ block: "center" }), 80);
-              }}
-              role={entry.kind === "note" ? "button" : undefined}
-              tabIndex={entry.kind === "note" ? 0 : undefined}
-            >
-              <div className="flex gap-3">
-                <div
-                  className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-border bg-surface-low text-electric"
-                  title={entry.iconTitle}
-                >
-                  {entry.icon}
+          {groupedEntries.map((group) => (
+            <div className="space-y-3" key={group.label || "passato"}>
+              {group.label ? (
+                <div className="flex items-center gap-3 py-1">
+                  <span className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-electric">
+                    {group.label}
+                  </span>
+                  <span className="h-px flex-1 bg-border" />
                 </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                    <div>
-                      <p className="font-label text-sm font-semibold text-foreground">{entry.title}</p>
-                      <p className="mt-1 text-sm leading-5 text-foreground-variant">{entry.subtitle}</p>
-                      {entry.kind === "phase" ? (
-                        <div className="mt-2 flex flex-wrap items-center gap-2">
-                          <Badge>Fase {entry.phaseOrder}</Badge>
-                          <Badge variant={entry.phaseStatus === "done" ? "success" : "default"}>{entry.phaseStatus}</Badge>
+              ) : null}
+              {group.entries.map((entry) => (
+                <Card
+                  className={cn(
+                    "border-l-4 p-4 transition-colors",
+                    cardClass(entry),
+                    entry.colorClass,
+                    entry.kind === "note" ? "cursor-pointer hover:bg-surface-high" : "",
+                  )}
+                  key={entry.id}
+                  onClick={() => {
+                    if (entry.kind !== "note") return;
+                    document.querySelector<HTMLButtonElement>('button[value="note"]')?.click();
+                    window.setTimeout(() => document.getElementById(`note-${entry.id}`)?.scrollIntoView({ block: "center" }), 80);
+                  }}
+                  role={entry.kind === "note" ? "button" : undefined}
+                  tabIndex={entry.kind === "note" ? 0 : undefined}
+                >
+                  <div className="flex gap-3">
+                    <div
+                      className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-border bg-surface-low text-electric"
+                      title={entry.iconTitle}
+                    >
+                      {entry.icon}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                        <div>
+                          <Badge className="mb-2" variant={entry.badgeVariant}>{entry.badgeLabel}</Badge>
+                          <p className="font-label text-sm font-semibold text-foreground">{entry.title}</p>
+                          <p className="mt-1 text-sm leading-5 text-foreground-variant">{entry.subtitle}</p>
+                          {entry.kind === "phase" ? (
+                            <div className="mt-2 flex flex-wrap items-center gap-2">
+                              <Badge>Fase {entry.phaseOrder}</Badge>
+                              <Badge variant={entry.phaseStatus === "done" ? "success" : "default"}>{entry.phaseStatus}</Badge>
+                            </div>
+                          ) : null}
+                        </div>
+                        <Badge className="w-fit shrink-0">
+                          {format(new Date(entry.date), "dd MMM yyyy - HH:mm", { locale: it })}
+                        </Badge>
+                      </div>
+                      {entry.author ? (
+                        <div className="mt-3 flex items-center gap-2">
+                          <span
+                            className={cn(
+                              "flex h-7 w-7 items-center justify-center rounded-full font-display text-[10px] font-bold text-white",
+                              avatarClass(entry.author.id),
+                            )}
+                          >
+                            {entry.author.initials}
+                          </span>
+                          <span className="text-xs text-muted">{entry.author.name}</span>
                         </div>
                       ) : null}
                     </div>
-                    <Badge className="w-fit shrink-0">
-                      {format(new Date(entry.date), "dd MMM yyyy - HH:mm", { locale: it })}
-                    </Badge>
                   </div>
-                  {entry.author ? (
-                    <div className="mt-3 flex items-center gap-2">
-                      <span
-                        className={cn(
-                          "flex h-7 w-7 items-center justify-center rounded-full font-display text-[10px] font-bold text-white",
-                          avatarClass(entry.author.id),
-                        )}
-                      >
-                        {entry.author.initials}
-                      </span>
-                      <span className="text-xs text-muted">{entry.author.name}</span>
-                    </div>
-                  ) : null}
-                </div>
-              </div>
-            </Card>
+                </Card>
+              ))}
+            </div>
           ))}
         </div>
       ) : (
