@@ -44,12 +44,12 @@ const disabledToolbar = [
 ];
 
 const timeline = {
-  startX: 120,
-  endX: 2060,
+  startX: 140,
+  endX: 3060,
   y: 250,
 };
 
-const svgWidth = 2200;
+const svgWidth = 3200;
 
 type ComposerKind = PracticeEvent["type"] | "note";
 
@@ -515,12 +515,12 @@ export function PracticeTree({ practice, phases, events, onSwitchTab }: Practice
           <div className="overflow-x-auto" ref={scrollAreaRef}>
             <svg
               aria-label="Albero della pratica"
-              className="h-[470px] min-w-[2200px] text-foreground"
+              className="h-[470px] min-w-[3200px] text-foreground"
               role="img"
               viewBox={`0 0 ${svgWidth} 470`}
             >
               <defs>
-                <linearGradient id="mainLine" x1="120" x2="2060" y1="0" y2="0">
+                <linearGradient id="mainLine" x1="140" x2="3060" y1="0" y2="0">
                   <stop offset="0%" stopColor="var(--success)" />
                   <stop offset="50%" stopColor="var(--electric)" />
                   <stop offset="100%" stopColor="var(--on-surface-muted)" stopOpacity="0.45" />
