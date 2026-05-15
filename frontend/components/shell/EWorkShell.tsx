@@ -7,6 +7,7 @@ import {
   FileText,
   Gauge,
   Home,
+  LogOut,
   Moon,
   Plus,
   Search,
@@ -132,6 +133,14 @@ export function EWorkShell({ children, code }: EWorkShellProps) {
             <p className="font-display text-xs font-semibold text-foreground">Demo Gestione Pratiche</p>
             <p className="mt-1 text-xs leading-5 text-muted">Ambiente statico V0, pronto per walkthrough prodotto.</p>
           </div>
+          <Link
+            className="mt-3 flex h-9 items-center gap-3 rounded-lg px-3 text-[13.5px] font-medium text-foreground-variant transition-colors hover:bg-surface-container hover:text-foreground"
+            href="/"
+            title="Esci dalla demo e torna alla pagina di presentazione"
+          >
+            <LogOut className="h-4 w-4 text-muted" />
+            <span className="min-w-0 flex-1 truncate">Esci</span>
+          </Link>
         </div>
       </aside>
 

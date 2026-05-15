@@ -6,11 +6,35 @@ import { useRef, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { V1Hint } from "@/components/ui/v1-hint";
-import { attachAttachment, deleteAttachment, listAttachments, uploadAttachment } from "@/lib/api";
+import { attachAttachment, deleteAttachment, listAttachments, uploadAttachment, type ApiAttachment } from "@/lib/api";
 import { DEMO_USERS, useDemoStore } from "@/lib/demo-state";
 import type { Practice, PracticePhase } from "@/lib/types";
 import { cn } from "@/lib/utils";
+
+function downloadAttachment(att: ApiAttachment) {
+  const storageKey = att.storage_key ?? "";
+  if (!storageKey.startsWith("memory:")) {
+    window.alert("Anteprima non disponibile per questo allegato.");
+    return;
+  }
+  try {
+    const binary = atob(storageKey.slice("memory:".length));
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    const blob = new Blob([bytes], { type: att.mime_type ?? "application/octet-stream" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = att.filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  } catch (err) {
+    console.error("attachment_decode_failed", err);
+    window.alert("Impossibile decodificare il file.");
+  }
+}
 
 type TabAllegatiProps = {
   practice: Practice;
@@ -123,7 +147,7 @@ export function TabAllegati({ phases, practice }: TabAllegatiProps) {
         </p>
       ) : null}
 
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto overflow-y-visible">
         <table className="w-full min-w-[820px] border-separate border-spacing-y-2 text-left">
           <thead className="text-[11px] uppercase tracking-[0.14em] text-muted">
             <tr>
@@ -169,16 +193,21 @@ export function TabAllegati({ phases, practice }: TabAllegatiProps) {
                   </td>
                   <td className="rounded-r-2xl px-3 py-3 text-right">
                     <div className="flex justify-end gap-2">
-                      <V1Hint label="Disponibile in V1">
-                        <Button size="sm" type="button" variant="outline">
-                          <Download className="h-4 w-4" />
-                          Scarica
-                        </Button>
-                      </V1Hint>
+                      <Button
+                        onClick={() => downloadAttachment(attachment)}
+                        size="sm"
+                        title="Scarica file"
+                        type="button"
+                        variant="outline"
+                      >
+                        <Download className="h-4 w-4" />
+                        Scarica
+                      </Button>
                       <Button
                         aria-label={`Elimina ${attachment.filename}`}
                         onClick={() => void removeAttachment(attachment.id, attachment.filename)}
                         size="icon"
+                        title="Elimina allegato"
                         type="button"
                         variant="ghost"
                       >
