@@ -75,7 +75,10 @@ const groupTypeLabel = {
 
 export function PracticeTree({ practice, phases, events, onSwitchTab }: PracticeTreeProps) {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
-  const [todayDate] = useState<Date>(() => new Date());
+  const [todayDate, setTodayDate] = useState<Date>(() => new Date("2026-01-01T00:00:00Z"));
+  useEffect(() => {
+    setTodayDate(new Date());
+  }, []);
   const todayIso = useMemo(() => todayDate.toISOString().slice(0, 10), [todayDate]);
   const [selection, setSelection] = useState<TreeSelection | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
