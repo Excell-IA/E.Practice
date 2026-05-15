@@ -6,9 +6,7 @@ import {
   Check,
   FileText,
   Lock,
-  Paperclip,
   Pencil,
-  RotateCcw,
   Save,
   SkipForward,
   UserRound,
@@ -42,6 +40,12 @@ export function NodeDrawer({ selection, open, onOpenChange, onSwitchTab }: NodeD
   });
   const [eventSaved, setEventSaved] = useState(false);
   const [noteSaved, setNoteSaved] = useState(false);
+  const [phaseSaved, setPhaseSaved] = useState(false);
+
+  function flashPhaseSaved() {
+    setPhaseSaved(true);
+    window.setTimeout(() => setPhaseSaved(false), 1500);
+  }
   const queryClient = useQueryClient();
   const activeUser = useDemoStore((state) => state.activeUser);
   const users = useDemoStore((state) => state.users);
@@ -185,25 +189,29 @@ export function NodeDrawer({ selection, open, onOpenChange, onSwitchTab }: NodeD
               {isPhase ? selection.item.status.replace("_", " ") : selection?.item.type}
             </Badge>
             {isPhase ? (
-              <select
-                className="h-10 w-full rounded-xl border border-border bg-surface-low px-3 text-sm text-foreground outline-none disabled:cursor-not-allowed disabled:opacity-50"
-                disabled={!canEdit}
-                onChange={(event) =>
-                  applyAction({
-                    type: "set_phase_status",
-                    phaseId: selection.item.id,
-                    status: event.target.value as typeof selection.item.status,
-                  })
-                }
-                title={canEdit ? "Cambia stato fase" : "Permesso non disponibile per utente viewer"}
-                value={selection.item.status}
-              >
-                <option value="pending">Da fare</option>
-                <option value="in_progress">In corso</option>
-                <option value="done">Completata</option>
-                <option value="skipped">Saltata</option>
-                <option value="blocked">Bloccata</option>
-              </select>
+              <div className="flex items-center gap-2">
+                <select
+                  className="h-10 w-full rounded-xl border border-border bg-surface-low px-3 text-sm text-foreground outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                  disabled={!canEdit}
+                  onChange={(event) => {
+                    applyAction({
+                      type: "set_phase_status",
+                      phaseId: selection.item.id,
+                      status: event.target.value as typeof selection.item.status,
+                    });
+                    flashPhaseSaved();
+                  }}
+                  title={canEdit ? "Cambia stato fase (salvataggio automatico)" : "Permesso non disponibile per utente viewer"}
+                  value={selection.item.status}
+                >
+                  <option value="pending">Da fare</option>
+                  <option value="in_progress">In corso</option>
+                  <option value="done">Completata</option>
+                  <option value="skipped">Saltata</option>
+                  <option value="blocked">Bloccata</option>
+                </select>
+                {phaseSaved ? <Badge variant="success">Salvato ✓</Badge> : null}
+              </div>
             ) : null}
           </section>
 
@@ -229,8 +237,11 @@ export function NodeDrawer({ selection, open, onOpenChange, onSwitchTab }: NodeD
               <select
                 className="h-10 w-full rounded-xl border border-border bg-surface-low px-3 text-sm text-foreground outline-none disabled:cursor-not-allowed disabled:opacity-50"
                 disabled={!isAdmin}
-                onChange={(event) => applyAction({ type: "assign_phase", phaseId: selection.item.id, userId: event.target.value })}
-                title={isAdmin ? "Assegna fase" : "Solo l'admin puo assegnare le fasi"}
+                onChange={(event) => {
+                  applyAction({ type: "assign_phase", phaseId: selection.item.id, userId: event.target.value });
+                  flashPhaseSaved();
+                }}
+                title={isAdmin ? "Assegna fase (salvataggio automatico)" : "Solo l'admin puo assegnare le fasi"}
                 value={selection.item.assignee.id}
               >
                 {users.map((user) => (
@@ -314,14 +325,15 @@ export function NodeDrawer({ selection, open, onOpenChange, onSwitchTab }: NodeD
                   <input
                     className="mt-2 h-9 w-full rounded-xl border border-border bg-surface-container px-3 font-label text-sm font-semibold text-foreground outline-none disabled:cursor-not-allowed disabled:opacity-50"
                     disabled={!canEdit}
-                    onChange={(event) =>
+                    onChange={(event) => {
                       applyAction({
                         type: "update_phase",
                         phaseId: selection.item.id,
                         planned_end: event.target.value,
-                      })
-                    }
-                    title={canEdit ? "Modifica scadenza fase" : "Permesso non disponibile per utente viewer"}
+                      });
+                      flashPhaseSaved();
+                    }}
+                    title={canEdit ? "Modifica scadenza fase (salvataggio automatico)" : "Permesso non disponibile per utente viewer"}
                     type="date"
                     value={selection.item.dueDate}
                   />
@@ -339,38 +351,10 @@ export function NodeDrawer({ selection, open, onOpenChange, onSwitchTab }: NodeD
             </div>
           </section>
 
-          <section className="space-y-3">
-            <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">Materiale</p>
-            <div className="space-y-2">
-              <button
-                className="flex w-full items-center justify-between rounded-2xl border border-border bg-surface-low p-3 text-left text-sm transition-colors hover:bg-surface-high"
-                onClick={() => switchTab("note")}
-                type="button"
-              >
-                <span className="flex items-center gap-2 text-foreground-variant">
-                  <FileText className="h-4 w-4 text-electric" />
-                  Note operative
-                </span>
-                <span className="text-muted">{isPhase ? selection.item.notesCount : 1}</span>
-              </button>
-              <button
-                className="flex w-full items-center justify-between rounded-2xl border border-border bg-surface-low p-3 text-left text-sm transition-colors hover:bg-surface-high"
-                onClick={() => switchTab("allegati")}
-                type="button"
-              >
-                <span className="flex items-center gap-2 text-foreground-variant">
-                  <Paperclip className="h-4 w-4 text-electric" />
-                  Allegati
-                </span>
-                <span className="text-muted">{isPhase ? selection.item.attachmentsCount : 0}</span>
-              </button>
-            </div>
-          </section>
-
           {isPhase ? (
             <section className="space-y-3">
             <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
-                Note salvate in locale
+                Note di questa fase
               </p>
               <div className="space-y-2">
                 {phaseNotes.map((note) => {
@@ -436,17 +420,20 @@ export function NodeDrawer({ selection, open, onOpenChange, onSwitchTab }: NodeD
               />
               <Button disabled={!canEdit || !noteBody.trim()} onClick={addNote} type="button" variant="outline">
                 <FileText className="h-4 w-4" />
-                Salva nota
+                Aggiungi nota
               </Button>
             </section>
           ) : null}
 
           {isPhase ? (
-            <div className="mt-auto grid gap-2 border-t border-border pt-4 sm:grid-cols-3">
+            <div className="mt-auto grid gap-2 border-t border-border pt-4 sm:grid-cols-2">
               <Button
                 disabled={!canEdit}
-                onClick={() => applyAction({ type: "complete_phase", phaseId: selection.item.id })}
-                title={canEdit ? "Completa fase in locale" : "Permesso non disponibile per utente viewer"}
+                onClick={() => {
+                  applyAction({ type: "complete_phase", phaseId: selection.item.id });
+                  flashPhaseSaved();
+                }}
+                title={canEdit ? "Completa fase" : "Permesso non disponibile per utente viewer"}
                 type="button"
               >
                 <Check className="h-4 w-4" />
@@ -454,18 +441,11 @@ export function NodeDrawer({ selection, open, onOpenChange, onSwitchTab }: NodeD
               </Button>
               <Button
                 disabled={!canEdit}
-                onClick={() => applyAction({ type: "reopen_phase", phaseId: selection.item.id })}
-                title={canEdit ? "Riapri fase in locale" : "Permesso non disponibile per utente viewer"}
-                type="button"
-                variant="outline"
-              >
-                <RotateCcw className="h-4 w-4" />
-                Riapri
-              </Button>
-              <Button
-                disabled={!canEdit}
-                onClick={() => applyAction({ type: "skip_phase", phaseId: selection.item.id })}
-                title={canEdit ? "Salta fase in locale" : "Permesso non disponibile per utente viewer"}
+                onClick={() => {
+                  applyAction({ type: "skip_phase", phaseId: selection.item.id });
+                  flashPhaseSaved();
+                }}
+                title={canEdit ? "Salta fase" : "Permesso non disponibile per utente viewer"}
                 type="button"
                 variant="warning"
               >
