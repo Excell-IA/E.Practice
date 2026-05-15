@@ -180,7 +180,7 @@ type DemoAction =
   | { type: "set_practice_status"; status: Extract<PracticeStatus, "aperta" | "sospesa" | "chiusa"> }
   | { type: "update_phase"; phaseId: string; planned_end: string }
   | { type: "assign_phase"; phaseId: string; userId: string }
-  | { type: "add_note"; phaseId: string; body: string }
+  | { type: "add_note"; phaseId: string; body: string; occurredAt?: string }
   | { type: "update_note"; noteId: string; body: string }
   | { type: "create_event"; phaseId: string; eventType: EventType; title: string; description: string; occurredAt: string }
   | {
@@ -271,6 +271,7 @@ function syncActionWithApi(action: DemoAction, state: DemoState) {
         content: action.body,
         phase_id: action.phaseId,
         practice_id: state.practice.id,
+        ...(action.occurredAt ? { occurred_at: action.occurredAt } : {}),
       },
       state.activeUser.id,
     ).catch(console.warn);
@@ -385,12 +386,13 @@ export const useDemoStore = create<DemoState>((set) => ({
       }
 
       if (action.type === "add_note") {
-        const note: DemoNote = {
+        const note: DemoNote & { occurredAt?: string } = {
           id: `note-${Date.now()}`,
           author: state.activeUser,
           body: action.body,
           createdAt: new Date().toISOString(),
           phaseId: action.phaseId,
+          ...(action.occurredAt ? { occurredAt: action.occurredAt } : {}),
         };
         const notes = [note, ...state.notes];
         rememberNotes(notes);

@@ -71,8 +71,13 @@ async function deleteNoteOnApi(noteId: string, userId: string) {
   }
 }
 
+function todayIsoDate() {
+  return new Date().toISOString().slice(0, 10);
+}
+
 export function TabNotes({ phases }: TabNotesProps) {
   const [body, setBody] = useState("");
+  const [newNoteDate, setNewNoteDate] = useState(todayIsoDate);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingBody, setEditingBody] = useState("");
   const [editingDate, setEditingDate] = useState("");
@@ -88,8 +93,14 @@ export function TabNotes({ phases }: TabNotesProps) {
 
   function saveNote() {
     if (!targetPhase || !body.trim()) return;
-    applyAction({ body: body.trim(), phaseId: targetPhase.id, type: "add_note" });
+    applyAction({
+      body: body.trim(),
+      occurredAt: newNoteDate || todayIsoDate(),
+      phaseId: targetPhase.id,
+      type: "add_note",
+    });
     setBody("");
+    setNewNoteDate(todayIsoDate());
   }
 
   function startEditing(note: DemoNote) {
@@ -220,8 +231,18 @@ export function TabNotes({ phases }: TabNotesProps) {
             <p className="text-xs text-muted">{targetPhase ? `Su: ${targetPhase.title}` : "Nessuna fase selezionata"}</p>
           </div>
         </div>
+        <label className="mt-4 block space-y-1.5">
+          <span className="text-xs font-semibold text-muted">Data nota</span>
+          <input
+            className="h-10 w-full rounded-xl border border-border bg-surface-container px-3 text-sm text-foreground outline-none disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={!canEdit}
+            onChange={(event) => setNewNoteDate(event.target.value)}
+            type="date"
+            value={newNoteDate}
+          />
+        </label>
         <textarea
-          className="mt-4 min-h-36 w-full resize-none rounded-2xl border border-border bg-surface-container p-3 text-sm text-foreground outline-none placeholder:text-muted disabled:cursor-not-allowed disabled:opacity-50"
+          className="mt-3 min-h-36 w-full resize-none rounded-2xl border border-border bg-surface-container p-3 text-sm text-foreground outline-none placeholder:text-muted disabled:cursor-not-allowed disabled:opacity-50"
           disabled={!canEdit}
           onChange={(event) => setBody(event.target.value)}
           placeholder={canEdit ? "Scrivi una nota visibile al team..." : "Utente in sola lettura"}

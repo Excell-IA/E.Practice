@@ -1175,6 +1175,11 @@ export interface components {
              * Format: uuid
              */
             author_id: string;
+            /**
+             * Occurred At
+             * Format: date
+             */
+            occurred_at?: string | null;
         };
         /** NoteEnriched */
         NoteEnriched: {

@@ -326,7 +326,7 @@ export function PracticeTree({ practice, phases, events, onSwitchTab }: Practice
               disabled={activeUser.permission === "viewer"}
               onClick={() => openComposer("call")}
               size="sm"
-              title={activeUser.permission === "viewer" ? "Permesso non disponibile per utente viewer" : "Crea telefonata demo"}
+              title={activeUser.permission === "viewer" ? "Permesso non disponibile per utente viewer" : "Aggiungi evento - Telefonata"}
               type="button"
               variant="outline"
             >
@@ -337,23 +337,23 @@ export function PracticeTree({ practice, phases, events, onSwitchTab }: Practice
               disabled={activeUser.permission === "viewer"}
               onClick={() => openComposer("mail")}
               size="sm"
-              title={activeUser.permission === "viewer" ? "Permesso non disponibile per utente viewer" : "Crea mail demo"}
+              title={activeUser.permission === "viewer" ? "Permesso non disponibile per utente viewer" : "Aggiungi evento - Email"}
               type="button"
               variant="outline"
             >
               <Mail className="h-4 w-4" />
-              Mail
+              Email
             </Button>
             <Button
               disabled={activeUser.permission === "viewer"}
               onClick={() => openComposer("warning")}
               size="sm"
-              title={activeUser.permission === "viewer" ? "Permesso non disponibile per utente viewer" : "Crea alert scadenza"}
+              title={activeUser.permission === "viewer" ? "Permesso non disponibile per utente viewer" : "Aggiungi evento - Avviso"}
               type="button"
               variant="warning"
             >
               <AlertTriangle className="h-4 w-4" />
-              Alert
+              Avviso
             </Button>
             {disabledToolbar.map((item) => {
               const Icon = item.icon;

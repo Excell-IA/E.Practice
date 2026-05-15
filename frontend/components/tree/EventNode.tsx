@@ -30,6 +30,11 @@ const eventTypeLabel = {
   warning: "Avviso",
 };
 
+function truncateLabel(text: string, maxLen = 16) {
+  if (text.length <= maxLen) return text;
+  return `${text.slice(0, maxLen - 1).trimEnd()}…`;
+}
+
 export function EventNode({ event, phase, timelineY, x, y, onSelect }: EventNodeProps) {
   const Icon = eventIcon[event.type];
   const typeLabel = eventTypeLabel[event.type];
@@ -77,7 +82,7 @@ export function EventNode({ event, phase, timelineY, x, y, onSelect }: EventNode
         </foreignObject>
         <rect className="fill-surface-container" height="22" rx="11" width="104" x="-52" y={labelY - 15} />
         <text className="fill-muted text-[11px] font-semibold" textAnchor="middle" y={labelY}>
-          {event.title}
+          {truncateLabel(event.title)}
         </text>
       </g>
     </g>
