@@ -290,18 +290,17 @@ export function PracticeTree({ practice, phases, events, onSwitchTab }: Practice
   }
 
   function createEvent() {
-    const phaseId = composerPhaseId ?? currentPhase?.id;
-    if (!composerType || !phaseId) return;
+    if (!composerType) return;
     if (composerType === "note") {
       if (!composerDescription.trim()) return;
       applyAction({
         type: "add_note",
         body: composerDescription.trim(),
         occurredAt: composerDate,
-        phaseId,
       });
     } else {
-      if (!composerTitle.trim()) return;
+      const phaseId = composerPhaseId ?? currentPhase?.id;
+      if (!phaseId || !composerTitle.trim()) return;
       applyAction({
         type: "create_event",
         description: composerDescription.trim() || "",
@@ -445,13 +444,10 @@ export function PracticeTree({ practice, phases, events, onSwitchTab }: Practice
           {composerType ? (
             <div className="border-b border-border bg-surface-container px-5 py-4">
               {composerType === "note" ? (
-                <div className="grid gap-3 md:grid-cols-[200px_1fr_auto] md:items-end">
-                  <div className="flex flex-col gap-1">
-                    <Badge variant="info">
-                      <span className="font-display text-sm font-bold uppercase tracking-wide">Nota</span>
-                    </Badge>
-                    <span className="text-xs text-muted">{displayDate(composerDate)}</span>
-                  </div>
+                <div className="grid gap-3 md:grid-cols-[180px_1fr_auto] md:items-center">
+                  <Badge className="justify-self-start px-4 py-2" variant="info">
+                    <span className="font-display text-base font-bold uppercase tracking-wider">Nota</span>
+                  </Badge>
                   <label className="text-sm font-semibold text-muted">
                     Testo della nota
                     <textarea
@@ -472,15 +468,12 @@ export function PracticeTree({ practice, phases, events, onSwitchTab }: Practice
                   </div>
                 </div>
               ) : (
-                <div className="grid gap-3 md:grid-cols-[200px_1fr_1.4fr_auto] md:items-end">
-                  <div className="flex flex-col gap-1">
-                    <Badge variant={composerType === "warning" ? "warning" : "info"}>
-                      <span className="font-display text-sm font-bold uppercase tracking-wide">
-                        {composerType === "call" ? "Telefonata" : composerType === "mail" ? "Email" : "Avviso"}
-                      </span>
-                    </Badge>
-                    <span className="text-xs text-muted">{displayDate(composerDate)}</span>
-                  </div>
+                <div className="grid gap-3 md:grid-cols-[180px_1fr_1.4fr_auto] md:items-center">
+                  <Badge className="justify-self-start px-4 py-2" variant={composerType === "warning" ? "warning" : "info"}>
+                    <span className="font-display text-base font-bold uppercase tracking-wider">
+                      {composerType === "call" ? "Telefonata" : composerType === "mail" ? "Email" : "Avviso"}
+                    </span>
+                  </Badge>
                   <label className="text-sm font-semibold text-muted">
                     Titolo
                     <input

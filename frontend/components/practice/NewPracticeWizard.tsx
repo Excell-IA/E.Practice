@@ -314,33 +314,29 @@ export function NewPracticeWizard() {
     }
   }
 
-  function reorderPhasesByDate(list: PreviewPhase[]): PreviewPhase[] {
-    return [...list]
-      .sort((a, b) => new Date(a.planned_start).getTime() - new Date(b.planned_start).getTime())
-      .map((phase, index) => ({ ...phase, order_index: index + 1 }));
+  function recomputeEndsAndOrder(list: PreviewPhase[], finalDate: string): PreviewPhase[] {
+    const sorted = [...list].sort(
+      (a, b) => new Date(a.planned_start).getTime() - new Date(b.planned_start).getTime(),
+    );
+    return sorted.map((phase, index) => {
+      const isLast = index === sorted.length - 1;
+      const nextStart = isLast ? finalDate || phase.planned_end : sorted[index + 1].planned_start;
+      const endIso = nextStart || phase.planned_end;
+      const duration = Math.max(
+        1,
+        differenceInCalendarDays(new Date(endIso), new Date(phase.planned_start)),
+      );
+      return { ...phase, order_index: index + 1, planned_end: endIso, duration_days: duration };
+    });
   }
 
   function updatePhaseStart(index: number, value: string) {
     setPhases((current) => {
-      const updated = current.map((phase, itemIndex) => {
-        if (itemIndex !== index) return phase;
-        const start = new Date(value);
-        const end = addDays(start, phase.duration_days);
-        return { ...phase, planned_start: value, planned_end: format(end, "yyyy-MM-dd") };
-      });
-      return reorderPhasesByDate(updated);
+      const updated = current.map((phase, itemIndex) =>
+        itemIndex === index ? { ...phase, planned_start: value } : phase,
+      );
+      return recomputeEndsAndOrder(updated, scadenza);
     });
-  }
-
-  function updatePhaseDuration(index: number, value: number) {
-    const duration = Number.isFinite(value) && value > 0 ? Math.floor(value) : 1;
-    setPhases((current) =>
-      current.map((phase, itemIndex) => {
-        if (itemIndex !== index) return phase;
-        const end = addDays(new Date(phase.planned_start), duration);
-        return { ...phase, duration_days: duration, planned_end: format(end, "yyyy-MM-dd") };
-      }),
-    );
   }
 
   function updatePhaseAssignee(index: number, userId: string) {
@@ -362,22 +358,24 @@ export function NewPracticeWizard() {
   function addCustomPhase() {
     const lastEnd = phases.length ? phases[phases.length - 1].planned_end : apertura;
     const start = addDays(new Date(lastEnd), 1);
-    const duration = 15;
     setPhases((current) =>
-      reorderPhasesByDate([
-        ...current,
-        {
-          assignee_id: responsibleId,
-          custom: true,
-          description: null,
-          duration_days: duration,
-          enabled: true,
-          name: "Nuova fase",
-          order_index: current.length + 1,
-          planned_end: format(addDays(start, duration), "yyyy-MM-dd"),
-          planned_start: format(start, "yyyy-MM-dd"),
-        },
-      ]),
+      recomputeEndsAndOrder(
+        [
+          ...current,
+          {
+            assignee_id: responsibleId,
+            custom: true,
+            description: null,
+            duration_days: 15,
+            enabled: true,
+            name: "Nuova fase",
+            order_index: current.length + 1,
+            planned_end: format(addDays(start, 15), "yyyy-MM-dd"),
+            planned_start: format(start, "yyyy-MM-dd"),
+          },
+        ],
+        scadenza,
+      ),
     );
   }
 
@@ -597,24 +595,19 @@ export function NewPracticeWizard() {
               <label className="flex items-center gap-2 text-sm text-foreground"><input checked={reminders} onChange={(event) => setReminders(event.target.checked)} type="checkbox" /> Crea reminders automatici</label>
               <Button onClick={addCustomPhase} type="button" variant="outline"><Plus className="h-4 w-4" />Aggiungi fase</Button>
             </div>
-            <div className="hidden gap-3 px-3 pb-2 text-[10px] font-display font-semibold uppercase tracking-[0.14em] text-muted md:grid md:grid-cols-[40px_1fr_150px_110px_200px_40px]">
+            <div className="hidden gap-3 px-3 pb-2 text-[10px] font-display font-semibold uppercase tracking-[0.14em] text-muted md:grid md:grid-cols-[40px_1fr_170px_220px_40px]">
               <span>#</span>
               <span>Nome fase</span>
-              <span>Data</span>
-              <span>Durata</span>
+              <span>Data inizio</span>
               <span>Assegnatario</span>
               <span />
             </div>
             <div className="space-y-2">
               {phases.map((phase, index) => (
-                <div className="grid gap-3 rounded-xl border border-border bg-surface-container p-3 text-sm md:grid-cols-[40px_1fr_150px_110px_200px_40px] md:items-center" key={`phase-${phase.order_index}-${index}`}>
+                <div className="grid gap-3 rounded-xl border border-border bg-surface-container p-3 text-sm md:grid-cols-[40px_1fr_170px_220px_40px] md:items-center" key={`phase-${phase.order_index}-${index}`}>
                   <span className="font-label text-muted">#{index + 1}</span>
                   <input className="rounded-lg bg-surface-low px-2 py-1.5 outline-none" onChange={(event) => updatePhaseName(index, event.target.value)} placeholder="Nome fase" value={phase.name} />
                   <input className="rounded-lg bg-surface-low px-2 py-1.5 outline-none" onChange={(event) => updatePhaseStart(index, event.target.value)} type="date" value={phase.planned_start} />
-                  <div className="flex items-center gap-1">
-                    <input className="w-16 rounded-lg bg-surface-low px-2 py-1.5 outline-none" min={1} onChange={(event) => updatePhaseDuration(index, Number(event.target.value))} type="number" value={phase.duration_days} />
-                    <span className="text-xs text-muted">gg</span>
-                  </div>
                   <select className="rounded-lg bg-surface-low px-2 py-1.5 text-xs outline-none" onChange={(event) => updatePhaseAssignee(index, event.target.value)} value={phase.assignee_id ?? responsibleId}>
                     {users.map((user) => (
                       <option className="bg-surface text-foreground" key={user.id} value={user.id}>

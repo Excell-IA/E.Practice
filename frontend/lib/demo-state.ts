@@ -181,7 +181,7 @@ type DemoAction =
   | { type: "set_practice_status"; status: Extract<PracticeStatus, "aperta" | "sospesa" | "chiusa"> }
   | { type: "update_phase"; phaseId: string; planned_end: string }
   | { type: "assign_phase"; phaseId: string; userId: string }
-  | { type: "add_note"; phaseId: string; body: string; occurredAt?: string }
+  | { type: "add_note"; phaseId?: string | null; body: string; occurredAt?: string }
   | { type: "update_note"; noteId: string; body: string }
   | { type: "create_event"; phaseId: string; eventType: EventType; title: string; description: string; occurredAt: string }
   | {
@@ -265,12 +265,13 @@ function syncActionWithApi(action: DemoAction, state: DemoState) {
     void updatePracticeStatus(state.practice.id, action.status, state.activeUser.id).catch(console.warn);
   }
 
-  if (action.type === "add_note" && isUuid(action.phaseId) && isUuid(state.practice.id)) {
+  if (action.type === "add_note" && isUuid(state.practice.id)) {
+    const linkedPhaseId = action.phaseId && isUuid(action.phaseId) ? action.phaseId : undefined;
     void createNote(
       {
         author_id: state.activeUser.id,
         content: action.body,
-        phase_id: action.phaseId,
+        ...(linkedPhaseId ? { phase_id: linkedPhaseId } : {}),
         practice_id: state.practice.id,
         ...(action.occurredAt ? { occurred_at: action.occurredAt } : {}),
       },
@@ -392,7 +393,7 @@ export const useDemoStore = create<DemoState>((set) => ({
           author: state.activeUser,
           body: action.body,
           createdAt: new Date().toISOString(),
-          phaseId: action.phaseId,
+          phaseId: action.phaseId ?? "",
           ...(action.occurredAt ? { occurredAt: action.occurredAt } : {}),
         };
         const notes = [note, ...state.notes];

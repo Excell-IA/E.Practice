@@ -84,19 +84,16 @@ export function TabNotes({ phases }: TabNotesProps) {
   const activeUser = useDemoStore((state) => state.activeUser);
   const notes = useDemoStore((state) => state.notes);
   const applyAction = useDemoStore((state) => state.applyAction);
-  const targetPhase = useMemo(
-    () => phases.find((phase) => phase.status === "in_progress") ?? phases[0],
-    [phases],
-  );
+  // intentionally not deriving a target phase: notes are free-standing on the practice timeline.
+  void phases;
   const sortedNotes = [...notes].sort((a, b) => new Date(noteDate(b)).getTime() - new Date(noteDate(a)).getTime());
   const canEdit = activeUser.permission !== "viewer";
 
   function saveNote() {
-    if (!targetPhase || !body.trim()) return;
+    if (!body.trim()) return;
     applyAction({
       body: body.trim(),
       occurredAt: newNoteDate || todayIsoDate(),
-      phaseId: targetPhase.id,
       type: "add_note",
     });
     setBody("");
@@ -228,7 +225,7 @@ export function TabNotes({ phases }: TabNotesProps) {
           </div>
           <div>
             <p className="font-semibold text-foreground">{activeUser.name}</p>
-            <p className="text-xs text-muted">{targetPhase ? `Su: ${targetPhase.title}` : "Nessuna fase selezionata"}</p>
+            <p className="text-xs text-muted">Nota generale della pratica</p>
           </div>
         </div>
         <label className="mt-4 block space-y-1.5">
