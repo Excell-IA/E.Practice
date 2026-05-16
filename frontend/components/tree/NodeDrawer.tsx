@@ -377,9 +377,9 @@ export function NodeDrawer({ selection, open, onOpenChange, onSwitchTab }: NodeD
             <section className="space-y-3">
               <div className="flex items-center justify-between gap-2">
                 <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
-                  Note di questa fase ({phaseNotes.length})
+                  Annotazioni di questa fase ({phaseNotes.length})
                 </p>
-                <span className="text-[11px] text-muted">Visibili anche nel tab Note</span>
+                <span className="text-[11px] text-muted">Visibili solo nella fase</span>
               </div>
               <div className="space-y-2">
                 {phaseNotes.map((note) => {
