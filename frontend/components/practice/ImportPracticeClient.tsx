@@ -197,7 +197,12 @@ export function ImportPracticeClient() {
                   <Button asChild className="w-full">
                     <Link href={newPracticeHref}>Crea una nuova pratica con questi allegati</Link>
                   </Button>
-                  <Button className="w-full" onClick={() => setAttachDialogOpen(true)} type="button" variant="outline">
+                  <Button
+                    className="w-full border-electric/50 bg-electric/10 text-foreground hover:bg-electric/20 hover:text-foreground"
+                    onClick={() => setAttachDialogOpen(true)}
+                    type="button"
+                    variant="outline"
+                  >
                     Allega a una pratica esistente
                   </Button>
                 </>
@@ -217,8 +222,9 @@ export function ImportPracticeClient() {
                 <div className="rounded-xl border border-dashed border-border bg-surface-container p-4 text-base leading-7 text-foreground-variant">
                   <p className="font-semibold text-foreground">Lettore AI dei documenti</p>
                   <p className="mt-1">
-                    L&apos;AI legge il documento e usa i dati già presenti nel database per pre-compilare la pratica.
-                    Sempre sotto la tua supervisione.
+                    Con questo tool la AI farà una lettura completa del documento e la confronterà con i dati del
+                    database per cercare di sfruttare le informazioni disponibili e velocizzare la compilazione della
+                    pratica. Sempre sotto la supervisione dell&apos;utente.
                   </p>
                 </div>
               </V1Hint>
