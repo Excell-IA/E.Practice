@@ -78,7 +78,7 @@ export default function CategoriesPage() {
   return (
     <EWorkShell code="Tipologie pratica">
       <main className="min-h-[calc(100vh-120px)] bg-surface px-6 py-6 md:px-10">
-        <div className="mx-auto max-w-screen-2xl">
+        <div>
           <div className="mb-5 flex items-start gap-3">
             <div>
               <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-electric">Studio</p>

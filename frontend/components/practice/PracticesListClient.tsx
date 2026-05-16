@@ -134,7 +134,7 @@ export function PracticesListClient() {
 
   return (
     <main className="min-h-[calc(100vh-120px)] bg-surface px-6 md:px-10">
-      <div className="mx-auto max-w-7xl">
+      <div>
         <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
           <div className="flex items-start gap-3">
             <div>
@@ -195,7 +195,7 @@ export function PracticesListClient() {
           ))}
         </div>
 
-        <div className="overflow-hidden rounded-2xl border border-border bg-surface-low">
+        <div className="overflow-x-auto rounded-2xl border border-border bg-surface-low">
           <table className="w-full min-w-[1080px] border-collapse text-sm">
             <thead className="bg-surface-container text-left font-display text-[11px] uppercase tracking-[0.14em] text-muted">
               <tr>

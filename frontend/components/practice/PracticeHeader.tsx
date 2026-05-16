@@ -58,7 +58,7 @@ export function PracticeHeader({ practice, phases }: PracticeHeaderProps) {
 
   return (
     <header className="rounded-b-[28px] border-b border-border bg-surface-low/80 px-6 py-3 shadow-electric backdrop-blur md:px-10">
-      <div className="mx-auto flex max-w-7xl flex-col gap-2">
+      <div className="flex flex-col gap-2">
         <div className="flex flex-wrap items-center gap-3 text-sm">
           <span className="font-label text-xs font-semibold text-muted">{practice.code}</span>
           <span className="h-1 w-1 rounded-full bg-muted" />
