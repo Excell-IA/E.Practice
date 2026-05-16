@@ -3,7 +3,7 @@
 import { format, isAfter, isSameDay, startOfDay } from "date-fns";
 import { it } from "date-fns/locale";
 import { CheckCircle2, Mail, MessageSquareText, PhoneCall, PlayCircle, TriangleAlert } from "lucide-react";
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -14,6 +14,8 @@ import { cn } from "@/lib/utils";
 type TabTimelineProps = {
   phases: PracticePhase[];
   events: PracticeEvent[];
+  onSwitchTab?: (tab: "info" | "albero" | "timeline" | "allegati" | "note" | "anagrafica") => void;
+  onRequestTreeSelect?: (kind: "phase" | "event", id: string) => void;
 };
 
 type TimelineFilter = "all" | "phases" | "events" | "notes";
@@ -122,7 +124,7 @@ function noteDate(note: DemoNote) {
   return noteWithOccurredAt.occurredAt ?? note.createdAt;
 }
 
-export function TabTimeline({ events, phases }: TabTimelineProps) {
+export function TabTimeline({ events, onRequestTreeSelect, onSwitchTab, phases }: TabTimelineProps) {
   const [filter, setFilter] = useState<TimelineFilter>("all");
   const notes = useDemoStore((state) => state.notes);
   const entries = useMemo(() => buildEntries(phases, events, notes), [events, notes, phases]);
@@ -130,18 +132,34 @@ export function TabTimeline({ events, phases }: TabTimelineProps) {
   const todayDate = startOfDay(new Date());
   const todayEntries = visibleEntries
     .filter((entry) => isSameDay(new Date(entry.date), todayDate))
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   const pastEntries = visibleEntries
     .filter((entry) => !isSameDay(new Date(entry.date), todayDate) && !isAfter(startOfDay(new Date(entry.date)), todayDate))
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   const futureEntries = visibleEntries
     .filter((entry) => isAfter(startOfDay(new Date(entry.date)), todayDate))
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   const groupedEntries = [
+    { entries: pastEntries, label: "PASSATO" },
     { entries: todayEntries, label: "OGGI" },
-    { entries: pastEntries, label: "" },
     { entries: futureEntries, label: "FUTURO" },
   ].filter((group) => group.entries.length > 0);
+
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const todayAnchorRef = useRef<HTMLDivElement>(null);
+  const lastTodayId = todayEntries[todayEntries.length - 1]?.id ?? null;
+
+  useEffect(() => {
+    if (!scrollContainerRef.current) return;
+    if (todayAnchorRef.current) {
+      const container = scrollContainerRef.current;
+      const anchor = todayAnchorRef.current;
+      const offset = anchor.offsetTop - container.offsetTop - 16;
+      container.scrollTop = offset > 0 ? offset : 0;
+    } else if (futureEntries.length > 0 && pastEntries.length > 0) {
+      scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight / 2;
+    }
+  }, [filter, lastTodayId, futureEntries.length, pastEntries.length]);
 
   function cardClass(entry: TimelineEntry) {
     const date = startOfDay(new Date(entry.date));
@@ -151,8 +169,8 @@ export function TabTimeline({ events, phases }: TabTimelineProps) {
   }
 
   return (
-    <section className="rounded-2xl border border-border bg-surface-low p-5">
-      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <section className="flex h-[calc(100vh-240px)] flex-col rounded-2xl border border-border bg-surface-low p-5">
+      <div className="mb-5 flex shrink-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
             Timeline cronologica
@@ -180,11 +198,14 @@ export function TabTimeline({ events, phases }: TabTimelineProps) {
       </div>
 
       {visibleEntries.length ? (
-        <div className="space-y-3">
+        <div className="flex-1 space-y-3 overflow-y-auto pr-1" ref={scrollContainerRef}>
           {groupedEntries.map((group) => (
             <div className="space-y-3" key={group.label || "passato"}>
               {group.label ? (
-                <div className="flex items-center gap-3 py-1">
+                <div
+                  className="flex items-center gap-3 py-1"
+                  ref={group.label === "OGGI" ? todayAnchorRef : undefined}
+                >
                   <span className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-electric">
                     {group.label}
                   </span>
@@ -194,56 +215,49 @@ export function TabTimeline({ events, phases }: TabTimelineProps) {
               {group.entries.map((entry) => (
                 <Card
                   className={cn(
-                    "border-l-4 p-4 transition-colors",
+                    "cursor-pointer border-l-4 px-3 py-2 transition-colors hover:bg-surface-high",
                     cardClass(entry),
                     entry.colorClass,
-                    entry.kind === "note" ? "cursor-pointer hover:bg-surface-high" : "",
                   )}
                   key={entry.id}
                   onClick={() => {
-                    if (entry.kind !== "note") return;
-                    document.querySelector<HTMLButtonElement>('button[value="note"]')?.click();
-                    window.setTimeout(() => document.getElementById(`note-${entry.id}`)?.scrollIntoView({ block: "center" }), 80);
+                    if (entry.kind === "note") {
+                      onSwitchTab?.("note");
+                      window.setTimeout(() => document.getElementById(`note-${entry.id}`)?.scrollIntoView({ block: "center" }), 120);
+                    } else if (onRequestTreeSelect) {
+                      onRequestTreeSelect(entry.kind, entry.id);
+                    } else {
+                      onSwitchTab?.("albero");
+                    }
                   }}
-                  role={entry.kind === "note" ? "button" : undefined}
-                  tabIndex={entry.kind === "note" ? 0 : undefined}
+                  role="button"
+                  tabIndex={0}
                 >
-                  <div className="flex gap-3">
+                  <div className="flex items-start gap-2.5">
                     <div
-                      className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-border bg-surface-low text-electric"
+                      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-border bg-surface-low text-electric"
                       title={entry.iconTitle}
                     >
                       {entry.icon}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                        <div>
-                          <Badge className="mb-2" variant={entry.badgeVariant}>{entry.badgeLabel}</Badge>
-                          <p className="font-label text-sm font-semibold text-foreground">{entry.title}</p>
-                          <p className="mt-1 text-sm leading-5 text-foreground-variant">{entry.subtitle}</p>
-                          {entry.kind === "phase" ? (
-                            <div className="mt-2 flex flex-wrap items-center gap-2">
-                              <Badge>Fase {entry.phaseOrder}</Badge>
-                              <Badge variant={entry.phaseStatus === "done" ? "success" : "default"}>{entry.phaseStatus}</Badge>
-                            </div>
-                          ) : null}
-                        </div>
-                        <Badge className="w-fit shrink-0">
-                          {format(new Date(entry.date), "dd MMM yyyy - HH:mm", { locale: it })}
-                        </Badge>
-                      </div>
-                      {entry.author ? (
-                        <div className="mt-3 flex items-center gap-2">
-                          <span
-                            className={cn(
-                              "flex h-7 w-7 items-center justify-center rounded-full font-display text-[10px] font-bold text-white",
-                              avatarClass(entry.author.id),
-                            )}
-                          >
-                            {entry.author.initials}
+                      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                        <Badge variant={entry.badgeVariant}>{entry.badgeLabel}</Badge>
+                        <span className="font-label text-sm font-semibold text-foreground">{entry.title}</span>
+                        <span className="text-xs text-muted">
+                          · {format(new Date(entry.date), "dd MMM - HH:mm", { locale: it })}
+                        </span>
+                        {entry.author ? (
+                          <span className="text-xs text-muted">· {entry.author.name}</span>
+                        ) : null}
+                        {entry.kind === "phase" ? (
+                          <span className="text-xs text-muted">
+                            · Fase {entry.phaseOrder} · {entry.phaseStatus}
                           </span>
-                          <span className="text-xs text-muted">{entry.author.name}</span>
-                        </div>
+                        ) : null}
+                      </div>
+                      {entry.subtitle ? (
+                        <p className="mt-0.5 truncate text-xs text-foreground-variant">{entry.subtitle}</p>
                       ) : null}
                     </div>
                   </div>

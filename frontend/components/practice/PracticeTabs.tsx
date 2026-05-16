@@ -21,8 +21,16 @@ type PracticeTabsProps = {
 
 type PracticeTabValue = "info" | "albero" | "timeline" | "allegati" | "note" | "anagrafica";
 
+export type TreePendingSelection = { kind: "phase" | "event"; id: string } | null;
+
 export function PracticeTabs({ practice, phases, events }: PracticeTabsProps) {
   const [activeTab, setActiveTab] = useState<PracticeTabValue>("albero");
+  const [pendingTreeSelection, setPendingTreeSelection] = useState<TreePendingSelection>(null);
+
+  function requestTreeSelect(kind: "phase" | "event", id: string) {
+    setPendingTreeSelection({ kind, id });
+    setActiveTab("albero");
+  }
 
   return (
     <Tabs onValueChange={(value) => setActiveTab(value as PracticeTabValue)} value={activeTab}>
@@ -59,10 +67,22 @@ export function PracticeTabs({ practice, phases, events }: PracticeTabsProps) {
         <TabInfo practice={practice} />
       </TabsContent>
       <TabsContent value="albero">
-        <TabAlbero events={events} onSwitchTab={setActiveTab} phases={phases} practice={practice} />
+        <TabAlbero
+          events={events}
+          onSwitchTab={setActiveTab}
+          onTreeSelectionApplied={() => setPendingTreeSelection(null)}
+          phases={phases}
+          practice={practice}
+          pendingSelection={pendingTreeSelection}
+        />
       </TabsContent>
       <TabsContent value="timeline">
-        <TabTimeline events={events} phases={phases} />
+        <TabTimeline
+          events={events}
+          onRequestTreeSelect={requestTreeSelect}
+          onSwitchTab={setActiveTab}
+          phases={phases}
+        />
       </TabsContent>
       <TabsContent value="allegati">
         <TabAllegati phases={phases} practice={practice} />
