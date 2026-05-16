@@ -26,10 +26,16 @@ export type TreePendingSelection = { kind: "phase" | "event"; id: string } | nul
 export function PracticeTabs({ practice, phases, events }: PracticeTabsProps) {
   const [activeTab, setActiveTab] = useState<PracticeTabValue>("albero");
   const [pendingTreeSelection, setPendingTreeSelection] = useState<TreePendingSelection>(null);
+  const [focusNoteId, setFocusNoteId] = useState<string | null>(null);
 
   function requestTreeSelect(kind: "phase" | "event", id: string) {
     setPendingTreeSelection({ kind, id });
     setActiveTab("albero");
+  }
+
+  function requestNoteFocus(noteId: string) {
+    setFocusNoteId(noteId);
+    setActiveTab("note");
   }
 
   return (
@@ -69,6 +75,7 @@ export function PracticeTabs({ practice, phases, events }: PracticeTabsProps) {
       <TabsContent value="albero">
         <TabAlbero
           events={events}
+          onRequestNoteFocus={requestNoteFocus}
           onSwitchTab={setActiveTab}
           onTreeSelectionApplied={() => setPendingTreeSelection(null)}
           phases={phases}
@@ -88,7 +95,7 @@ export function PracticeTabs({ practice, phases, events }: PracticeTabsProps) {
         <TabAllegati phases={phases} practice={practice} />
       </TabsContent>
       <TabsContent value="note">
-        <TabNotes phases={phases} />
+        <TabNotes focusNoteId={focusNoteId} onFocusApplied={() => setFocusNoteId(null)} phases={phases} />
       </TabsContent>
       <TabsContent value="anagrafica">
         <TabAnagrafica practice={practice} />

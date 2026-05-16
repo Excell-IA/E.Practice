@@ -38,6 +38,7 @@ type PracticeTreeProps = {
   onSwitchTab: (tab: "allegati" | "note") => void;
   pendingSelection?: { kind: "phase" | "event"; id: string } | null;
   onTreeSelectionApplied?: () => void;
+  onRequestNoteFocus?: (noteId: string) => void;
 };
 
 const disabledToolbar = [
@@ -76,7 +77,7 @@ const groupTypeLabel = {
   warning: "Avvisi",
 };
 
-export function PracticeTree({ practice, phases, events, onSwitchTab, pendingSelection, onTreeSelectionApplied }: PracticeTreeProps) {
+export function PracticeTree({ practice, phases, events, onSwitchTab, pendingSelection, onTreeSelectionApplied, onRequestNoteFocus }: PracticeTreeProps) {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [todayDate, setTodayDate] = useState<Date>(() => new Date());
   useEffect(() => {
@@ -761,7 +762,10 @@ export function PracticeTree({ practice, phases, events, onSwitchTab, pendingSel
                     aria-label={`Nota di ${mark.authorName}`}
                     className="group cursor-pointer"
                     key={`note-${mark.id}`}
-                    onClick={() => onSwitchTab("note")}
+                    onClick={() => {
+                      if (onRequestNoteFocus) onRequestNoteFocus(mark.id);
+                      else onSwitchTab("note");
+                    }}
                     role="button"
                     tabIndex={0}
                     transform={`translate(${mark.x} 0)`}

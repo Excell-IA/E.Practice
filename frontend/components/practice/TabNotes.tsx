@@ -1,9 +1,9 @@
 "use client";
 
-import { format, formatDistanceToNow } from "date-fns";
+import { format, formatDistanceToNow, isAfter, startOfDay } from "date-fns";
 import { it } from "date-fns/locale";
 import { FileText, Pencil, Trash2 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { useDemoStore, type DemoNote } from "@/lib/demo-state";
@@ -12,6 +12,8 @@ import { cn } from "@/lib/utils";
 
 type TabNotesProps = {
   phases: PracticePhase[];
+  focusNoteId?: string | null;
+  onFocusApplied?: () => void;
 };
 
 type EditableNote = DemoNote & {
@@ -75,7 +77,7 @@ function todayIsoDate() {
   return new Date().toISOString().slice(0, 10);
 }
 
-export function TabNotes({ phases }: TabNotesProps) {
+export function TabNotes({ phases, focusNoteId, onFocusApplied }: TabNotesProps) {
   const [body, setBody] = useState("");
   const [newNoteDate, setNewNoteDate] = useState(todayIsoDate);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -86,8 +88,51 @@ export function TabNotes({ phases }: TabNotesProps) {
   const applyAction = useDemoStore((state) => state.applyAction);
   // intentionally not deriving a target phase: notes are free-standing on the practice timeline.
   void phases;
-  const sortedNotes = [...notes].sort((a, b) => new Date(noteDate(b)).getTime() - new Date(noteDate(a)).getTime());
+  const sortedNotes = useMemo(
+    () => [...notes].sort((a, b) => new Date(noteDate(a)).getTime() - new Date(noteDate(b)).getTime()),
+    [notes],
+  );
   const canEdit = activeUser.permission !== "viewer";
+
+  // Anchor: nota più recente fino a oggi compreso
+  const todayDate = startOfDay(new Date());
+  const anchorId = useMemo(() => {
+    let anchor: DemoNote | null = null;
+    for (const note of sortedNotes) {
+      const d = new Date(noteDate(note));
+      if (!isAfter(startOfDay(d), todayDate)) anchor = note;
+    }
+    return anchor?.id ?? null;
+  }, [sortedNotes, todayDate]);
+
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const anchorRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!scrollContainerRef.current || !anchorRef.current) return;
+    const container = scrollContainerRef.current;
+    const anchor = anchorRef.current;
+    const offset = anchor.offsetTop - container.offsetTop - 12;
+    container.scrollTop = offset > 0 ? offset : 0;
+  }, [anchorId]);
+
+  // Focus da albero: scrolla alla nota cliccata e attiva edit
+  useEffect(() => {
+    if (!focusNoteId) return;
+    const target = sortedNotes.find((n) => n.id === focusNoteId);
+    if (!target) return;
+    setEditingId(target.id);
+    setEditingBody(target.body);
+    setEditingDate(noteDate(target));
+    window.setTimeout(() => {
+      const el = document.getElementById(`note-${target.id}`);
+      if (el && scrollContainerRef.current) {
+        const offset = el.offsetTop - scrollContainerRef.current.offsetTop - 12;
+        scrollContainerRef.current.scrollTop = offset > 0 ? offset : 0;
+      }
+    }, 60);
+    onFocusApplied?.();
+  }, [focusNoteId, sortedNotes, onFocusApplied]);
 
   function saveNote() {
     if (!body.trim()) return;
@@ -131,21 +176,29 @@ export function TabNotes({ phases }: TabNotesProps) {
 
   return (
     <section className="grid gap-5 lg:grid-cols-[1fr_360px]">
-      <div className="rounded-2xl border border-border bg-surface-low p-5">
-        <div className="mb-4 flex items-center justify-between gap-3">
+      <div className="flex flex-col rounded-2xl border border-border bg-surface-low p-5 lg:h-[calc(100dvh-280px)]">
+        <div className="mb-4 flex shrink-0 items-center justify-between gap-3">
           <div>
             <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">Registro note</p>
             <h3 className="font-display text-xl font-semibold text-foreground">Conversazione operativa</h3>
           </div>
           <span className="text-sm text-muted">{sortedNotes.length} note</span>
         </div>
-        <div className="space-y-3">
+        <div className="space-y-3 lg:flex-1 lg:overflow-y-auto lg:pr-1" ref={scrollContainerRef}>
           {sortedNotes.map((note) => {
             const canEditNote = note.author.id === activeUser.id || activeUser.permission === "admin";
             const isEditing = editingId === note.id;
             const visibleDate = noteDate(note);
             return (
-            <article className="rounded-2xl border border-border bg-surface-container p-4" id={`note-${note.id}`} key={note.id}>
+            <article
+              className={cn(
+                "rounded-2xl border bg-surface-container p-4",
+                isEditing ? "border-electric/60 bg-electric/5" : "border-border",
+              )}
+              id={`note-${note.id}`}
+              key={note.id}
+              ref={note.id === anchorId ? anchorRef : undefined}
+            >
               <div className="mb-3 flex items-center gap-3">
                 <div
                   className={cn(

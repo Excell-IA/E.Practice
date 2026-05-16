@@ -10,12 +10,14 @@ type TabAlberoProps = {
   onSwitchTab: (tab: "allegati" | "note") => void;
   pendingSelection?: TreePendingSelection;
   onTreeSelectionApplied?: () => void;
+  onRequestNoteFocus?: (noteId: string) => void;
 };
 
-export function TabAlbero({ practice, phases, events, onSwitchTab, pendingSelection, onTreeSelectionApplied }: TabAlberoProps) {
+export function TabAlbero({ practice, phases, events, onSwitchTab, pendingSelection, onTreeSelectionApplied, onRequestNoteFocus }: TabAlberoProps) {
   return (
     <PracticeTree
       events={events}
+      onRequestNoteFocus={onRequestNoteFocus}
       onSwitchTab={onSwitchTab}
       onTreeSelectionApplied={onTreeSelectionApplied}
       pendingSelection={pendingSelection}
