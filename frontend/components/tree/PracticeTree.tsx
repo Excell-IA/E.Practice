@@ -10,6 +10,7 @@ import {
   MoveHorizontal,
   PhoneCall,
   Plus,
+  Smartphone,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent, type PointerEvent } from "react";
 
@@ -35,6 +36,8 @@ type PracticeTreeProps = {
   phases: PracticePhase[];
   events: PracticeEvent[];
   onSwitchTab: (tab: "allegati" | "note") => void;
+  pendingSelection?: { kind: "phase" | "event"; id: string } | null;
+  onTreeSelectionApplied?: () => void;
 };
 
 const disabledToolbar = [
@@ -73,19 +76,26 @@ const groupTypeLabel = {
   warning: "Avvisi",
 };
 
-export function PracticeTree({ practice, phases, events, onSwitchTab }: PracticeTreeProps) {
+export function PracticeTree({ practice, phases, events, onSwitchTab, pendingSelection, onTreeSelectionApplied }: PracticeTreeProps) {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
-  const [todayDate, setTodayDate] = useState<Date>(() => new Date("2026-01-01T00:00:00Z"));
+  const [todayDate, setTodayDate] = useState<Date>(() => new Date());
   useEffect(() => {
     setTodayDate(new Date());
   }, []);
-  const todayIso = useMemo(() => todayDate.toISOString().slice(0, 10), [todayDate]);
+  const todayIso = useMemo(() => {
+    const local = new Date(todayDate.getTime() - todayDate.getTimezoneOffset() * 60000);
+    return local.toISOString().slice(0, 10);
+  }, [todayDate]);
   const [selection, setSelection] = useState<TreeSelection | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [composerType, setComposerType] = useState<PracticeEvent["type"] | "note" | null>(null);
   const [composerTitle, setComposerTitle] = useState("");
   const [composerDescription, setComposerDescription] = useState("");
   const [composerDate, setComposerDate] = useState(todayIso);
+
+  useEffect(() => {
+    setComposerDate((current) => (current === "" || current === todayIso ? todayIso : current));
+  }, [todayIso]);
   const [composerPhaseId, setComposerPhaseId] = useState<string | null>(null);
   const [trunkHover, setTrunkHover] = useState<TrunkHover | null>(null);
   const [groupSelection, setGroupSelection] = useState<EventGroup | null>(null);
@@ -130,7 +140,11 @@ export function PracticeTree({ practice, phases, events, onSwitchTab }: Practice
     },
     [timelineRange.endDate, timelineRange.startDate],
   );
-  const todayX = useMemo(() => dateToTimelineX(todayDate), [dateToTimelineX, todayDate]);
+  const todayX = useMemo(() => {
+    const startOfDay = new Date(todayDate);
+    startOfDay.setHours(0, 0, 0, 0);
+    return dateToTimelineX(startOfDay);
+  }, [dateToTimelineX, todayDate]);
   const monthMarkers = useMemo(() => {
     const markers: { date: Date; label: string }[] = [];
     const cursor = new Date(timelineRange.startDate);
@@ -207,21 +221,32 @@ export function PracticeTree({ practice, phases, events, onSwitchTab }: Practice
   }, [dateToTimelineX, orderedPhases, phaseTimelineDate]);
 
   const noteMarks = useMemo(() => {
-    return allNotes
-      .map((note, index) => {
+    const items = allNotes
+      .filter((note) => !note.phaseId)
+      .map((note) => {
         const dateIso = note.occurredAt ?? note.createdAt?.slice(0, 10) ?? "";
         if (!dateIso) return null;
-        const above = index % 2 === 0;
         return {
           id: note.id,
           x: dateToTimelineX(dateIso),
-          y: above ? 200 : 300,
           body: note.body,
           authorName: note.author.name,
           dateIso,
         };
       })
-      .filter((mark): mark is NonNullable<typeof mark> => mark !== null);
+      .filter((mark): mark is NonNullable<typeof mark> => mark !== null)
+      .sort((a, b) => a.dateIso.localeCompare(b.dateIso));
+    let lastX = -Infinity;
+    let lane = 0;
+    return items.map((mark) => {
+      if (mark.x - lastX < 110) {
+        lane = (lane + 1) % 2;
+      } else {
+        lane = 0;
+      }
+      lastX = mark.x;
+      return { ...mark, y: lane === 0 ? 360 : 312 };
+    });
   }, [allNotes, dateToTimelineX]);
 
   const eventGroups = useMemo<EventGroup[]>(() => {
@@ -243,16 +268,23 @@ export function PracticeTree({ practice, phases, events, onSwitchTab }: Practice
     return Array.from(map.values()).sort((a, b) => a.date.localeCompare(b.date));
   }, [events, orderedPhases]);
 
-  const groupPositions = useMemo(
-    () =>
-      new Map(
-        eventGroups.map((group, index) => {
-          const above = index % 2 === 0;
-          return [group.key, { x: dateToTimelineX(group.date), y: above ? 132 : 360 }];
-        }),
-      ),
-    [dateToTimelineX, eventGroups],
-  );
+  const groupPositions = useMemo(() => {
+    const sorted = [...eventGroups].sort((a, b) => a.date.localeCompare(b.date));
+    const map = new Map<string, { x: number; y: number }>();
+    let lastX = -Infinity;
+    let lane = 0;
+    for (const group of sorted) {
+      const x = dateToTimelineX(group.date);
+      if (x - lastX < 110) {
+        lane = (lane + 1) % 2;
+      } else {
+        lane = 0;
+      }
+      map.set(group.key, { x, y: lane === 0 ? 132 : 180 });
+      lastX = x;
+    }
+    return map;
+  }, [dateToTimelineX, eventGroups]);
   const freshSelection = useMemo((): TreeSelection | null => {
     if (!selection) return null;
     if (selection.kind === "phase") {
@@ -273,6 +305,26 @@ export function PracticeTree({ practice, phases, events, onSwitchTab }: Practice
     setSelection({ kind: "event", item: event, phase });
     setDrawerOpen(true);
   }
+
+  useEffect(() => {
+    if (!pendingSelection) return;
+    if (pendingSelection.kind === "phase") {
+      const phase = orderedPhases.find((item) => item.id === pendingSelection.id);
+      if (phase) {
+        setSelection({ kind: "phase", item: phase });
+        setDrawerOpen(true);
+        onTreeSelectionApplied?.();
+      }
+    } else {
+      const event = events.find((item) => item.id === pendingSelection.id);
+      const phase = event ? orderedPhases.find((item) => item.id === event.phaseId) ?? orderedPhases[0] : null;
+      if (event && phase) {
+        setSelection({ kind: "event", item: event, phase });
+        setDrawerOpen(true);
+        onTreeSelectionApplied?.();
+      }
+    }
+  }, [pendingSelection, orderedPhases, events, onTreeSelectionApplied]);
 
   function scrollToTimelineX(x: number) {
     const scrollArea = scrollAreaRef.current;
@@ -350,7 +402,17 @@ export function PracticeTree({ practice, phases, events, onSwitchTab }: Practice
 
   return (
     <>
-      <Card className="overflow-hidden rounded-2xl bg-surface-low/90">
+      <div className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-border bg-surface-low/90 p-10 text-center md:hidden">
+        <Smartphone className="h-16 w-16 -rotate-90 text-electric" />
+        <div>
+          <p className="font-display text-lg font-semibold text-foreground">Ruota il telefono</p>
+          <p className="mt-1 max-w-xs text-sm text-muted">
+            L&apos;albero della pratica è ottimizzato per la visualizzazione in orizzontale
+          </p>
+        </div>
+      </div>
+
+      <Card className="hidden overflow-hidden rounded-2xl bg-surface-low/90 md:block">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-4">
           <div className="flex flex-wrap items-end gap-3">
             <div>
@@ -547,7 +609,7 @@ export function PracticeTree({ practice, phases, events, onSwitchTab }: Practice
                   <stop offset="50%" stopColor="var(--electric)" />
                   <stop offset="100%" stopColor="var(--on-surface-muted)" stopOpacity="0.45" />
                 </linearGradient>
-                {(["call", "mail", "warning"] as const).map((tone) => (
+                {(["call", "mail", "warning", "note"] as const).map((tone) => (
                   <marker
                     id={`arrow-${tone}`}
                     key={tone}
@@ -560,7 +622,13 @@ export function PracticeTree({ practice, phases, events, onSwitchTab }: Practice
                   >
                     <path
                       className={
-                        tone === "mail" ? "fill-[#C193FF]" : tone === "warning" ? "fill-warning" : "fill-warning"
+                        tone === "mail"
+                          ? "fill-[#C193FF]"
+                          : tone === "note"
+                            ? "fill-electric"
+                            : tone === "warning"
+                              ? "fill-warning"
+                              : "fill-warning"
                       }
                       d="M 0 0 L 8 4 L 0 8 z"
                     />
@@ -576,10 +644,10 @@ export function PracticeTree({ practice, phases, events, onSwitchTab }: Practice
                       className="stroke-electric stroke-[1] opacity-30 [stroke-dasharray:2_8]"
                       x1={x}
                       x2={x}
-                      y1="96"
+                      y1="64"
                       y2="418"
                     />
-                    <text className="fill-muted text-[10px] font-semibold uppercase tracking-[0.14em]" x={x + 10} y="88">
+                    <text className="fill-muted text-[10px] font-semibold uppercase tracking-[0.14em]" x={x + 10} y="56">
                       {month.label}
                     </text>
                   </g>
@@ -668,20 +736,61 @@ export function PracticeTree({ practice, phases, events, onSwitchTab }: Practice
               })}
 
               {noteMarks.map((mark) => (
-                <g
-                  aria-label={`Nota di ${mark.authorName}`}
-                  className="cursor-pointer group"
-                  key={`note-${mark.id}`}
-                  onClick={() => onSwitchTab("note")}
-                  role="button"
-                  tabIndex={0}
-                  transform={`translate(${mark.x} 290)`}
-                >
-                  <title>{`Nota — ${mark.authorName} — ${displayDate(mark.dateIso)}\n${mark.body.slice(0, 120)}`}</title>
-                  <circle className="fill-electric/20 stroke-electric/50 stroke-[1.5] transition-colors group-hover:fill-electric/40 group-hover:stroke-electric" r="6" />
-                  <circle className="fill-electric" r="2.5" />
-                </g>
+                <BezierEdge
+                  arrow
+                  fromX={mark.x}
+                  fromY={timeline.y + (mark.y < timeline.y ? -10 : 10)}
+                  key={`note-edge-${mark.id}`}
+                  toX={mark.x}
+                  toY={mark.y + (mark.y < timeline.y ? 24 : -24)}
+                  tone="note"
+                />
               ))}
+
+              {noteMarks.map((mark) => {
+                const labelY = mark.y < timeline.y ? -40 : 54;
+                const noteDate = new Intl.DateTimeFormat("it-IT", {
+                  day: "2-digit",
+                  month: "short",
+                  year: "numeric",
+                }).format(new Date(mark.dateIso));
+                const dateChipY = mark.y < timeline.y ? timeline.y + 30 : timeline.y - 24;
+                const preview = mark.body.length > 18 ? `${mark.body.slice(0, 18)}…` : mark.body;
+                return (
+                  <g
+                    aria-label={`Nota di ${mark.authorName}`}
+                    className="group cursor-pointer"
+                    key={`note-${mark.id}`}
+                    onClick={() => onSwitchTab("note")}
+                    role="button"
+                    tabIndex={0}
+                    transform={`translate(${mark.x} 0)`}
+                  >
+                    <title>{`Nota — ${mark.authorName} — ${noteDate}\n${mark.body.slice(0, 120)}`}</title>
+                    <circle className="fill-transparent" cy={timeline.y} r="22" />
+                    <circle className="fill-electric/10 stroke-electric/20 stroke-2 transition-colors group-hover:fill-electric/20 group-hover:stroke-electric/50" cy={timeline.y} r="16" />
+                    <circle className="fill-surface-high stroke-electric stroke-2" cy={timeline.y} r="10" />
+                    <circle className="fill-electric" cy={timeline.y} r="4" />
+                    <g className="opacity-0 transition-opacity group-hover:opacity-100">
+                      <rect className="fill-surface-high stroke-border" height="50" rx="12" width="164" x="-82" y={dateChipY - 30} />
+                      <text className="fill-electric text-[10px] font-semibold uppercase tracking-wider" textAnchor="middle" y={dateChipY - 16}>NOTA</text>
+                      <text className="fill-foreground text-[11px] font-semibold" textAnchor="middle" y={dateChipY - 1}>{noteDate}</text>
+                      <text className="fill-muted text-[10px] font-semibold" textAnchor="middle" y={dateChipY + 13}>{mark.authorName}</text>
+                    </g>
+                    <g transform={`translate(0 ${mark.y})`}>
+                      <circle className="fill-none stroke-electric/0 stroke-2 transition-colors group-hover:stroke-electric/45" r="22" />
+                      <circle className="fill-electric/10 stroke-electric stroke-[1.5]" r="18" />
+                      <foreignObject height="20" width="20" x="-10" y="-10">
+                        <div className="flex h-5 w-5 items-center justify-center text-foreground">
+                          <MessageSquareText className="h-4 w-4" />
+                        </div>
+                      </foreignObject>
+                      <rect className="fill-surface-container" height="22" rx="11" width="104" x="-52" y={labelY - 15} />
+                      <text className="fill-muted text-[11px] font-semibold" textAnchor="middle" y={labelY}>{preview}</text>
+                    </g>
+                  </g>
+                );
+              })}
 
               {orderedPhases.map((phase) => {
                 const position = phasePositions.get(phase.id);
