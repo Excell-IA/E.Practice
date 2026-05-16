@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowDown, ArrowUp, Plus, Search, UserRound } from "lucide-react";
+import { ArrowDown, ArrowUp, Link as LinkIcon, Plus, Search, UserRound } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { HelpButton } from "@/components/ui/help-button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { V1Hint } from "@/components/ui/v1-hint";
 import { createClient } from "@/lib/api";
 import { directoryClients, directoryPractices, type DirectoryClient } from "@/lib/demo-directory";
 import { useDemoStore } from "@/lib/demo-state";
@@ -164,6 +165,12 @@ export function ClientsListClient() {
               <Plus className="h-4 w-4" />
               Nuovo cliente
             </Button>
+            <V1Hint>
+              <Button type="button" variant="outline">
+                <LinkIcon className="h-4 w-4" />
+                Connetti ad anagrafica esistente
+              </Button>
+            </V1Hint>
           </div>
         </div>
 
