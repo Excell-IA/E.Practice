@@ -445,7 +445,7 @@ export function NewPracticeWizard() {
 
   return (
     <main className="min-h-[calc(100vh-120px)] bg-surface px-6 pb-28 pt-6 md:px-10">
-      <div className="mx-auto max-w-7xl space-y-5">
+      <div className="space-y-5">
         <div className="flex items-start gap-3">
           <div>
             <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-electric">Nuova pratica</p>
@@ -598,15 +598,12 @@ export function NewPracticeWizard() {
                 {scadenza && phases.length ? (phases[phases.length - 1].planned_end !== scadenza ? ` (scadenza richiesta ${format(new Date(scadenza), "dd MMM yyyy", { locale: it })})` : "") : ""}
               </p>
               <div className="mt-4 space-y-2">
-                {phases.slice(0, 6).map((phase, index) => (
+                {phases.map((phase, index) => (
                   <div className="flex items-center justify-between rounded-xl bg-surface-low p-2 text-sm" key={`preview-${phase.order_index}-${index}`}>
                     <span className="truncate">{phase.order_index}. {phase.name}</span>
                     <span className="ml-2 shrink-0 text-muted">{format(new Date(phase.planned_end), "dd/MM")}</span>
                   </div>
                 ))}
-                {phases.length > 6 ? (
-                  <p className="text-xs text-muted">+{phases.length - 6} altre fasi</p>
-                ) : null}
               </div>
             </section>
           </CardContent>
@@ -687,7 +684,7 @@ export function NewPracticeWizard() {
       </div>
 
       <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-surface-low/95 px-6 py-3 backdrop-blur lg:left-60">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-3">
+        <div className="flex items-center justify-between gap-3">
           <p className="text-xs text-muted">
             {step === 1 ? "Step 1 di 2 — completa cliente e dati prima di proseguire" : "Step 2 di 2 — rivedi fasi e aggiungi eventuali allegati"}
           </p>
