@@ -62,14 +62,19 @@ function eventColor(event: PracticeEvent) {
   return "border-l-danger";
 }
 
+function noteDate(note: DemoNote) {
+  const noteWithOccurredAt = note as DemoNote & { occurredAt?: string | null };
+  return noteWithOccurredAt.occurredAt ?? note.createdAt;
+}
+
 function buildEntries(phases: PracticePhase[], events: PracticeEvent[], notes: DemoNote[]) {
   const phaseEntries = phases.map((phase): TimelineEntry => ({
     colorClass: phase.status === "done" ? "border-l-success" : "border-l-electric",
-    badgeLabel: "FASE - Template",
+    badgeLabel: "FASE",
     badgeVariant: "info",
     date: phase.plannedDate || phase.dueDate,
     icon: phase.status === "done" ? <CheckCircle2 className="h-4 w-4" /> : <PlayCircle className="h-4 w-4" />,
-    iconTitle: phase.status === "done" ? "Scadenza" : "Scadenza",
+    iconTitle: phase.status === "done" ? "Fase completata" : "Fase del template",
     id: phase.id,
     kind: "phase",
     phaseOrder: phase.order,
@@ -82,7 +87,7 @@ function buildEntries(phases: PracticePhase[], events: PracticeEvent[], notes: D
     const eventIconData = eventIcon(event);
     return {
       author: event.author,
-      badgeLabel: `EVENTO - ${eventIconData.title}`,
+      badgeLabel: eventIconData.title.toUpperCase(),
       badgeVariant: event.type === "mail" ? "info" : event.type === "call" ? "warning" : "danger",
       colorClass: eventColor(event),
       date: event.occurredAt,
@@ -119,47 +124,42 @@ function matchesFilter(entry: TimelineEntry, filter: TimelineFilter) {
   return entry.kind === "note";
 }
 
-function noteDate(note: DemoNote) {
-  const noteWithOccurredAt = note as DemoNote & { occurredAt?: string | null };
-  return noteWithOccurredAt.occurredAt ?? note.createdAt;
-}
-
 export function TabTimeline({ events, onRequestTreeSelect, onSwitchTab, phases }: TabTimelineProps) {
   const [filter, setFilter] = useState<TimelineFilter>("all");
   const notes = useDemoStore((state) => state.notes);
   const entries = useMemo(() => buildEntries(phases, events, notes), [events, notes, phases]);
-  const visibleEntries = entries.filter((entry) => matchesFilter(entry, filter));
+  const visibleEntries = useMemo(
+    () =>
+      entries
+        .filter((entry) => matchesFilter(entry, filter))
+        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()),
+    [entries, filter],
+  );
+
   const todayDate = startOfDay(new Date());
-  const todayEntries = visibleEntries
-    .filter((entry) => isSameDay(new Date(entry.date), todayDate))
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-  const pastEntries = visibleEntries
-    .filter((entry) => !isSameDay(new Date(entry.date), todayDate) && !isAfter(startOfDay(new Date(entry.date)), todayDate))
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-  const futureEntries = visibleEntries
-    .filter((entry) => isAfter(startOfDay(new Date(entry.date)), todayDate))
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-  const groupedEntries = [
-    { entries: pastEntries, label: "PASSATO" },
-    { entries: todayEntries, label: "OGGI" },
-    { entries: futureEntries, label: "FUTURO" },
-  ].filter((group) => group.entries.length > 0);
+
+  // Anchor: l'entry più recente fino a oggi compreso (default focus)
+  const anchorId = useMemo(() => {
+    let anchor: TimelineEntry | null = null;
+    for (const entry of visibleEntries) {
+      const d = new Date(entry.date);
+      if (!isAfter(startOfDay(d), todayDate)) {
+        anchor = entry;
+      }
+    }
+    return anchor?.id ?? null;
+  }, [visibleEntries, todayDate]);
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const todayAnchorRef = useRef<HTMLDivElement>(null);
-  const lastTodayId = todayEntries[todayEntries.length - 1]?.id ?? null;
+  const anchorRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!scrollContainerRef.current) return;
-    if (todayAnchorRef.current) {
-      const container = scrollContainerRef.current;
-      const anchor = todayAnchorRef.current;
-      const offset = anchor.offsetTop - container.offsetTop - 16;
-      container.scrollTop = offset > 0 ? offset : 0;
-    } else if (futureEntries.length > 0 && pastEntries.length > 0) {
-      scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight / 2;
-    }
-  }, [filter, lastTodayId, futureEntries.length, pastEntries.length]);
+    if (!scrollContainerRef.current || !anchorRef.current) return;
+    const container = scrollContainerRef.current;
+    const anchor = anchorRef.current;
+    const offset = anchor.offsetTop - container.offsetTop - 12;
+    container.scrollTop = offset > 0 ? offset : 0;
+  }, [anchorId, filter]);
 
   function cardClass(entry: TimelineEntry) {
     const date = startOfDay(new Date(entry.date));
@@ -169,7 +169,7 @@ export function TabTimeline({ events, onRequestTreeSelect, onSwitchTab, phases }
   }
 
   return (
-    <section className="flex h-[calc(100vh-240px)] flex-col rounded-2xl border border-border bg-surface-low p-5">
+    <section className="flex flex-col rounded-2xl border border-border bg-surface-low p-5 lg:h-[calc(100dvh-280px)]">
       <div className="mb-5 flex shrink-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
@@ -198,71 +198,67 @@ export function TabTimeline({ events, onRequestTreeSelect, onSwitchTab, phases }
       </div>
 
       {visibleEntries.length ? (
-        <div className="flex-1 space-y-3 overflow-y-auto pr-1" ref={scrollContainerRef}>
-          {groupedEntries.map((group) => (
-            <div className="space-y-3" key={group.label || "passato"}>
-              {group.label ? (
-                <div
-                  className="flex items-center gap-3 py-1"
-                  ref={group.label === "OGGI" ? todayAnchorRef : undefined}
-                >
-                  <span className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-electric">
-                    {group.label}
-                  </span>
-                  <span className="h-px flex-1 bg-border" />
-                </div>
-              ) : null}
-              {group.entries.map((entry) => (
-                <Card
-                  className={cn(
-                    "cursor-pointer border-l-4 px-3 py-2 transition-colors hover:bg-surface-high",
-                    cardClass(entry),
-                    entry.colorClass,
-                  )}
-                  key={entry.id}
-                  onClick={() => {
-                    if (entry.kind === "note") {
-                      onSwitchTab?.("note");
-                      window.setTimeout(() => document.getElementById(`note-${entry.id}`)?.scrollIntoView({ block: "center" }), 120);
-                    } else if (onRequestTreeSelect) {
-                      onRequestTreeSelect(entry.kind, entry.id);
-                    } else {
-                      onSwitchTab?.("albero");
-                    }
-                  }}
-                  role="button"
-                  tabIndex={0}
-                >
-                  <div className="flex items-start gap-2.5">
-                    <div
-                      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-border bg-surface-low text-electric"
-                      title={entry.iconTitle}
-                    >
-                      {entry.icon}
+        <div className="space-y-2 lg:flex-1 lg:overflow-y-auto lg:pr-1" ref={scrollContainerRef}>
+          {visibleEntries.map((entry) => (
+            <div key={entry.id} ref={entry.id === anchorId ? anchorRef : undefined}>
+              <Card
+                className={cn(
+                  "cursor-pointer border-l-4 px-4 py-3 transition-colors hover:bg-surface-high",
+                  cardClass(entry),
+                  entry.colorClass,
+                )}
+                onClick={() => {
+                  if (entry.kind === "note") {
+                    onSwitchTab?.("note");
+                    window.setTimeout(() => document.getElementById(`note-${entry.id}`)?.scrollIntoView({ block: "center" }), 120);
+                  } else if (onRequestTreeSelect) {
+                    onRequestTreeSelect(entry.kind, entry.id);
+                  } else {
+                    onSwitchTab?.("albero");
+                  }
+                }}
+                role="button"
+                tabIndex={0}
+              >
+                <div className="flex items-start gap-3">
+                  <div
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border bg-surface-low text-electric"
+                    title={entry.iconTitle}
+                  >
+                    {entry.icon}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-baseline gap-x-2">
+                      <Badge variant={entry.badgeVariant}>{entry.badgeLabel}</Badge>
+                      <span className="font-label text-sm font-semibold text-foreground">{entry.title}</span>
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                        <Badge variant={entry.badgeVariant}>{entry.badgeLabel}</Badge>
-                        <span className="font-label text-sm font-semibold text-foreground">{entry.title}</span>
-                        <span className="text-xs text-muted">
-                          · {format(new Date(entry.date), "dd MMM - HH:mm", { locale: it })}
-                        </span>
-                        {entry.author ? (
-                          <span className="text-xs text-muted">· {entry.author.name}</span>
-                        ) : null}
-                        {entry.kind === "phase" ? (
-                          <span className="text-xs text-muted">
-                            · Fase {entry.phaseOrder} · {entry.phaseStatus}
+                    <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs">
+                      <span className="font-semibold text-foreground-variant">
+                        {format(new Date(entry.date), "EEE dd MMM yyyy · HH:mm", { locale: it })}
+                      </span>
+                      {entry.author ? (
+                        <span className="flex items-center gap-1.5">
+                          <span
+                            className={cn(
+                              "flex h-5 w-5 items-center justify-center rounded-full font-display text-[9px] font-bold text-white",
+                              avatarClass(entry.author.id),
+                            )}
+                          >
+                            {entry.author.initials}
                           </span>
-                        ) : null}
-                      </div>
-                      {entry.subtitle ? (
-                        <p className="mt-0.5 truncate text-xs text-foreground-variant">{entry.subtitle}</p>
+                          <span className="text-foreground-variant">{entry.author.name}</span>
+                        </span>
+                      ) : null}
+                      {entry.kind === "phase" ? (
+                        <span className="text-muted">Fase {entry.phaseOrder} · {entry.phaseStatus}</span>
                       ) : null}
                     </div>
+                    {entry.subtitle ? (
+                      <p className="mt-1 truncate text-xs text-muted">{entry.subtitle}</p>
+                    ) : null}
                   </div>
-                </Card>
-              ))}
+                </div>
+              </Card>
             </div>
           ))}
         </div>
