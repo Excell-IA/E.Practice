@@ -2,7 +2,9 @@
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Download, FileText, UploadCloud, X } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+
+import { isAfter, startOfDay } from "date-fns";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -101,11 +103,34 @@ export function TabAllegati({ phases, practice }: TabAllegatiProps) {
     }
   }
 
-  const attachments = attachmentsQuery.data ?? [];
+  const attachments = useMemo(
+    () => [...(attachmentsQuery.data ?? [])].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()),
+    [attachmentsQuery.data],
+  );
+
+  const todayDate = startOfDay(new Date());
+  const anchorId = useMemo(() => {
+    let anchor: typeof attachments[number] | null = null;
+    for (const att of attachments) {
+      if (!isAfter(startOfDay(new Date(att.created_at)), todayDate)) anchor = att;
+    }
+    return anchor?.id ?? null;
+  }, [attachments, todayDate]);
+
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const anchorRef = useRef<HTMLTableRowElement>(null);
+
+  useEffect(() => {
+    if (!scrollContainerRef.current || !anchorRef.current) return;
+    const container = scrollContainerRef.current;
+    const anchor = anchorRef.current;
+    const offset = anchor.offsetTop - container.offsetTop - 12;
+    container.scrollTop = offset > 0 ? offset : 0;
+  }, [anchorId]);
 
   return (
-    <section className="rounded-2xl border border-border bg-surface-low p-5">
-      <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+    <section className="flex flex-col rounded-2xl border border-border bg-surface-low p-5 lg:h-[calc(100dvh-280px)]">
+      <div className="mb-5 flex shrink-0 flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">Allegati</p>
           <h3 className="font-display text-xl font-semibold text-foreground">Documenti pratica</h3>
@@ -147,7 +172,7 @@ export function TabAllegati({ phases, practice }: TabAllegatiProps) {
         </p>
       ) : null}
 
-      <div className="overflow-x-auto overflow-y-visible">
+      <div className="overflow-x-auto lg:flex-1 lg:overflow-y-auto" ref={scrollContainerRef}>
         <table className="w-full min-w-[820px] border-separate border-spacing-y-2 text-left">
           <thead className="text-[11px] uppercase tracking-[0.14em] text-muted">
             <tr>
@@ -164,7 +189,11 @@ export function TabAllegati({ phases, practice }: TabAllegatiProps) {
               const author = DEMO_USERS.find((user) => user.id === attachment.uploaded_by) ?? DEMO_USERS[0];
               const phase = phases.find((item) => item.id === attachment.phase_id);
               return (
-                <tr className="rounded-2xl bg-surface-container text-sm text-foreground-variant" key={attachment.id}>
+                <tr
+                  className="rounded-2xl bg-surface-container text-sm text-foreground-variant"
+                  key={attachment.id}
+                  ref={attachment.id === anchorId ? anchorRef : undefined}
+                >
                   <td className="rounded-l-2xl px-3 py-3">
                     <span className="flex items-center gap-2 font-mono text-xs text-foreground">
                       <FileText className="h-4 w-4 text-electric" />
