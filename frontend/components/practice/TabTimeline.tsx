@@ -169,7 +169,7 @@ export function TabTimeline({ events, onRequestTreeSelect, onSwitchTab, phases }
   }
 
   return (
-    <section className="flex flex-col rounded-2xl border border-border bg-surface-low p-5 lg:h-[calc(100dvh-280px)]">
+    <section className="flex min-h-0 flex-1 flex-col rounded-2xl border border-border bg-surface-low p-5">
       <div className="mb-5 flex shrink-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">

@@ -175,8 +175,8 @@ export function TabNotes({ phases, focusNoteId, onFocusApplied }: TabNotesProps)
   }
 
   return (
-    <section className="grid gap-5 lg:grid-cols-[1fr_360px]">
-      <div className="flex flex-col rounded-2xl border border-border bg-surface-low p-5 lg:h-[calc(100dvh-280px)]">
+    <section className="flex min-h-0 flex-1 flex-col gap-5 lg:flex-row">
+      <div className="flex min-h-0 flex-col rounded-2xl border border-border bg-surface-low p-5 lg:flex-1">
         <div className="mb-4 flex shrink-0 items-center justify-between gap-3">
           <div>
             <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">Registro note</p>
@@ -270,7 +270,7 @@ export function TabNotes({ phases, focusNoteId, onFocusApplied }: TabNotesProps)
         </div>
       </div>
 
-      <aside className="rounded-2xl border border-border bg-surface-low p-5">
+      <aside className="shrink-0 rounded-2xl border border-border bg-surface-low p-5 lg:w-[360px] lg:overflow-y-auto">
         <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">Nuova nota</p>
         <div className="mt-4 flex items-center gap-3 rounded-xl border border-border bg-surface-container p-3">
           <div className={cn("flex h-9 w-9 items-center justify-center rounded-full font-display text-xs font-bold text-white", avatarClass(activeUser.id))}>
