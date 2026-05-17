@@ -8,6 +8,7 @@ import { useMemo, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { HelpButton } from "@/components/ui/help-button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { V1Hint } from "@/components/ui/v1-hint";
 import {
@@ -133,10 +134,25 @@ export function ImportPracticeClient() {
   return (
     <main className="min-h-[calc(100vh-120px)] bg-surface">
       <header className="border-b border-border bg-surface-low/80 px-6 py-[14px] md:px-10">
-        <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-4">
           <h1 className="font-display text-3xl font-semibold text-foreground md:text-4xl">
             Nuovo documento
           </h1>
+          <HelpButton title="Nuovo documento" subtitle="Carica file e crea o aggiorna una pratica">
+            <section>
+              <p>Trascina o seleziona uno o piu file. Una volta caricati scegli cosa farne:</p>
+              <ul className="mt-2 list-disc space-y-1 pl-5">
+                <li><strong className="text-foreground">Crea una nuova pratica</strong>: apre il wizard con gli allegati gia pre-caricati nello step 2.</li>
+                <li><strong className="text-foreground">Allega a una pratica esistente</strong>: scegli cliente e pratica dal pannello laterale.</li>
+              </ul>
+            </section>
+            <section>
+              <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-electric">Lettore AI</p>
+              <p className="mt-2">
+                Il <strong className="text-foreground">Lettore AI</strong> (in arrivo nella V1) legge i documenti caricati e propone i dati per la pratica, sempre con la tua supervisione. Meno digitazione manuale.
+              </p>
+            </section>
+          </HelpButton>
         </div>
       </header>
 
