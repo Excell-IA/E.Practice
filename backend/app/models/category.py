@@ -2,7 +2,7 @@
 
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class CategoryBase(BaseModel):
@@ -23,6 +23,15 @@ class Category(CategoryBase):
 
 class CategoryCreate(CategoryBase):
     pass
+
+
+class CategoryCreateRequest(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, from_attributes=True)
+
+    name: str = Field(min_length=1)
+    group_name: str | None = None
+    color: str | None = None
+    description: str | None = None
 
 
 class CategoryUpdate(BaseModel):
