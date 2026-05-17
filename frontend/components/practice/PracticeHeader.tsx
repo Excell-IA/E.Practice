@@ -1,8 +1,9 @@
 "use client";
 
-import { Building2, CalendarClock, CircleDot, FolderKanban, Tag } from "lucide-react";
+import { CircleDot, FolderKanban, Tag } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
+import { HelpButton } from "@/components/ui/help-button";
 import { useDemoStore } from "@/lib/demo-state";
 import type { Practice, PracticePhase, PracticeStatus } from "@/lib/types";
 
@@ -42,7 +43,8 @@ export function PracticeHeader({ practice, phases }: PracticeHeaderProps) {
   const activeUser = useDemoStore((state) => state.activeUser);
   const applyAction = useDemoStore((state) => state.applyAction);
   const currentStatus = exposedStatus(practice.status);
-  const canClose = phases.length > 0 && phases.every((phase) => phase.status === "done" || phase.status === "skipped");
+  const phasesClosed = phases.filter((phase) => phase.status === "done" || phase.status === "skipped").length;
+  const canClose = phases.length > 0 && phasesClosed === phases.length;
   const canEdit = activeUser.permission !== "viewer";
 
   function handleStatusChange(value: string) {
@@ -93,9 +95,42 @@ export function PracticeHeader({ practice, phases }: PracticeHeaderProps) {
 
         <div className="grid gap-4 lg:grid-cols-[1fr_260px] lg:items-center">
           <div className="min-w-0 space-y-2">
-            <h1 className="truncate font-display text-2xl font-semibold leading-tight text-foreground md:text-3xl">
-              {practice.title}
-            </h1>
+            <div className="flex items-start gap-3">
+              <h1 className="min-w-0 flex-1 truncate font-display text-2xl font-semibold leading-tight text-foreground md:text-3xl">
+                {practice.title}
+              </h1>
+              <HelpButton title="Dettaglio pratica" subtitle="Albero, fasi, eventi e note in un'unica vista">
+                <section>
+                  <p>Questa schermata mostra tutto cio&apos; che riguarda la pratica. La vista che la rende diversa
+                  da un classico gestionale e&apos; l&apos;<strong className="text-foreground">Albero attivo</strong>:
+                  la linea del tempo della pratica con tutte le fasi del template, gli eventi (telefonate,
+                  email, avvisi) e le note libere posizionati nel giorno in cui sono accaduti.</p>
+                </section>
+                <section>
+                  <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-electric">Le tab in alto</p>
+                  <ul className="mt-2 list-disc space-y-1 pl-5">
+                    <li><strong className="text-foreground">Info</strong>: riepilogo dati, scadenza, responsabile.</li>
+                    <li><strong className="text-foreground">Albero attivo</strong>: la vista cronologica completa (la piu&apos; importante).</li>
+                    <li><strong className="text-foreground">Timeline</strong>: lo stesso contenuto in formato lista.</li>
+                    <li><strong className="text-foreground">Allegati</strong>: documenti caricati su questa pratica.</li>
+                    <li><strong className="text-foreground">Note</strong>: appunti liberi del team.</li>
+                    <li><strong className="text-foreground">Anagrafica</strong>: scheda del cliente.</li>
+                  </ul>
+                </section>
+                <section>
+                  <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-electric">Come orientarsi nell&apos;albero</p>
+                  <p className="mt-2">Apri la tab <strong className="text-foreground">Albero attivo</strong>: cerca il
+                  cerchio <strong className="text-foreground">OGGI</strong> sul tronco, a sinistra ci sono le fasi passate
+                  e gli eventi accaduti, a destra quelle future. Clicca un cerchio (fase) o un&apos;icona (evento)
+                  per aprire il drawer di modifica. Aggiungi nuovi eventi dalla toolbar in alto.</p>
+                </section>
+                <section>
+                  <p>Per cambiare lo <strong className="text-foreground">stato della pratica</strong> usa il selettore
+                  in alto a destra (Aperta / Sospesa / Chiusa). Puoi chiudere solo quando tutte le fasi sono Completate
+                  o Saltate.</p>
+                </section>
+              </HelpButton>
+            </div>
             <div className="flex flex-wrap items-center gap-2">
               <Badge variant="info">
                 <FolderKanban className="h-3.5 w-3.5" />
@@ -114,20 +149,12 @@ export function PracticeHeader({ practice, phases }: PracticeHeaderProps) {
           <div className="rounded-2xl border border-border bg-surface-container p-3">
             <div className="mb-2 flex items-center justify-between text-xs text-muted">
               <span className="font-display uppercase tracking-[0.16em]">Avanzamento</span>
-              <span className="font-label font-semibold text-electric">{practice.progress}%</span>
+              <span className="font-label font-semibold text-electric">
+                {phasesClosed}/{phases.length} &middot; {practice.progress}%
+              </span>
             </div>
             <div className="h-2 overflow-hidden rounded-full bg-surface-high">
               <div className="h-2 rounded-full bg-brand transition-all" style={{ width: `${practice.progress}%` }} />
-            </div>
-            <div className="mt-2 flex items-center justify-between gap-3 text-xs text-muted">
-              <span className="flex items-center gap-1.5">
-                <CalendarClock className="h-3.5 w-3.5 text-electric" />
-                {new Intl.DateTimeFormat("it-IT").format(new Date(practice.dueDate))}
-              </span>
-              <span className="flex items-center gap-1.5 truncate">
-                <Building2 className="h-3.5 w-3.5 text-electric" />
-                {practice.client.city}
-              </span>
             </div>
           </div>
         </div>

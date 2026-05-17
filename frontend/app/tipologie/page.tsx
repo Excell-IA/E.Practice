@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FolderKanban, Plus } from "lucide-react";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { EWorkShell } from "@/components/shell/EWorkShell";
@@ -35,7 +36,6 @@ function CategoryCard({ category }: { category: ApiCategory }) {
             <FolderKanban className="h-5 w-5" />
           </span>
           <div>
-            <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">{category.group_name}</p>
             <h3 className="font-display text-lg font-semibold text-foreground">{category.name}</h3>
             {category.description ? <p className="mt-1 text-xs text-muted">{category.description}</p> : null}
           </div>
@@ -74,6 +74,7 @@ function CategoryCard({ category }: { category: ApiCategory }) {
 
 export default function CategoriesPage() {
   const queryClient = useQueryClient();
+  const router = useRouter();
   const activeUser = useDemoStore((state) => state.activeUser);
   const categoriesQuery = useQuery({
     queryFn: () => getCategories(),
@@ -82,16 +83,17 @@ export default function CategoriesPage() {
   const categories = categoriesQuery.data ?? [];
 
   const [createOpen, setCreateOpen] = useState(false);
-  const [form, setForm] = useState<CategoryCreateInput>({ name: "", group_name: "", color: "#7c3aed", description: "" });
+  const [form, setForm] = useState<CategoryCreateInput>({ name: "", color: "#7c3aed", description: "" });
   const [createError, setCreateError] = useState<string | null>(null);
 
   const createMutation = useMutation({
     mutationFn: (input: CategoryCreateInput) => createCategory(input, activeUser.id),
-    onSuccess: async () => {
+    onSuccess: async (created) => {
       await queryClient.invalidateQueries({ queryKey: ["categories"] });
       setCreateOpen(false);
-      setForm({ name: "", group_name: "", color: "#7c3aed", description: "" });
+      setForm({ name: "", color: "#7c3aed", description: "" });
       setCreateError(null);
+      router.push(`/tipologie/${created.id}`);
     },
     onError: (err: Error) => {
       setCreateError(err.message);
@@ -107,7 +109,7 @@ export default function CategoriesPage() {
     }
     createMutation.mutate({
       name,
-      group_name: form.group_name?.trim() || null,
+      group_name: null,
       color: form.color || null,
       description: form.description?.trim() || null,
     });
@@ -156,7 +158,8 @@ export default function CategoriesPage() {
               <SheetHeader>
                 <SheetTitle>Nuova tipologia pratica</SheetTitle>
                 <SheetDescription>
-                  Crea una nuova categoria. Potrai poi definirne il template di fasi dall&apos;editor.
+                  Inserisci nome, colore e descrizione. Dopo la creazione vieni portato direttamente
+                  nell&apos;editor per definire le fasi del template.
                 </SheetDescription>
               </SheetHeader>
 
@@ -169,15 +172,6 @@ export default function CategoriesPage() {
                     onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))}
                     placeholder="es. Successioni"
                     value={form.name}
-                  />
-                </label>
-                <label className="block space-y-1.5">
-                  <span className="font-label text-xs font-semibold uppercase tracking-wide text-muted">Gruppo</span>
-                  <input
-                    className="h-10 w-full rounded-xl border border-border bg-surface-low px-3 text-sm text-foreground outline-none focus:border-electric"
-                    onChange={(event) => setForm((prev) => ({ ...prev, group_name: event.target.value }))}
-                    placeholder="es. Civile, Fiscale, Societario"
-                    value={form.group_name ?? ""}
                   />
                 </label>
                 <label className="block space-y-1.5">
