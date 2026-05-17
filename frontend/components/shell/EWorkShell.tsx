@@ -130,7 +130,7 @@ export function EWorkShell({ children, code }: EWorkShellProps) {
         <div className="mb-5 flex items-start justify-between gap-2 px-3">
           <div>
             <p className="font-display text-lg font-semibold text-foreground">E.Practice</p>
-            <p className="font-label text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">Studio Leali</p>
+            <p className="font-label text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">Cliente Beta Testing</p>
           </div>
           <button
             aria-label="Chiudi menu"
@@ -219,7 +219,7 @@ export function EWorkShell({ children, code }: EWorkShellProps) {
               </button>
             )}
             <Image alt="ExcellIA" className="h-48 w-auto flex-shrink-0" height={192} priority src="/logo-excellia.svg" width={256} />
-            <div className="min-w-0">
+            <div className="hidden min-w-0 xl:block">
               <div className="flex items-center gap-2 overflow-hidden whitespace-nowrap text-sm">
                 <span className="font-display text-[11px] font-medium uppercase tracking-[0.14em] text-muted">
                   ExcellIA
@@ -239,9 +239,9 @@ export function EWorkShell({ children, code }: EWorkShellProps) {
           </div>
 
           <div className="flex items-center gap-5">
-            <div className="hidden items-center gap-2 rounded-full bg-surface-container px-3 py-1.5 md:flex">
+            <div className="flex items-center gap-2 rounded-full bg-surface-container px-3 py-1.5" title="Active Weekly Users 43%">
               <span className="font-display text-[10px] font-medium uppercase tracking-[0.14em] text-muted">AWU</span>
-              <div className="h-1 w-[60px] overflow-hidden rounded-full bg-surface-highest">
+              <div className="hidden h-1 w-[60px] overflow-hidden rounded-full bg-surface-highest xl:block">
                 <div className="h-full w-[43%] rounded-full bg-gradient-to-r from-primary to-[#00C2FF] shadow-[0_0_8px_rgba(146,217,255,0.5)]" />
               </div>
               <span className="font-display text-[11px] font-semibold text-foreground">43%</span>
@@ -287,7 +287,7 @@ export function EWorkShell({ children, code }: EWorkShellProps) {
                 IT
               </div>
             </V1Hint>
-            <label className="flex cursor-pointer items-center gap-3" htmlFor="demo-user-select" title="Cambia utente demo">
+            <label className="relative flex cursor-pointer items-center gap-3" htmlFor="demo-user-select" title="Cambia utente demo">
               <div
                 className={cn(
                   "flex h-8 w-8 items-center justify-center rounded-full font-display text-xs font-semibold text-white ring-0 transition-shadow hover:ring-2 hover:ring-primary/40",
@@ -296,22 +296,23 @@ export function EWorkShell({ children, code }: EWorkShellProps) {
               >
                 {activeUser.initials}
               </div>
-              <div className="hidden leading-tight sm:block">
-                <select
-                  aria-label="Utente demo"
-                  className="w-36 cursor-pointer bg-transparent font-label text-xs font-semibold text-foreground outline-none"
-                  id="demo-user-select"
-                  onChange={(event) => applyAction({ type: "set_user", userId: event.target.value })}
-                  value={activeUser.id}
-                >
-                  {users.map((user) => (
-                    <option className="bg-surface text-foreground" key={user.id} value={user.id}>
-                      {user.name}
-                    </option>
-                  ))}
-                </select>
+              <div className="pointer-events-none hidden leading-tight xl:block">
+                <p className="font-label text-xs font-semibold text-foreground">{activeUser.name}</p>
                 <p className="text-[11px] text-muted">{activeUser.role}</p>
               </div>
+              <select
+                aria-label="Utente demo"
+                className="absolute inset-0 cursor-pointer opacity-0"
+                id="demo-user-select"
+                onChange={(event) => applyAction({ type: "set_user", userId: event.target.value })}
+                value={activeUser.id}
+              >
+                {users.map((user) => (
+                  <option className="bg-surface text-foreground" key={user.id} value={user.id}>
+                    {user.name}
+                  </option>
+                ))}
+              </select>
             </label>
           </div>
         </header>

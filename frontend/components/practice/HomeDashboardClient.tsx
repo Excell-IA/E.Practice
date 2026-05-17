@@ -70,7 +70,7 @@ export function HomeDashboardClient() {
               E.Practice — Beta Version
             </p>
             <h1 className="mt-1 font-display text-3xl font-semibold text-foreground md:text-4xl">
-              Studio Leali
+              Cliente Beta Testing
             </h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-foreground-variant">
               Gestione pratiche dello studio: rubrica clienti, pratiche aperte e la vista albero

@@ -305,6 +305,7 @@ export function NodeDrawer({ selection, open, onOpenChange, onSwitchTab }: NodeD
                     <input
                       className="h-10 w-full rounded-xl border border-border bg-surface-container px-3 text-sm text-foreground outline-none disabled:cursor-not-allowed disabled:opacity-50"
                       disabled={!canEdit}
+                      lang="it-IT"
                       onChange={(event) => setEventDraft((draft) => ({ ...draft, occurredAt: event.target.value }))}
                       type="date"
                       value={eventDraft.occurredAt}
@@ -347,6 +348,7 @@ export function NodeDrawer({ selection, open, onOpenChange, onSwitchTab }: NodeD
                   <input
                     className="mt-2 h-9 w-full rounded-xl border border-border bg-surface-container px-3 font-label text-sm font-semibold text-foreground outline-none disabled:cursor-not-allowed disabled:opacity-50"
                     disabled={!canEdit}
+                    lang="it-IT"
                     onChange={(event) => {
                       applyAction({
                         type: "update_phase",

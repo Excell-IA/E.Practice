@@ -567,11 +567,11 @@ export function NewPracticeWizard() {
                 </label>
                 <label className="space-y-1">
                   <span className="block text-xs font-semibold text-muted">Apertura pratica</span>
-                  <input className="h-10 w-full rounded-xl border border-border bg-surface-container px-3 outline-none" onChange={(event) => setApertura(event.target.value)} title="Data di apertura della pratica" type="date" value={apertura} />
+                  <input className="h-10 w-full rounded-xl border border-border bg-surface-container px-3 outline-none" lang="it-IT" onChange={(event) => setApertura(event.target.value)} title="Data di apertura della pratica" type="date" value={apertura} />
                 </label>
                 <label className="space-y-1">
                   <span className="block text-xs font-semibold text-muted">Scadenza richiesta</span>
-                  <input className="h-10 w-full rounded-xl border border-border bg-surface-container px-3 outline-none" onChange={(event) => handleScadenzaChange(event.target.value)} title="Cambiando la scadenza, le fasi si ridistribuiscono automaticamente tra apertura e scadenza" type="date" value={scadenza} />
+                  <input className="h-10 w-full rounded-xl border border-border bg-surface-container px-3 outline-none" lang="it-IT" onChange={(event) => handleScadenzaChange(event.target.value)} title="Cambiando la scadenza, le fasi si ridistribuiscono automaticamente tra apertura e scadenza" type="date" value={scadenza} />
                 </label>
                 <label className="space-y-1 sm:col-span-2">
                   <span className="block text-xs font-semibold text-muted">Priorità</span>
@@ -630,7 +630,7 @@ export function NewPracticeWizard() {
                 <div className="grid gap-3 rounded-xl border border-border bg-surface-container p-3 text-sm md:grid-cols-[40px_1fr_170px_220px_40px] md:items-center" key={`phase-${phase.order_index}-${index}`}>
                   <span className="font-label text-muted">#{index + 1}</span>
                   <input className="rounded-lg bg-surface-low px-2 py-1.5 outline-none" onChange={(event) => updatePhaseName(index, event.target.value)} placeholder="Nome fase" value={phase.name} />
-                  <input className="rounded-lg bg-surface-low px-2 py-1.5 outline-none" onChange={(event) => updatePhaseStart(index, event.target.value)} type="date" value={phase.planned_start} />
+                  <input className="rounded-lg bg-surface-low px-2 py-1.5 outline-none" lang="it-IT" onChange={(event) => updatePhaseStart(index, event.target.value)} type="date" value={phase.planned_start} />
                   <select className="rounded-lg bg-surface-low px-2 py-1.5 text-xs outline-none" onChange={(event) => updatePhaseAssignee(index, event.target.value)} value={phase.assignee_id ?? responsibleId}>
                     {users.map((user) => (
                       <option className="bg-surface text-foreground" key={user.id} value={user.id}>

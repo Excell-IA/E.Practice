@@ -424,6 +424,7 @@ export function PracticeTree({ practice, phases, events, onSwitchTab, pendingSel
                 <span className="text-xs font-semibold text-muted">Data</span>
                 <input
                   className="h-9 rounded-xl border border-border bg-surface-container px-3 font-label text-sm font-semibold text-foreground outline-none"
+                  lang="it-IT"
                   onChange={(event) => {
                     setComposerDate(event.target.value);
                     setComposerPhaseId(closestPhaseId(event.target.value));

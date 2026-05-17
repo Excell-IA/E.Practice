@@ -8,11 +8,11 @@ export default function HomePage() {
         <div className="flex flex-col items-start gap-8 sm:flex-row sm:items-center">
           <Image
             alt="ExcellIA"
-            className="h-auto w-72 flex-shrink-0 sm:w-80"
-            height={240}
+            className="h-auto w-96 flex-shrink-0 sm:w-[500px]"
+            height={400}
             priority
             src="/logo-excellia.svg"
-            width={320}
+            width={500}
           />
           <div>
             <h1 className="font-display text-5xl font-semibold tracking-tight">E.Practice</h1>

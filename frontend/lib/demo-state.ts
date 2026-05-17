@@ -84,7 +84,7 @@ const practice: Practice = {
   dueDate: "2026-04-30",
   labels: [
     { id: "label-1", name: "Urgente", tone: "warning" },
-    { id: "label-2", name: "Studio Leali", tone: "info" },
+    { id: "label-2", name: "Beta Tester", tone: "info" },
     { id: "label-3", name: "Demo", tone: "success" },
   ],
   progress: 50,

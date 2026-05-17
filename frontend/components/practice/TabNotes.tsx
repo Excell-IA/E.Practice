@@ -242,6 +242,7 @@ export function TabNotes({ phases, focusNoteId, onFocusApplied }: TabNotesProps)
                     <span className="text-xs font-semibold text-muted">Data nota</span>
                     <input
                       className="h-10 w-full rounded-xl border border-border bg-surface-low px-3 text-sm text-foreground outline-none"
+                      lang="it-IT"
                       onChange={(event) => setEditingDate(event.target.value)}
                       type="date"
                       value={editingDate}
@@ -286,6 +287,7 @@ export function TabNotes({ phases, focusNoteId, onFocusApplied }: TabNotesProps)
           <input
             className="h-10 w-full rounded-xl border border-border bg-surface-container px-3 text-sm text-foreground outline-none disabled:cursor-not-allowed disabled:opacity-50"
             disabled={!canEdit}
+            lang="it-IT"
             onChange={(event) => setNewNoteDate(event.target.value)}
             type="date"
             value={newNoteDate}
