@@ -35,7 +35,7 @@ type EWorkShellProps = {
 };
 
 const navItems = [
-  { label: "Home", icon: Home, section: "Modulo", href: "/pratiche" },
+  { label: "Home", icon: Home, section: "Modulo", href: "/home" },
   { label: "Rubrica clienti", icon: UsersRound, section: "Modulo", href: "/clienti" },
   { label: "Pratiche", icon: Gauge, section: "Modulo", badge: 8, href: "/pratiche" },
   { label: "Nuova pratica", icon: Plus, section: "Modulo", href: "/pratiche/nuova" },

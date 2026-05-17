@@ -21,7 +21,7 @@ export default function HomePage() {
             </p>
             <Link
               className="mt-6 inline-flex h-10 items-center rounded-xl bg-brand px-6 font-display text-sm font-semibold text-[var(--on-primary)]"
-              href="/pratiche"
+              href="/home"
             >
               Entra
             </Link>
