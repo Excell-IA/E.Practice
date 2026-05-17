@@ -1,5 +1,6 @@
 import { Check, CircleSlash, Lock, Minus } from "lucide-react";
 
+import { phaseStatusLabel } from "@/lib/phase-labels";
 import type { PracticePhase } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -12,13 +13,7 @@ type PhaseNodeProps = {
   onSelect: (phase: PracticePhase) => void;
 };
 
-const statusLabel = {
-  done: "Completata",
-  in_progress: "In corso",
-  pending: "Da fare",
-  skipped: "Saltata",
-  blocked: "Bloccata",
-};
+const statusLabel = phaseStatusLabel;
 
 function splitTitle(title: string): string[] {
   const maxPerLine = 14;

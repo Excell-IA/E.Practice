@@ -8,6 +8,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { useDemoStore, type DemoNote } from "@/lib/demo-state";
+import { phaseStatusLabel } from "@/lib/phase-labels";
 import type { PracticeEvent, PracticePhase, User } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -203,7 +204,7 @@ export function TabTimeline({ events, onRequestTreeSelect, onSwitchTab, phases }
             <div key={entry.id} ref={entry.id === anchorId ? anchorRef : undefined}>
               <Card
                 className={cn(
-                  "cursor-pointer border-l-4 px-4 py-3 transition-colors hover:bg-surface-high",
+                  "cursor-pointer border-l-4 px-3 py-2 transition-colors hover:bg-surface-high",
                   cardClass(entry),
                   entry.colorClass,
                 )}
@@ -220,43 +221,53 @@ export function TabTimeline({ events, onRequestTreeSelect, onSwitchTab, phases }
                 role="button"
                 tabIndex={0}
               >
-                <div className="flex items-start gap-3">
+                <div className="flex min-w-0 items-center gap-2 overflow-hidden">
                   <div
-                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border bg-surface-low text-electric"
+                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-border bg-surface-low text-electric"
                     title={entry.iconTitle}
                   >
                     {entry.icon}
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-baseline gap-x-2">
-                      <Badge variant={entry.badgeVariant}>{entry.badgeLabel}</Badge>
-                      <span className="font-label text-sm font-semibold text-foreground">{entry.title}</span>
-                    </div>
-                    <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs">
-                      <span className="font-semibold text-foreground-variant">
-                        {format(new Date(entry.date), "EEE dd MMM yyyy · HH:mm", { locale: it })}
-                      </span>
-                      {entry.author ? (
-                        <span className="flex items-center gap-1.5">
-                          <span
-                            className={cn(
-                              "flex h-5 w-5 items-center justify-center rounded-full font-display text-[9px] font-bold text-white",
-                              avatarClass(entry.author.id),
-                            )}
-                          >
-                            {entry.author.initials}
-                          </span>
-                          <span className="text-foreground-variant">{entry.author.name}</span>
+                  <Badge className="shrink-0" variant={entry.badgeVariant}>
+                    {entry.badgeLabel}
+                  </Badge>
+                  <span className="min-w-0 truncate font-label text-sm font-semibold text-foreground">
+                    {entry.title}
+                  </span>
+                  <span aria-hidden="true" className="shrink-0 text-xs text-foreground-variant">·</span>
+                  <span className="shrink-0 whitespace-nowrap text-xs font-semibold text-foreground-variant">
+                    {format(new Date(entry.date), "dd MMM · HH:mm", { locale: it })}
+                  </span>
+                  {entry.author ? (
+                    <>
+                      <span aria-hidden="true" className="hidden shrink-0 text-xs text-foreground-variant sm:inline">·</span>
+                      <span className="hidden shrink-0 items-center gap-1.5 sm:flex">
+                        <span
+                          className={cn(
+                            "flex h-5 w-5 items-center justify-center rounded-full font-display text-[9px] font-bold text-white",
+                            avatarClass(entry.author.id),
+                          )}
+                        >
+                          {entry.author.initials}
                         </span>
-                      ) : null}
-                      {entry.kind === "phase" ? (
-                        <span className="text-muted">Fase {entry.phaseOrder} · {entry.phaseStatus}</span>
-                      ) : null}
-                    </div>
-                    {entry.subtitle ? (
-                      <p className="mt-1 truncate text-xs text-muted">{entry.subtitle}</p>
-                    ) : null}
-                  </div>
+                        <span className="whitespace-nowrap text-xs text-foreground-variant">{entry.author.name}</span>
+                      </span>
+                    </>
+                  ) : null}
+                  {entry.kind === "phase" && entry.phaseStatus ? (
+                    <>
+                      <span aria-hidden="true" className="hidden shrink-0 text-xs text-foreground-variant sm:inline">·</span>
+                      <span className="hidden shrink-0 whitespace-nowrap text-xs text-muted sm:inline">
+                        Fase {entry.phaseOrder} · {phaseStatusLabel[entry.phaseStatus]}
+                      </span>
+                    </>
+                  ) : null}
+                  {entry.subtitle ? (
+                    <>
+                      <span aria-hidden="true" className="hidden shrink-0 text-xs text-foreground-variant md:inline">·</span>
+                      <span className="hidden min-w-0 flex-1 truncate text-xs text-muted md:inline">{entry.subtitle}</span>
+                    </>
+                  ) : null}
                 </div>
               </Card>
             </div>
