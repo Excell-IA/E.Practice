@@ -50,7 +50,7 @@ function categoryVariant(color: string): BadgeProps["variant"] {
 }
 
 function isLate(practice: DirectoryPractice) {
-  return practice.status !== "chiusa" && differenceInCalendarDays(new Date(practice.dueDate), new Date("2026-05-13")) < 0;
+  return practice.status !== "chiusa" && differenceInCalendarDays(new Date(practice.dueDate), new Date()) < 0;
 }
 
 function matchesFilter(practice: DirectoryPractice, filter: PracticeFilter) {
@@ -59,14 +59,6 @@ function matchesFilter(practice: DirectoryPractice, filter: PracticeFilter) {
   if (filter === "progress") return practice.status === "in_corso" || practice.status === "in_attesa";
   if (filter === "done") return practice.status === "chiusa";
   return isLate(practice);
-}
-
-function urgencyLabel(practice: DirectoryPractice) {
-  const days = differenceInCalendarDays(new Date(practice.dueDate), new Date("2026-05-13"));
-  if (practice.status === "chiusa") return { label: "chiusa", variant: "success" as const };
-  if (days < 0) return { label: `${Math.abs(days)} gg fa`, variant: "danger" as const };
-  if (days <= 7) return { label: `${days} gg`, variant: "warning" as const };
-  return { label: `${days} gg`, variant: "info" as const };
 }
 
 function formatFileSize(bytes: number) {
@@ -213,7 +205,6 @@ export function PracticesListClient() {
             </thead>
             <tbody>
               {practices.map((practice) => {
-                const urgency = urgencyLabel(practice);
                 const href = `/pratiche/${practice.code}`;
                 return (
                   <tr
@@ -263,10 +254,7 @@ export function PracticesListClient() {
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <span className="font-label text-foreground-variant">{format(new Date(practice.dueDate), "dd/MM/yyyy", { locale: it })}</span>
-                        <Badge variant={urgency.variant}>{urgency.label}</Badge>
-                      </div>
+                      <span className="font-label text-foreground-variant">{format(new Date(practice.dueDate), "dd/MM/yyyy", { locale: it })}</span>
                     </td>
                     <td className="px-4 py-3">
                       <Badge variant={statusVariant(practice.status)}>{statusLabel(practice.status)}</Badge>

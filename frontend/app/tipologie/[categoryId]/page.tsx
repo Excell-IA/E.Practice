@@ -1,14 +1,17 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Plus, Save, Trash2 } from "lucide-react";
+import { ArrowLeft, Plus, Save, Trash, Trash2 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { EWorkShell } from "@/components/shell/EWorkShell";
 import { Button } from "@/components/ui/button";
 import { HelpButton } from "@/components/ui/help-button";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
+  deleteCategory,
   getCategories,
   getTemplate,
   replaceTemplateForCategory,
@@ -32,11 +35,30 @@ function newDraft(): DraftPhase {
 export default function CategoryTemplateEditorPage({ params }: { params: { categoryId: string } }) {
   const { categoryId } = params;
   const queryClient = useQueryClient();
+  const router = useRouter();
   const activeUser = useDemoStore((state) => state.activeUser);
   const [phases, setPhases] = useState<DraftPhase[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [savedAt, setSavedAt] = useState<Date | null>(null);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  async function handleDelete() {
+    setDeleteError(null);
+    setDeleting(true);
+    try {
+      await deleteCategory(categoryId, activeUser.id);
+      await queryClient.invalidateQueries({ queryKey: ["categories"] });
+      router.push("/tipologie");
+    } catch (err) {
+      console.error("category_delete_failed", err);
+      setDeleteError(err instanceof Error ? err.message : "Eliminazione non riuscita.");
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   const categoryQuery = useQuery({
     queryFn: () => getCategories(),
@@ -143,13 +165,58 @@ export default function CategoryTemplateEditorPage({ params }: { params: { categ
                 </section>
               </HelpButton>
             </div>
-            <Button asChild variant="outline">
-              <Link href="/tipologie">
-                <ArrowLeft className="h-4 w-4" />
-                Tutte le tipologie
-              </Link>
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button onClick={() => { setDeleteError(null); setDeleteOpen(true); }} type="button" variant="outline">
+                <Trash className="h-4 w-4" />
+                Elimina tipologia
+              </Button>
+              <Button asChild variant="outline">
+                <Link href="/tipologie">
+                  <ArrowLeft className="h-4 w-4" />
+                  Tutte le tipologie
+                </Link>
+              </Button>
+            </div>
           </div>
+
+          <Sheet onOpenChange={setDeleteOpen} open={deleteOpen}>
+            <SheetContent>
+              <SheetHeader>
+                <SheetTitle>Elimina tipologia</SheetTitle>
+                <SheetDescription>
+                  Stai per eliminare la tipologia <strong className="text-foreground">{category?.name ?? "(senza nome)"}</strong>.
+                  L&apos;azione e&apos; irreversibile. Se ci sono pratiche associate, l&apos;eliminazione viene bloccata.
+                </SheetDescription>
+              </SheetHeader>
+
+              {deleteError ? (
+                <p className="mt-4 rounded-xl border border-danger/30 bg-danger/10 px-3 py-2 text-sm font-semibold text-danger">
+                  {deleteError}
+                </p>
+              ) : null}
+
+              <div className="mt-auto flex flex-col gap-2 pt-6">
+                <Button
+                  className="w-full !bg-danger !text-white hover:!bg-danger/80"
+                  disabled={deleting}
+                  onClick={handleDelete}
+                  type="button"
+                >
+                  <Trash className="h-4 w-4" />
+                  {deleting ? "Eliminazione..." : "Elimina definitivamente"}
+                </Button>
+                <Button
+                  className="w-full"
+                  disabled={deleting}
+                  onClick={() => setDeleteOpen(false)}
+                  type="button"
+                  variant="ghost"
+                >
+                  Annulla
+                </Button>
+              </div>
+            </SheetContent>
+          </Sheet>
 
           {error ? (
             <div className="rounded-2xl border border-danger/40 bg-danger/10 px-4 py-3 text-sm font-semibold text-danger">{error}</div>

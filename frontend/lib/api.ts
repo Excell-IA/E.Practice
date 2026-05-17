@@ -88,6 +88,28 @@ export function getCategories() {
   return apiFetch<ApiCategory[]>("/api/categories");
 }
 
+export type CategoryCreateInput = {
+  name: string;
+  group_name?: string | null;
+  color?: string | null;
+  description?: string | null;
+};
+
+export function createCategory(input: CategoryCreateInput, userId: string) {
+  return apiFetch<ApiCategory>("/api/categories", {
+    body: JSON.stringify(input),
+    method: "POST",
+    userId,
+  });
+}
+
+export function deleteCategory(categoryId: string, userId: string) {
+  return apiFetch<void>(`/api/categories/${categoryId}`, {
+    method: "DELETE",
+    userId,
+  });
+}
+
 export function getUsers() {
   return apiFetch<ApiUser[]>("/api/users");
 }
