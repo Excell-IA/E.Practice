@@ -158,7 +158,7 @@ export function updateClient(
 ) {
   return apiFetch<ApiClient>(`/api/clients/${clientId}`, {
     body: JSON.stringify(input),
-    method: "PATCH",
+    method: "PUT",
     userId,
   });
 }
