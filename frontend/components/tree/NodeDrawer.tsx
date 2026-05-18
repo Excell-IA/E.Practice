@@ -51,6 +51,7 @@ export function NodeDrawer({ selection, open, onOpenChange, onSwitchTab }: NodeD
   const notes = useDemoStore((state) => state.notes);
   const phases = useDemoStore((state) => state.phases);
   const applyAction = useDemoStore((state) => state.applyAction);
+  const [pendingCloseStatus, setPendingCloseStatus] = useState<"done" | "skipped" | null>(null);
 
   const isPhase = selection?.kind === "phase";
   const title = isPhase ? selection.item.title : selection?.item.title;
@@ -172,6 +173,26 @@ export function NodeDrawer({ selection, open, onOpenChange, onSwitchTab }: NodeD
     onOpenChange(false);
   }
 
+  async function applyStatusChange(value: "pending" | "in_progress" | "done" | "skipped" | "blocked") {
+    if (!isPhase) return;
+    applyAction({
+      type: "set_phase_status",
+      phaseId: selection.item.id,
+      status: value,
+    });
+    flashPhaseSaved();
+    const apiStatus: ApiPhaseStatus = value === "done" ? "completed" : value;
+    try {
+      if (/^[0-9a-f-]{36}$/i.test(selection.item.id)) {
+        await setPhaseStatus(selection.item.id, apiStatus, activeUser.id);
+      }
+    } catch (err) {
+      console.warn("set_phase_status_failed", err);
+    }
+    await queryClient.invalidateQueries({ queryKey: ["practice-detail"] });
+    await queryClient.invalidateQueries({ queryKey: ["practices"] });
+  }
+
   return (
     <Sheet onOpenChange={onOpenChange} open={open}>
       <SheetContent>
@@ -212,7 +233,7 @@ export function NodeDrawer({ selection, open, onOpenChange, onSwitchTab }: NodeD
                       )}
                       disabled={!canEdit}
                       key={option.value}
-                      onClick={async () => {
+                      onClick={() => {
                         if (selection.item.status === option.value) return;
                         if (option.value === "done" || option.value === "skipped") {
                           const stillOpen = phases.filter(
@@ -222,29 +243,11 @@ export function NodeDrawer({ selection, open, onOpenChange, onSwitchTab }: NodeD
                               phase.status !== "skipped",
                           ).length;
                           if (stillOpen === 0) {
-                            const ok = window.confirm(
-                              "Confermi che questa pratica e' stata chiusa? Lo stato pratica passera' automaticamente a Chiusa.",
-                            );
-                            if (!ok) return;
+                            setPendingCloseStatus(option.value);
+                            return;
                           }
                         }
-                        applyAction({
-                          type: "set_phase_status",
-                          phaseId: selection.item.id,
-                          status: option.value,
-                        });
-                        flashPhaseSaved();
-                        const apiStatus: ApiPhaseStatus =
-                          option.value === "done" ? "completed" : option.value;
-                        try {
-                          if (/^[0-9a-f-]{36}$/i.test(selection.item.id)) {
-                            await setPhaseStatus(selection.item.id, apiStatus, activeUser.id);
-                          }
-                        } catch (err) {
-                          console.warn("set_phase_status_failed", err);
-                        }
-                        await queryClient.invalidateQueries({ queryKey: ["practice-detail"] });
-                        await queryClient.invalidateQueries({ queryKey: ["practices"] });
+                        void applyStatusChange(option.value);
                       }}
                       title={canEdit ? `Imposta stato: ${option.label}` : "Permesso non disponibile per utente viewer"}
                       type="button"
@@ -498,6 +501,33 @@ export function NodeDrawer({ selection, open, onOpenChange, onSwitchTab }: NodeD
           ) : null}
         </div>
       </SheetContent>
+
+      <Sheet onOpenChange={(opened) => !opened && setPendingCloseStatus(null)} open={pendingCloseStatus !== null}>
+        <SheetContent className="max-w-md">
+          <SheetHeader>
+            <SheetTitle>Chiudere la pratica?</SheetTitle>
+            <SheetDescription>
+              Questa e&apos; l&apos;ultima fase ancora aperta. Confermandola, lo stato della pratica
+              passera&apos; automaticamente a Chiusa.
+            </SheetDescription>
+          </SheetHeader>
+          <div className="space-y-3">
+            <Button
+              className="w-full"
+              onClick={() => {
+                if (pendingCloseStatus) void applyStatusChange(pendingCloseStatus);
+                setPendingCloseStatus(null);
+              }}
+              type="button"
+            >
+              Conferma chiusura
+            </Button>
+            <Button className="w-full" onClick={() => setPendingCloseStatus(null)} type="button" variant="ghost">
+              Annulla
+            </Button>
+          </div>
+        </SheetContent>
+      </Sheet>
     </Sheet>
   );
 }
