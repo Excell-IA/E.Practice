@@ -1,5 +1,5 @@
-from datetime import date
-from uuid import UUID
+from datetime import UTC, date, datetime
+from uuid import UUID, uuid4
 
 import pytest
 
@@ -14,6 +14,7 @@ from app.models import (
 from app.repositories.memory import InMemoryRepository
 from app.services.activity_service import ActivityService
 from app.services.practice_service import PracticeService
+from app.services.tokenize import tokenize
 
 
 @pytest.mark.asyncio
@@ -113,3 +114,121 @@ async def test_create_with_template_disables_phase_override() -> None:
 
     phases = await phase_repo.list(practice_id=response.practice_id)
     assert [phase.order_index for phase in phases] == [2]
+
+
+def _make_phase(
+    practice_id: UUID,
+    *,
+    order_index: int,
+    status: str,
+) -> PracticePhase:
+    return PracticePhase(
+        id=uuid4(),
+        practice_id=practice_id,
+        template_id=None,
+        order_index=order_index,
+        name=f"Fase {order_index}",
+        status=status,  # type: ignore[arg-type]
+    )
+
+
+def _make_practice(*, status: str = "aperta") -> Practice:
+    client_id = UUID("55555555-5555-4555-8555-000000000001")
+    return Practice(
+        id=uuid4(),
+        code="PR-2026-T01",
+        title="Test recompute",
+        client_id=client_id,
+        client_token=tokenize(client_id),
+        category_id=UUID("22222222-2222-4222-8222-000000000003"),
+        apertura=date(2026, 1, 1),
+        status=status,  # type: ignore[arg-type]
+        created_by=UUID("11111111-1111-4111-8111-000000000001"),
+        created_at=datetime.now(UTC),
+    )
+
+
+async def _build_service(
+    practice: Practice,
+    phases: list[PracticePhase],
+) -> tuple[PracticeService, InMemoryRepository[Practice], InMemoryRepository[PracticePhase]]:
+    practice_repo = InMemoryRepository[Practice]("Practice", seed=[practice])
+    phase_repo = InMemoryRepository[PracticePhase]("PracticePhase", seed=phases)
+    template_repo = InMemoryRepository[PhaseTemplate]("PhaseTemplate")
+    activity = ActivityService(InMemoryRepository[ActivityLog]("ActivityLog"))
+    return (
+        PracticeService(practice_repo, template_repo, phase_repo, activity),
+        practice_repo,
+        phase_repo,
+    )
+
+
+@pytest.mark.asyncio
+async def test_recompute_status_blocked_phase_marks_sospesa() -> None:
+    practice = _make_practice(status="in_corso")
+    phases = [
+        _make_phase(practice.id, order_index=1, status="completed"),
+        _make_phase(practice.id, order_index=2, status="blocked"),
+        _make_phase(practice.id, order_index=3, status="pending"),
+    ]
+    service, practice_repo, _ = await _build_service(practice, phases)
+    updated = await service.recompute_status(practice.id, practice.created_by)
+    assert updated is not None
+    assert updated.status == "sospesa"
+    assert (await practice_repo.get(str(practice.id))).status == "sospesa"
+
+
+@pytest.mark.asyncio
+async def test_recompute_status_all_completed_or_skipped_marks_chiusa() -> None:
+    practice = _make_practice(status="in_corso")
+    phases = [
+        _make_phase(practice.id, order_index=1, status="completed"),
+        _make_phase(practice.id, order_index=2, status="skipped"),
+        _make_phase(practice.id, order_index=3, status="completed"),
+    ]
+    service, _, _ = await _build_service(practice, phases)
+    updated = await service.recompute_status(practice.id, practice.created_by)
+    assert updated is not None
+    assert updated.status == "chiusa"
+    assert updated.completed_at is not None
+
+
+@pytest.mark.asyncio
+async def test_recompute_status_in_progress_phase_marks_in_corso() -> None:
+    practice = _make_practice(status="aperta")
+    phases = [
+        _make_phase(practice.id, order_index=1, status="in_progress"),
+        _make_phase(practice.id, order_index=2, status="pending"),
+    ]
+    service, _, _ = await _build_service(practice, phases)
+    updated = await service.recompute_status(practice.id, practice.created_by)
+    assert updated is not None
+    assert updated.status == "in_corso"
+
+
+@pytest.mark.asyncio
+async def test_recompute_status_all_pending_marks_aperta() -> None:
+    practice = _make_practice(status="in_corso")
+    phases = [
+        _make_phase(practice.id, order_index=1, status="pending"),
+        _make_phase(practice.id, order_index=2, status="pending"),
+    ]
+    service, _, _ = await _build_service(practice, phases)
+    updated = await service.recompute_status(practice.id, practice.created_by)
+    assert updated is not None
+    assert updated.status == "aperta"
+
+
+@pytest.mark.asyncio
+async def test_recompute_status_chiusa_to_in_corso_clears_completed_at() -> None:
+    practice = _make_practice(status="chiusa")
+    practice = practice.model_copy(update={"completed_at": datetime.now(UTC)})
+    phases = [
+        _make_phase(practice.id, order_index=1, status="completed"),
+        _make_phase(practice.id, order_index=2, status="pending"),
+    ]
+    service, _, _ = await _build_service(practice, phases)
+    updated = await service.recompute_status(practice.id, practice.created_by)
+    assert updated is not None
+    assert updated.status == "in_corso"
+    assert updated.completed_at is None

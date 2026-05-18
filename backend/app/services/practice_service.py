@@ -196,6 +196,53 @@ class PracticeService:
         done = sum(1 for p in countable if p.status == "completed")
         return round(100 * done / len(countable))
 
+    async def recompute_status(
+        self,
+        practice_id: UUID | str,
+        current_user_id: str | UUID,
+    ) -> Practice | None:
+        """Aggiorna lo stato della pratica derivandolo dallo stato delle fasi.
+
+        Regole (V0):
+        - almeno una fase ``blocked`` → ``sospesa``
+        - tutte le fasi sono ``completed`` o ``skipped`` (e ce n'è almeno una) → ``chiusa``
+        - almeno una fase ``in_progress`` oppure mix completed/skipped/pending → ``in_corso``
+        - tutte ``pending`` (o nessuna fase) → ``aperta``
+        """
+        pid = str(practice_id)
+        practice = await self._practices.get(pid)
+        if practice is None:
+            return None
+        phases = await self._phases.list(practice_id=UUID(pid))
+
+        if any(p.status == "blocked" for p in phases):
+            target = "sospesa"
+        elif phases and all(p.status in ("completed", "skipped") for p in phases):
+            target = "chiusa"
+        elif any(p.status in ("in_progress", "completed", "skipped") for p in phases):
+            target = "in_corso"
+        else:
+            target = "aperta"
+
+        if practice.status == target and (target != "chiusa" or practice.completed_at):
+            return practice
+
+        updates: dict[str, object] = {"status": target}
+        if target == "chiusa" and practice.completed_at is None:
+            updates["completed_at"] = datetime.now(UTC)
+        if target != "chiusa" and practice.completed_at is not None:
+            updates["completed_at"] = None
+        updated = await self._practices.update(pid, **updates)
+        await self._activity.log(
+            actor_id=current_user_id,
+            action="updated",
+            entity_type="practice",
+            entity_id=updated.id,
+            practice_id=updated.id,
+            metadata={"action": "recompute_status", "status": target},
+        )
+        return updated
+
     async def archive(
         self,
         practice_id: UUID | str,
