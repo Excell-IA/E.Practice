@@ -18,6 +18,14 @@ export type ApiUser = components["schemas"]["User"];
 export type ApiTemplatePreview = components["schemas"]["TemplatePreview"];
 export type ApiCreatePracticeResponse = components["schemas"]["CreatePracticeResponse"];
 
+export type UserCreateInput = {
+  avatar_color?: string | null;
+  cognome: string;
+  email: string;
+  nome: string;
+  role: ApiUser["role"];
+};
+
 type ApiFetchOptions = RequestInit & {
   userId?: string;
 };
@@ -113,6 +121,21 @@ export function deleteCategory(categoryId: string, userId: string) {
 
 export function getUsers() {
   return apiFetch<ApiUser[]>("/api/users");
+}
+
+export function createUser(input: UserCreateInput, userId: string) {
+  return apiFetch<ApiUser>("/api/users", {
+    body: JSON.stringify(input),
+    method: "POST",
+    userId,
+  });
+}
+
+export function deleteUser(id: string, userId: string) {
+  return apiFetch<void>(`/api/users/${id}`, {
+    method: "DELETE",
+    userId,
+  });
 }
 
 export function getTemplatePreview(categoryId: string, apertura: string) {
