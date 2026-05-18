@@ -14,9 +14,9 @@ import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import type { ApiPracticeDetail } from "@/lib/api";
+import { setPhaseStatus, type ApiPhaseStatus, type ApiPracticeDetail } from "@/lib/api";
 import { useDemoStore } from "@/lib/demo-state";
-import type { TreeSelection } from "@/lib/types";
+import type { PracticePhase, TreeSelection } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 type NodeDrawerProps = {
@@ -49,6 +49,7 @@ export function NodeDrawer({ selection, open, onOpenChange, onSwitchTab }: NodeD
   const activeUser = useDemoStore((state) => state.activeUser);
   const users = useDemoStore((state) => state.users);
   const notes = useDemoStore((state) => state.notes);
+  const phases = useDemoStore((state) => state.phases);
   const applyAction = useDemoStore((state) => state.applyAction);
 
   const isPhase = selection?.kind === "phase";
@@ -211,14 +212,39 @@ export function NodeDrawer({ selection, open, onOpenChange, onSwitchTab }: NodeD
                       )}
                       disabled={!canEdit}
                       key={option.value}
-                      onClick={() => {
+                      onClick={async () => {
                         if (selection.item.status === option.value) return;
+                        if (option.value === "done" || option.value === "skipped") {
+                          const stillOpen = phases.filter(
+                            (phase: PracticePhase) =>
+                              phase.id !== selection.item.id &&
+                              phase.status !== "done" &&
+                              phase.status !== "skipped",
+                          ).length;
+                          if (stillOpen === 0) {
+                            const ok = window.confirm(
+                              "Confermi che questa pratica e' stata chiusa? Lo stato pratica passera' automaticamente a Chiusa.",
+                            );
+                            if (!ok) return;
+                          }
+                        }
                         applyAction({
                           type: "set_phase_status",
                           phaseId: selection.item.id,
                           status: option.value,
                         });
                         flashPhaseSaved();
+                        const apiStatus: ApiPhaseStatus =
+                          option.value === "done" ? "completed" : option.value;
+                        try {
+                          if (/^[0-9a-f-]{36}$/i.test(selection.item.id)) {
+                            await setPhaseStatus(selection.item.id, apiStatus, activeUser.id);
+                          }
+                        } catch (err) {
+                          console.warn("set_phase_status_failed", err);
+                        }
+                        await queryClient.invalidateQueries({ queryKey: ["practice-detail"] });
+                        await queryClient.invalidateQueries({ queryKey: ["practices"] });
                       }}
                       title={canEdit ? `Imposta stato: ${option.label}` : "Permesso non disponibile per utente viewer"}
                       type="button"

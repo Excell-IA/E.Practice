@@ -244,14 +244,10 @@ function syncActionWithApi(action: DemoAction, state: DemoState) {
     void skipPhase(action.phaseId, state.activeUser.id).catch(console.warn);
   }
 
-  if (action.type === "set_phase_status" && isUuid(action.phaseId)) {
-    if (action.status === "done") {
-      void completePhase(action.phaseId, state.activeUser.id).catch(console.warn);
-    }
-    if (action.status === "skipped") {
-      void skipPhase(action.phaseId, state.activeUser.id).catch(console.warn);
-    }
-  }
+  // Nota: la sincronizzazione di set_phase_status verso il backend e' gestita
+  // direttamente nel NodeDrawer per poter awaitare la chiamata prima di
+  // invalidare le query React (necessario per leggere il recompute_status
+  // della pratica appena rigenerato lato server).
 
   if (action.type === "assign_phase" && isUuid(action.phaseId)) {
     void updatePhaseAssignee(action.phaseId, action.userId, state.activeUser.id).catch(console.warn);
