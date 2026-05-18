@@ -8,6 +8,7 @@ from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from pydantic import BaseModel
+from starlette.responses import JSONResponse
 
 from app.deps import (
     get_activity_log_repo,
@@ -250,6 +251,48 @@ async def update_client(
     activity_repo: Annotated[Repository[ActivityLog], Depends(get_activity_log_repo)],
     current_user_id: Annotated[str, Depends(get_current_user_id)],
 ) -> Client:
+    existing = await client_repo.get(str(client_id))
+    if existing is None:
+        raise HTTPException(status_code=404, detail=f"Client {client_id} non trovato")
+
+    return await _update_client_fields(
+        body=body,
+        client_id=client_id,
+        client_repo=client_repo,
+        activity_repo=activity_repo,
+        current_user_id=current_user_id,
+    )
+
+
+@router.patch("/{client_id}", response_model=Client)
+async def patch_client(
+    client_id: UUID,
+    body: ClientUpdate,
+    client_repo: Annotated[Repository[Client], Depends(get_client_repo)],
+    activity_repo: Annotated[Repository[ActivityLog], Depends(get_activity_log_repo)],
+    current_user_id: Annotated[str, Depends(get_current_user_id)],
+) -> Client:
+    existing = await client_repo.get(str(client_id))
+    if existing is None:
+        raise HTTPException(status_code=404, detail=f"Client {client_id} non trovato")
+
+    return await _update_client_fields(
+        body=body,
+        client_id=client_id,
+        client_repo=client_repo,
+        activity_repo=activity_repo,
+        current_user_id=current_user_id,
+    )
+
+
+async def _update_client_fields(
+    *,
+    body: ClientUpdate,
+    client_id: UUID,
+    client_repo: Repository[Client],
+    activity_repo: Repository[ActivityLog],
+    current_user_id: str,
+) -> Client:
     _validate_piva_cf(body.piva, body.cf)
     updates = body.model_dump(exclude_unset=True)
     updates["updated_at"] = datetime.now(UTC)
@@ -296,12 +339,13 @@ async def delete_client(
         if p.status not in ("chiusa", "archiviata")
     ]
     if open_practices:
-        raise HTTPException(
+        practices_count = len(open_practices)
+        return JSONResponse(
+            content={
+                "detail": f"Impossibile eliminare: {practices_count} pratiche usano questo cliente",
+                "practices_count": practices_count,
+            },
             status_code=status.HTTP_409_CONFLICT,
-            detail=(
-                f"Client {client_id} ha {len(open_practices)} pratiche aperte. "
-                "Chiudere o archiviare le pratiche prima di eliminare il cliente."
-            ),
         )
 
     now = datetime.now(UTC)
