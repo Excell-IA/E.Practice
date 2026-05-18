@@ -119,7 +119,7 @@ async def health(
     )
 
 
-@app.get("/healthz", include_in_schema=False)
+@app.api_route("/healthz", methods=["GET", "HEAD"], include_in_schema=False)
 async def healthz() -> dict[str, str]:
     return {"status": "ok"}
 
