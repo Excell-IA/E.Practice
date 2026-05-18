@@ -138,6 +138,7 @@ export function mapPracticeDetailToUi(detail: ApiPracticeDetail, knownUsers: rea
     body: note.content,
     createdAt: note.created_at,
     id: note.id,
+    occurredAt: note.occurred_at ?? null,
     phaseId: note.phase_id ?? phases[0]?.id ?? "",
   }));
 

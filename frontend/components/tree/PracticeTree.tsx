@@ -10,8 +10,11 @@ import {
   MoveHorizontal,
   PhoneCall,
   Plus,
+  Smartphone,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent, type PointerEvent } from "react";
+
+import { HelpButton } from "@/components/ui/help-button";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -21,16 +24,21 @@ import { useDemoStore } from "@/lib/demo-state";
 import type { Practice, PracticeEvent, PracticePhase, TreeSelection } from "@/lib/types";
 
 import { BezierEdge } from "./BezierEdge";
+import { EventGroupNode } from "./EventGroupNode";
 import { EventNode } from "./EventNode";
 import { NodeDrawer } from "./NodeDrawer";
 import { PhaseNode } from "./PhaseNode";
 import { TodayLine } from "./TodayLine";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 
 type PracticeTreeProps = {
   practice: Practice;
   phases: PracticePhase[];
   events: PracticeEvent[];
   onSwitchTab: (tab: "allegati" | "note") => void;
+  pendingSelection?: { kind: "phase" | "event"; id: string } | null;
+  onTreeSelectionApplied?: () => void;
+  onRequestNoteFocus?: (noteId: string) => void;
 };
 
 const disabledToolbar = [
@@ -40,13 +48,12 @@ const disabledToolbar = [
 ];
 
 const timeline = {
-  startX: 120,
-  endX: 2060,
+  startX: 140,
+  endX: 3060,
   y: 250,
-  todayDate: new Date("2026-03-16"),
 };
 
-const svgWidth = 2200;
+const svgWidth = 3200;
 
 type ComposerKind = PracticeEvent["type"] | "note";
 
@@ -56,33 +63,74 @@ type TrunkHover = {
   y: number;
 };
 
-type TrunkDraft = {
+type EventGroup = {
+  key: string;
+  events: PracticeEvent[];
   date: string;
-  phaseId: string;
+  type: PracticeEvent["type"];
+  phase: PracticePhase;
 };
 
-export function PracticeTree({ practice, phases, events, onSwitchTab }: PracticeTreeProps) {
+const groupTypeLabel = {
+  call: "Telefonate",
+  mail: "Email",
+  warning: "Avvisi",
+};
+
+export function PracticeTree({ practice, phases, events, onSwitchTab, pendingSelection, onTreeSelectionApplied, onRequestNoteFocus }: PracticeTreeProps) {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const [todayDate, setTodayDate] = useState<Date>(() => new Date());
+  useEffect(() => {
+    setTodayDate(new Date());
+  }, []);
+  const todayIso = useMemo(() => {
+    const local = new Date(todayDate.getTime() - todayDate.getTimezoneOffset() * 60000);
+    return local.toISOString().slice(0, 10);
+  }, [todayDate]);
   const [selection, setSelection] = useState<TreeSelection | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [composerType, setComposerType] = useState<PracticeEvent["type"] | null>(null);
+  const [composerType, setComposerType] = useState<PracticeEvent["type"] | "note" | null>(null);
   const [composerTitle, setComposerTitle] = useState("");
   const [composerDescription, setComposerDescription] = useState("");
-  const [composerDate, setComposerDate] = useState("2026-03-16");
+  const [composerDate, setComposerDate] = useState(todayIso);
+
+  useEffect(() => {
+    setComposerDate((current) => (current === "" || current === todayIso ? todayIso : current));
+  }, [todayIso]);
   const [composerPhaseId, setComposerPhaseId] = useState<string | null>(null);
   const [trunkHover, setTrunkHover] = useState<TrunkHover | null>(null);
-  const [trunkDraft, setTrunkDraft] = useState<TrunkDraft | null>(null);
+  const [groupSelection, setGroupSelection] = useState<EventGroup | null>(null);
   const activeUser = useDemoStore((state) => state.activeUser);
   const applyAction = useDemoStore((state) => state.applyAction);
+  const allNotes = useDemoStore((state) => state.notes);
   const orderedPhases = useMemo(() => [...phases].sort((a, b) => a.order - b.order), [phases]);
   const currentPhase = orderedPhases.find((phase) => phase.status === "in_progress") ?? orderedPhases[0];
-  const timelineRange = useMemo(
-    () => ({
-      endDate: new Date(practice.dueDate),
-      startDate: new Date(practice.startDate),
-    }),
-    [practice.dueDate, practice.startDate],
-  );
+  const timelineRange = useMemo(() => {
+    const candidates: number[] = [];
+    const push = (value: string | Date | undefined) => {
+      if (!value) return;
+      const t = new Date(value).getTime();
+      if (!Number.isNaN(t)) candidates.push(t);
+    };
+    push(practice.startDate);
+    push(practice.dueDate);
+    push(todayDate);
+    for (const phase of phases) {
+      push(phase.plannedDate);
+      push(phase.dueDate);
+    }
+    for (const event of events) {
+      push(event.occurredAt);
+    }
+    if (candidates.length === 0) {
+      return { startDate: new Date(practice.startDate), endDate: new Date(practice.dueDate) };
+    }
+    const padding = 7 * 24 * 60 * 60 * 1000;
+    return {
+      startDate: new Date(Math.min(...candidates) - padding),
+      endDate: new Date(Math.max(...candidates) + padding),
+    };
+  }, [practice.startDate, practice.dueDate, phases, events, todayDate]);
   const dateToTimelineX = useCallback(
     (value: string | Date) => {
       const date = typeof value === "string" ? new Date(value) : value;
@@ -93,7 +141,11 @@ export function PracticeTree({ practice, phases, events, onSwitchTab }: Practice
     },
     [timelineRange.endDate, timelineRange.startDate],
   );
-  const todayX = useMemo(() => dateToTimelineX(timeline.todayDate), [dateToTimelineX]);
+  const todayX = useMemo(() => {
+    const startOfDay = new Date(todayDate);
+    startOfDay.setHours(0, 0, 0, 0);
+    return dateToTimelineX(startOfDay);
+  }, [dateToTimelineX, todayDate]);
   const monthMarkers = useMemo(() => {
     const markers: { date: Date; label: string }[] = [];
     const cursor = new Date(timelineRange.startDate);
@@ -161,27 +213,79 @@ export function PracticeTree({ practice, phases, events, onSwitchTab }: Practice
   }
 
   const phasePositions = useMemo(() => {
-    let previousX = timeline.startX;
     return new Map(
       orderedPhases.map((phase, index) => {
-        const dateX = dateToTimelineX(phaseTimelineDate(phase, index));
-        const x = index === 0 ? dateX : Math.max(dateX, previousX + 175);
-        previousX = x;
+        const x = dateToTimelineX(phaseTimelineDate(phase, index));
         return [phase.id, { x, y: timeline.y }];
       }),
     );
   }, [dateToTimelineX, orderedPhases, phaseTimelineDate]);
 
-  const eventPositions = useMemo(
-    () =>
-      new Map(
-        events.map((event, index) => {
-          const above = index % 2 === 0;
-          return [event.id, { x: dateToTimelineX(event.occurredAt), y: above ? 132 : 360 }];
-        }),
-      ),
-    [dateToTimelineX, events],
-  );
+  const noteMarks = useMemo(() => {
+    const items = allNotes
+      .filter((note) => !note.phaseId)
+      .map((note) => {
+        const dateIso = note.occurredAt ?? note.createdAt?.slice(0, 10) ?? "";
+        if (!dateIso) return null;
+        return {
+          id: note.id,
+          x: dateToTimelineX(dateIso),
+          body: note.body,
+          authorName: note.author.name,
+          dateIso,
+        };
+      })
+      .filter((mark): mark is NonNullable<typeof mark> => mark !== null)
+      .sort((a, b) => a.dateIso.localeCompare(b.dateIso));
+    let lastX = -Infinity;
+    let lane = 0;
+    return items.map((mark) => {
+      if (mark.x - lastX < 110) {
+        lane = (lane + 1) % 2;
+      } else {
+        lane = 0;
+      }
+      lastX = mark.x;
+      return { ...mark, y: lane === 0 ? 360 : 312 };
+    });
+  }, [allNotes, dateToTimelineX]);
+
+  const eventGroups = useMemo<EventGroup[]>(() => {
+    const map = new Map<string, EventGroup>();
+    for (const event of events) {
+      const phase =
+        orderedPhases.find((item) => item.id === event.phaseId) ?? orderedPhases[0];
+      if (!phase) continue;
+      const dateOnly = (event.occurredAt ?? "").slice(0, 10);
+      if (!dateOnly) continue;
+      const key = `${dateOnly}__${event.type}__${phase.id}`;
+      const existing = map.get(key);
+      if (existing) {
+        existing.events.push(event);
+      } else {
+        map.set(key, { key, events: [event], date: dateOnly, type: event.type, phase });
+      }
+    }
+    return Array.from(map.values()).sort((a, b) => a.date.localeCompare(b.date));
+  }, [events, orderedPhases]);
+
+  const groupPositions = useMemo(() => {
+    const sorted = [...eventGroups].sort((a, b) => a.date.localeCompare(b.date));
+    const map = new Map<string, { x: number; y: number }>();
+    let lastX = -Infinity;
+    let lane = 0;
+    for (const group of sorted) {
+      const x = dateToTimelineX(group.date);
+      if (x - lastX < 110) {
+        lane = (lane + 1) % 2;
+      } else {
+        lane = 0;
+      }
+      map.set(group.key, { x, y: lane === 0 ? 132 : 180 });
+      lastX = x;
+    }
+    return map;
+  }, [dateToTimelineX, eventGroups]);
   const freshSelection = useMemo((): TreeSelection | null => {
     if (!selection) return null;
     if (selection.kind === "phase") {
@@ -203,6 +307,26 @@ export function PracticeTree({ practice, phases, events, onSwitchTab }: Practice
     setDrawerOpen(true);
   }
 
+  useEffect(() => {
+    if (!pendingSelection) return;
+    if (pendingSelection.kind === "phase") {
+      const phase = orderedPhases.find((item) => item.id === pendingSelection.id);
+      if (phase) {
+        setSelection({ kind: "phase", item: phase });
+        setDrawerOpen(true);
+        onTreeSelectionApplied?.();
+      }
+    } else {
+      const event = events.find((item) => item.id === pendingSelection.id);
+      const phase = event ? orderedPhases.find((item) => item.id === event.phaseId) ?? orderedPhases[0] : null;
+      if (event && phase) {
+        setSelection({ kind: "event", item: event, phase });
+        setDrawerOpen(true);
+        onTreeSelectionApplied?.();
+      }
+    }
+  }, [pendingSelection, orderedPhases, events, onTreeSelectionApplied]);
+
   function scrollToTimelineX(x: number) {
     const scrollArea = scrollAreaRef.current;
     if (!scrollArea) return;
@@ -210,35 +334,35 @@ export function PracticeTree({ practice, phases, events, onSwitchTab }: Practice
     scrollArea.scrollTo({ behavior: "smooth", left: Math.max(targetLeft, 0) });
   }
 
-  function openComposer(eventType: ComposerKind, date = isoDate(timeline.todayDate), phaseId = currentPhase?.id) {
-    const mappedType: PracticeEvent["type"] = eventType === "note" ? "warning" : eventType;
-    const defaultTitle =
-      eventType === "note"
-        ? "Nota operativa"
-        : eventType === "call"
-          ? "Telefonata cliente"
-          : eventType === "mail"
-            ? "Email integrativa"
-            : "Alert scadenza";
-    setComposerType(mappedType);
-    setComposerTitle(defaultTitle);
+  function openComposer(eventType: ComposerKind, date = todayIso, phaseId = currentPhase?.id) {
+    setComposerType(eventType);
+    setComposerTitle("");
     setComposerDescription("");
     setComposerDate(date);
     setComposerPhaseId(phaseId ?? null);
-    setTrunkDraft(null);
   }
 
   function createEvent() {
-    const phaseId = composerPhaseId ?? currentPhase?.id;
-    if (!composerType || !composerTitle.trim() || !phaseId) return;
-    applyAction({
-      type: "create_event",
-      description: composerDescription.trim() || "Evento demo creato durante walkthrough.",
-      eventType: composerType,
-      occurredAt: composerDate,
-      phaseId,
-      title: composerTitle.trim(),
-    });
+    if (!composerType) return;
+    if (composerType === "note") {
+      if (!composerDescription.trim()) return;
+      applyAction({
+        type: "add_note",
+        body: composerDescription.trim(),
+        occurredAt: composerDate,
+      });
+    } else {
+      const phaseId = composerPhaseId ?? currentPhase?.id;
+      if (!phaseId || !composerTitle.trim()) return;
+      applyAction({
+        type: "create_event",
+        description: composerDescription.trim() || "",
+        eventType: composerType,
+        occurredAt: composerDate,
+        phaseId,
+        title: composerTitle.trim(),
+      });
+    }
     setComposerType(null);
   }
 
@@ -269,8 +393,8 @@ export function PracticeTree({ practice, phases, events, onSwitchTab }: Practice
     const point = svgPointFromPointer(event);
     if (!point) return;
     const date = isoDate(xToTimelineDate(point.x));
-    setTrunkDraft({ date, phaseId: closestPhaseId(date) });
-    setComposerType(null);
+    setComposerDate(date);
+    setComposerPhaseId(closestPhaseId(date));
   }
 
   useEffect(() => {
@@ -279,61 +403,85 @@ export function PracticeTree({ practice, phases, events, onSwitchTab }: Practice
 
   return (
     <>
-      <Card className="overflow-hidden rounded-2xl bg-surface-low/90">
+      <div className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-border bg-surface-low/90 p-10 text-center md:hidden">
+        <Smartphone className="h-16 w-16 -rotate-90 text-electric" />
+        <div>
+          <p className="font-display text-lg font-semibold text-foreground">Ruota il telefono</p>
+          <p className="mt-1 max-w-xs text-sm text-muted">
+            L&apos;albero della pratica è ottimizzato per la visualizzazione in orizzontale
+          </p>
+        </div>
+      </div>
+
+      <Card className="hidden overflow-hidden rounded-2xl bg-surface-low/90 md:block">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-4">
-          <div>
-            <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
-              Vista albero
-            </p>
-            <h2 className="font-display text-xl font-semibold text-foreground">{practice.title}</h2>
+          <div className="flex flex-wrap items-end gap-3">
+            <div>
+              <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-electric">
+                Aggiungi evento
+              </p>
+              <label className="mt-1 flex items-center gap-2">
+                <span className="text-xs font-semibold text-muted">Data</span>
+                <input
+                  className="h-9 rounded-xl border border-border bg-surface-container px-3 font-label text-sm font-semibold text-foreground outline-none"
+                  lang="it-IT"
+                  onChange={(event) => {
+                    setComposerDate(event.target.value);
+                    setComposerPhaseId(closestPhaseId(event.target.value));
+                  }}
+                  title="Imposta la data dell'evento o clicca sul tronco dell'albero"
+                  type="date"
+                  value={composerDate}
+                />
+              </label>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                disabled={activeUser.permission === "viewer"}
+                onClick={() => openComposer("note", composerDate, composerPhaseId ?? currentPhase?.id)}
+                title={activeUser.permission === "viewer" ? "Permesso non disponibile per utente viewer" : "Aggiungi nota all'albero"}
+                type="button"
+                variant="outline"
+              >
+                <MessageSquareText className="h-4 w-4" />
+                Nota
+              </Button>
+              <Button
+                disabled={activeUser.permission === "viewer"}
+                onClick={() => openComposer("call", composerDate, composerPhaseId ?? currentPhase?.id)}
+                title={activeUser.permission === "viewer" ? "Permesso non disponibile per utente viewer" : "Aggiungi telefonata"}
+                type="button"
+                variant="outline"
+              >
+                <PhoneCall className="h-4 w-4" />
+                Telefonata
+              </Button>
+              <Button
+                disabled={activeUser.permission === "viewer"}
+                onClick={() => openComposer("mail", composerDate, composerPhaseId ?? currentPhase?.id)}
+                title={activeUser.permission === "viewer" ? "Permesso non disponibile per utente viewer" : "Aggiungi email"}
+                type="button"
+                variant="outline"
+              >
+                <Mail className="h-4 w-4" />
+                Email
+              </Button>
+            </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <Button onClick={() => scrollToTimelineX(todayX)} size="sm" title="Centra su oggi" type="button" variant="outline">
+            <Button onClick={() => scrollToTimelineX(todayX)} size="sm" title="Centra l'albero sulla data di oggi" type="button" variant="outline">
               <CalendarDays className="h-4 w-4" />
               Oggi
             </Button>
             <Button
               onClick={() => currentPhase && scrollToTimelineX(dateToTimelineX(currentPhase.plannedDate))}
               size="sm"
-              title="Centra sulla fase corrente"
+              title="Centra l'albero sulla fase in corso"
               type="button"
               variant="outline"
             >
               <MoveHorizontal className="h-4 w-4" />
               Fase corrente
-            </Button>
-            <Button
-              disabled={activeUser.permission === "viewer"}
-              onClick={() => openComposer("call")}
-              size="sm"
-              title={activeUser.permission === "viewer" ? "Permesso non disponibile per utente viewer" : "Crea telefonata demo"}
-              type="button"
-              variant="outline"
-            >
-              <PhoneCall className="h-4 w-4" />
-              Telefonata
-            </Button>
-            <Button
-              disabled={activeUser.permission === "viewer"}
-              onClick={() => openComposer("mail")}
-              size="sm"
-              title={activeUser.permission === "viewer" ? "Permesso non disponibile per utente viewer" : "Crea mail demo"}
-              type="button"
-              variant="outline"
-            >
-              <Mail className="h-4 w-4" />
-              Mail
-            </Button>
-            <Button
-              disabled={activeUser.permission === "viewer"}
-              onClick={() => openComposer("warning")}
-              size="sm"
-              title={activeUser.permission === "viewer" ? "Permesso non disponibile per utente viewer" : "Crea alert scadenza"}
-              type="button"
-              variant="warning"
-            >
-              <AlertTriangle className="h-4 w-4" />
-              Alert
             </Button>
             {disabledToolbar.map((item) => {
               const Icon = item.icon;
@@ -353,92 +501,117 @@ export function PracticeTree({ practice, phases, events, onSwitchTab }: Practice
                 </V1Hint>
               );
             })}
+            <HelpButton title="Come funziona la vista albero" subtitle="Linea del tempo + eventi + note">
+              <section>
+                <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-electric">Come si legge</p>
+                <ul className="mt-2 list-disc space-y-1 pl-5">
+                  <li><strong className="text-foreground">Tronco orizzontale</strong>: asse del tempo della pratica.</li>
+                  <li><strong className="text-foreground">Cerchi numerati</strong> sul tronco: fasi del template, ognuna con la sua data e il suo assegnatario.</li>
+                  <li><strong className="text-foreground">Icone sopra</strong> il tronco: eventi (telefonate, email) agganciati alla fase più vicina.</li>
+                  <li><strong className="text-foreground">Puntini electric sotto</strong>: note libere registrate sulla data scelta.</li>
+                </ul>
+              </section>
+              <section>
+                <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-electric">Aggiungere qualcosa</p>
+                <p className="mt-2">
+                  Imposta la <strong className="text-foreground">Data</strong> nel toolbar (o click sul tronco), poi scegli il tipo: <strong className="text-foreground">Nota</strong>, <strong className="text-foreground">Telefonata</strong> o <strong className="text-foreground">Email</strong>. Compila titolo/testo e Crea.
+                </p>
+              </section>
+              <section>
+                <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-electric">Modificare</p>
+                <p className="mt-2">
+                  Click su una fase o un evento → si apre la sidebar destra. Stato, assegnatario, data e note si salvano automaticamente; l&apos;evento ha un bottone Salva.
+                </p>
+              </section>
+              <section>
+                <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-electric">Più eventi nello stesso giorno</p>
+                <p className="mt-2">
+                  Eventi dello stesso tipo, stessa fase e stesso giorno vengono raggruppati in un nodo con il contatore. Click → drawer storico con la lista cronologica.
+                </p>
+              </section>
+            </HelpButton>
           </div>
         </div>
 
         <CardContent className="p-0">
           {composerType ? (
             <div className="border-b border-border bg-surface-container px-5 py-4">
-              <div className="grid gap-3 md:grid-cols-[180px_1fr_1.4fr_auto] md:items-end">
-                <div>
-                  <p className="mb-1 text-xs text-muted">Tipo evento</p>
-                  <Badge variant={composerType === "warning" ? "warning" : "info"}>{composerType}</Badge>
+              {composerType === "note" ? (
+                <div className="grid gap-3 md:grid-cols-[180px_1fr_auto] md:items-center">
+                  <Badge className="justify-self-start px-4 py-2" variant="info">
+                    <span className="font-display text-base font-bold uppercase tracking-wider">Nota</span>
+                  </Badge>
+                  <label className="text-sm font-semibold text-muted">
+                    Testo della nota
+                    <textarea
+                      autoFocus
+                      className="mt-1 min-h-20 w-full resize-none rounded-xl border border-border bg-surface-low p-3 font-normal text-foreground outline-none"
+                      onChange={(event) => setComposerDescription(event.target.value)}
+                      placeholder="Scrivi qui la nota..."
+                      value={composerDescription}
+                    />
+                  </label>
+                  <div className="flex gap-2">
+                    <Button disabled={!composerDescription.trim() || !composerDate} onClick={createEvent} type="button">
+                      Salva
+                    </Button>
+                    <Button onClick={() => setComposerType(null)} type="button" variant="ghost">
+                      Annulla
+                    </Button>
+                  </div>
                 </div>
-                <label className="text-sm text-muted">
-                  Titolo
-                  <input
-                    className="mt-1 h-10 w-full rounded-xl border border-border bg-surface-low px-3 text-foreground outline-none"
-                    onChange={(event) => setComposerTitle(event.target.value)}
-                    value={composerTitle}
-                  />
-                </label>
-                <label className="text-sm text-muted">
-                  Descrizione
-                  <input
-                    className="mt-1 h-10 w-full rounded-xl border border-border bg-surface-low px-3 text-foreground outline-none"
-                    onChange={(event) => setComposerDescription(event.target.value)}
-                    placeholder={`Collegato a ${currentPhase?.title ?? "fase corrente"}`}
-                    value={composerDescription}
-                  />
-                </label>
-                <div className="flex gap-2">
-                  <Button disabled={!composerTitle.trim()} onClick={createEvent} type="button">
-                    Crea
-                  </Button>
-                  <Button onClick={() => setComposerType(null)} type="button" variant="ghost">
-                    Annulla
-                  </Button>
+              ) : (
+                <div className="grid gap-3 md:grid-cols-[180px_1fr_1.4fr_auto] md:items-center">
+                  <Badge className="justify-self-start px-4 py-2" variant={composerType === "warning" ? "warning" : "info"}>
+                    <span className="font-display text-base font-bold uppercase tracking-wider">
+                      {composerType === "call" ? "Telefonata" : composerType === "mail" ? "Email" : "Avviso"}
+                    </span>
+                  </Badge>
+                  <label className="text-sm font-semibold text-muted">
+                    Titolo
+                    <input
+                      autoFocus
+                      className="mt-1 h-10 w-full rounded-xl border border-border bg-surface-low px-3 font-normal text-foreground outline-none"
+                      onChange={(event) => setComposerTitle(event.target.value)}
+                      placeholder="Titolo evento"
+                      value={composerTitle}
+                    />
+                  </label>
+                  <label className="text-sm font-semibold text-muted">
+                    Descrizione
+                    <input
+                      className="mt-1 h-10 w-full rounded-xl border border-border bg-surface-low px-3 font-normal text-foreground outline-none"
+                      onChange={(event) => setComposerDescription(event.target.value)}
+                      placeholder={`Collegato a ${currentPhase?.title ?? "fase corrente"}`}
+                      value={composerDescription}
+                    />
+                  </label>
+                  <div className="flex gap-2">
+                    <Button disabled={!composerTitle.trim() || !composerDate} onClick={createEvent} type="button">
+                      Crea
+                    </Button>
+                    <Button onClick={() => setComposerType(null)} type="button" variant="ghost">
+                      Annulla
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            </div>
-          ) : null}
-          {trunkDraft && !composerType ? (
-            <div className="border-b border-border bg-surface-container px-5 py-4">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-electric">
-                    Aggiungi evento
-                  </p>
-                  <p className="text-sm font-semibold text-foreground">In data {displayDate(trunkDraft.date)}</p>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <Button onClick={() => openComposer("note", trunkDraft.date, trunkDraft.phaseId)} size="sm" type="button" variant="outline">
-                    <MessageSquareText className="h-4 w-4" />
-                    Nota
-                  </Button>
-                  <Button onClick={() => openComposer("call", trunkDraft.date, trunkDraft.phaseId)} size="sm" type="button" variant="outline">
-                    <PhoneCall className="h-4 w-4" />
-                    Telefonata
-                  </Button>
-                  <Button onClick={() => openComposer("mail", trunkDraft.date, trunkDraft.phaseId)} size="sm" type="button" variant="outline">
-                    <Mail className="h-4 w-4" />
-                    Mail
-                  </Button>
-                  <Button onClick={() => openComposer("warning", trunkDraft.date, trunkDraft.phaseId)} size="sm" type="button" variant="warning">
-                    <AlertTriangle className="h-4 w-4" />
-                    Alert
-                  </Button>
-                  <Button onClick={() => setTrunkDraft(null)} size="sm" type="button" variant="ghost">
-                    Annulla
-                  </Button>
-                </div>
-              </div>
+              )}
             </div>
           ) : null}
           <div className="overflow-x-auto" ref={scrollAreaRef}>
             <svg
               aria-label="Albero della pratica"
-              className="h-[470px] min-w-[2200px] text-foreground"
+              className="h-[470px] min-w-[3200px] text-foreground"
               role="img"
               viewBox={`0 0 ${svgWidth} 470`}
             >
               <defs>
-                <linearGradient id="mainLine" x1="120" x2="2060" y1="0" y2="0">
+                <linearGradient id="mainLine" x1="140" x2="3060" y1="0" y2="0">
                   <stop offset="0%" stopColor="var(--success)" />
                   <stop offset="50%" stopColor="var(--electric)" />
                   <stop offset="100%" stopColor="var(--on-surface-muted)" stopOpacity="0.45" />
                 </linearGradient>
-                {(["call", "mail", "warning"] as const).map((tone) => (
+                {(["call", "mail", "warning", "note"] as const).map((tone) => (
                   <marker
                     id={`arrow-${tone}`}
                     key={tone}
@@ -451,7 +624,13 @@ export function PracticeTree({ practice, phases, events, onSwitchTab }: Practice
                   >
                     <path
                       className={
-                        tone === "mail" ? "fill-[#C193FF]" : tone === "warning" ? "fill-warning" : "fill-warning"
+                        tone === "mail"
+                          ? "fill-[#C193FF]"
+                          : tone === "note"
+                            ? "fill-electric"
+                            : tone === "warning"
+                              ? "fill-warning"
+                              : "fill-warning"
                       }
                       d="M 0 0 L 8 4 L 0 8 z"
                     />
@@ -467,10 +646,10 @@ export function PracticeTree({ practice, phases, events, onSwitchTab }: Practice
                       className="stroke-electric stroke-[1] opacity-30 [stroke-dasharray:2_8]"
                       x1={x}
                       x2={x}
-                      y1="96"
+                      y1="64"
                       y2="418"
                     />
-                    <text className="fill-muted text-[10px] font-semibold uppercase tracking-[0.14em]" x={x + 10} y="88">
+                    <text className="fill-muted text-[10px] font-semibold uppercase tracking-[0.14em]" x={x + 10} y="56">
                       {month.label}
                     </text>
                   </g>
@@ -511,37 +690,110 @@ export function PracticeTree({ practice, phases, events, onSwitchTab }: Practice
               ) : null}
               <TodayLine x={todayX} />
 
-              {events.map((event) => {
-                const phase = resolveEventPhase(event);
-                const eventPosition = eventPositions.get(event.id);
-                if (!phase || !eventPosition) return null;
+              {eventGroups.map((group) => {
+                const position = groupPositions.get(group.key);
+                if (!position) return null;
                 return (
                   <BezierEdge
-                    fromX={eventPosition.x}
-                    fromY={timeline.y + (eventPosition.y < timeline.y ? -10 : 10)}
-                    key={`edge-${event.id}`}
-                    toX={eventPosition.x}
-                    toY={eventPosition.y + (eventPosition.y < timeline.y ? 24 : -24)}
+                    fromX={position.x}
+                    fromY={timeline.y + (position.y < timeline.y ? -10 : 10)}
+                    key={`edge-${group.key}`}
+                    toX={position.x}
+                    toY={position.y + (position.y < timeline.y ? 24 : -24)}
                     arrow
-                    tone={event.type}
+                    tone={group.type}
                   />
                 );
               })}
 
-              {events.map((event) => {
-                const phase = resolveEventPhase(event);
-                const position = eventPositions.get(event.id);
-                if (!phase || !position) return null;
+              {eventGroups.map((group) => {
+                const position = groupPositions.get(group.key);
+                if (!position) return null;
+                if (group.events.length > 1) {
+                  return (
+                    <EventGroupNode
+                      count={group.events.length}
+                      date={group.date}
+                      key={group.key}
+                      onSelect={() => setGroupSelection(group)}
+                      timelineY={timeline.y}
+                      type={group.type}
+                      x={position.x}
+                      y={position.y}
+                    />
+                  );
+                }
+                const event = group.events[0];
                 return (
                   <EventNode
                     event={event}
-                    key={event.id}
+                    key={group.key}
                     onSelect={selectEvent}
-                    phase={phase}
+                    phase={group.phase}
                     timelineY={timeline.y}
                     x={position.x}
                     y={position.y}
                   />
+                );
+              })}
+
+              {noteMarks.map((mark) => (
+                <BezierEdge
+                  arrow
+                  fromX={mark.x}
+                  fromY={timeline.y + (mark.y < timeline.y ? -10 : 10)}
+                  key={`note-edge-${mark.id}`}
+                  toX={mark.x}
+                  toY={mark.y + (mark.y < timeline.y ? 24 : -24)}
+                  tone="note"
+                />
+              ))}
+
+              {noteMarks.map((mark) => {
+                const labelY = mark.y < timeline.y ? -40 : 54;
+                const noteDate = new Intl.DateTimeFormat("it-IT", {
+                  day: "2-digit",
+                  month: "short",
+                  year: "numeric",
+                }).format(new Date(mark.dateIso));
+                const dateChipY = mark.y < timeline.y ? timeline.y + 30 : timeline.y - 24;
+                const preview = mark.body.length > 18 ? `${mark.body.slice(0, 18)}…` : mark.body;
+                return (
+                  <g
+                    aria-label={`Nota di ${mark.authorName}`}
+                    className="group cursor-pointer"
+                    key={`note-${mark.id}`}
+                    onClick={() => {
+                      if (onRequestNoteFocus) onRequestNoteFocus(mark.id);
+                      else onSwitchTab("note");
+                    }}
+                    role="button"
+                    tabIndex={0}
+                    transform={`translate(${mark.x} 0)`}
+                  >
+                    <title>{`Nota — ${mark.authorName} — ${noteDate}\n${mark.body.slice(0, 120)}`}</title>
+                    <circle className="fill-transparent" cy={timeline.y} r="22" />
+                    <circle className="fill-electric/10 stroke-electric/20 stroke-2 transition-colors group-hover:fill-electric/20 group-hover:stroke-electric/50" cy={timeline.y} r="16" />
+                    <circle className="fill-surface-high stroke-electric stroke-2" cy={timeline.y} r="10" />
+                    <circle className="fill-electric" cy={timeline.y} r="4" />
+                    <g className="opacity-0 transition-opacity group-hover:opacity-100">
+                      <rect className="fill-surface-high stroke-border" height="50" rx="12" width="164" x="-82" y={dateChipY - 30} />
+                      <text className="fill-electric text-[10px] font-semibold uppercase tracking-wider" textAnchor="middle" y={dateChipY - 16}>NOTA</text>
+                      <text className="fill-foreground text-[11px] font-semibold" textAnchor="middle" y={dateChipY - 1}>{noteDate}</text>
+                      <text className="fill-muted text-[10px] font-semibold" textAnchor="middle" y={dateChipY + 13}>{mark.authorName}</text>
+                    </g>
+                    <g transform={`translate(0 ${mark.y})`}>
+                      <circle className="fill-none stroke-electric/0 stroke-2 transition-colors group-hover:stroke-electric/45" r="22" />
+                      <circle className="fill-electric/10 stroke-electric stroke-[1.5]" r="18" />
+                      <foreignObject height="20" width="20" x="-10" y="-10">
+                        <div className="flex h-5 w-5 items-center justify-center text-foreground">
+                          <MessageSquareText className="h-4 w-4" />
+                        </div>
+                      </foreignObject>
+                      <rect className="fill-surface-container" height="22" rx="11" width="104" x="-52" y={labelY - 15} />
+                      <text className="fill-muted text-[11px] font-semibold" textAnchor="middle" y={labelY}>{preview}</text>
+                    </g>
+                  </g>
                 );
               })}
 
@@ -554,6 +806,7 @@ export function PracticeTree({ practice, phases, events, onSwitchTab }: Practice
                     onSelect={selectPhase}
                     phase={phase}
                     selected={selection?.kind === "phase" && selection.item.id === phase.id}
+                    totalPhases={orderedPhases.length}
                     x={position.x}
                     y={position.y}
                   />
@@ -570,6 +823,54 @@ export function PracticeTree({ practice, phases, events, onSwitchTab }: Practice
       </Card>
 
       <NodeDrawer onOpenChange={setDrawerOpen} onSwitchTab={onSwitchTab} open={drawerOpen} selection={freshSelection} />
+
+      <Sheet onOpenChange={(open) => !open && setGroupSelection(null)} open={groupSelection !== null}>
+        <SheetContent>
+          {groupSelection ? (
+            <>
+              <SheetHeader>
+                <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-electric">
+                  {groupTypeLabel[groupSelection.type]} - Fase {groupSelection.phase.order}
+                </p>
+                <SheetTitle>
+                  {groupSelection.events.length} {groupTypeLabel[groupSelection.type].toLowerCase()} il{" "}
+                  {displayDate(groupSelection.date)}
+                </SheetTitle>
+                <SheetDescription>
+                  Clicca su una voce per aprirne il dettaglio.
+                </SheetDescription>
+              </SheetHeader>
+
+              <div className="mt-4 flex flex-1 flex-col gap-2 overflow-y-auto">
+                {[...groupSelection.events]
+                  .sort((a, b) => (a.occurredAt ?? "").localeCompare(b.occurredAt ?? ""))
+                  .map((event) => (
+                    <button
+                      className="flex flex-col gap-1 rounded-xl border border-border bg-surface-container px-4 py-3 text-left transition-colors hover:border-electric/40 hover:bg-surface-high"
+                      key={event.id}
+                      onClick={() => {
+                        selectEvent(event, groupSelection.phase);
+                        setGroupSelection(null);
+                      }}
+                      type="button"
+                    >
+                      <span className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
+                        {event.author.name}
+                      </span>
+                      <span className="font-label text-sm font-semibold text-foreground">
+                        {event.title}
+                      </span>
+                      {event.description ? (
+                        <span className="line-clamp-2 text-xs text-muted">{event.description}</span>
+                      ) : null}
+                    </button>
+                  ))}
+              </div>
+            </>
+          ) : null}
+        </SheetContent>
+      </Sheet>
     </>
   );
 }
+

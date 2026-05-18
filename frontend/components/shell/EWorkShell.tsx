@@ -5,20 +5,25 @@ import {
   CalendarDays,
   Clock3,
   FileText,
+  FolderKanban,
   Gauge,
-  LayoutDashboard,
+  Home,
+  LogOut,
+  Menu,
   Moon,
+  Plug,
   Plus,
   Search,
   Settings,
   Sun,
   UsersRound,
   UserSquare2,
+  X,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import { V1Hint } from "@/components/ui/v1-hint";
 import { useDemoStore } from "@/lib/demo-state";
@@ -30,15 +35,17 @@ type EWorkShellProps = {
 };
 
 const navItems = [
-  { label: "Dashboard", icon: LayoutDashboard, section: "Modulo" },
+  { label: "Home", icon: Home, section: "Modulo", href: "/home" },
   { label: "Rubrica clienti", icon: UsersRound, section: "Modulo", href: "/clienti" },
   { label: "Pratiche", icon: Gauge, section: "Modulo", badge: 8, href: "/pratiche" },
   { label: "Nuova pratica", icon: Plus, section: "Modulo", href: "/pratiche/nuova" },
-  { label: "Carica documento", icon: FileText, section: "Modulo", href: "/pratiche/importa" },
+  { label: "Nuovo documento", icon: FileText, section: "Modulo", href: "/pratiche/importa" },
   { label: "Agenda", icon: CalendarDays, section: "Modulo" },
   { label: "Scadenze", icon: Clock3, section: "Modulo", badge: 7 },
-  { label: "Utenti studio", icon: UserSquare2, section: "Studio" },
-  { label: "Configurazione", icon: Settings, section: "Studio" },
+  { label: "Tipologie pratica", icon: FolderKanban, section: "Configurazioni", href: "/tipologie" },
+  { label: "Utenti", icon: UserSquare2, section: "Configurazioni", href: "/utenti" },
+  { label: "Connessione ERP", icon: Plug, section: "Configurazioni" },
+  { label: "Opzioni", icon: Settings, section: "Configurazioni" },
 ];
 
 function LogoMark() {
@@ -71,20 +78,78 @@ export function EWorkShell({ children, code }: EWorkShellProps) {
     return pathname.startsWith(`${href}/`);
   };
 
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    const saved = localStorage.getItem("eworkshell.sidebar");
+    const isMobile = window.innerWidth < 1024;
+    if (isMobile) {
+      setSidebarOpen(false);
+    } else if (saved !== null) {
+      setSidebarOpen(saved === "true");
+    }
+  }, []);
+
+  useEffect(() => {
+    if (mounted) localStorage.setItem("eworkshell.sidebar", String(sidebarOpen));
+  }, [sidebarOpen, mounted]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.innerWidth < 1024) {
+      setSidebarOpen(false);
+    }
+  }, [pathname]);
+
+  useEffect(() => {
+    const handler = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setSidebarOpen(false);
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
+
   return (
     <div className="min-h-screen bg-surface text-foreground">
-      <aside className="fixed bottom-0 left-0 top-[120px] z-40 hidden w-60 flex-col overflow-y-auto bg-surface-low px-3 py-5 lg:flex">
-        <div className="mb-5 px-3">
-          <p className="font-display text-lg font-semibold text-foreground">E.Practice</p>
-          <p className="font-label text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">Studio Leali</p>
+      {sidebarOpen ? (
+        <div
+          aria-hidden="true"
+          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      ) : null}
+
+      <aside
+        className={cn(
+          "fixed bottom-0 left-0 top-0 z-50 flex w-60 flex-col overflow-y-auto bg-surface-low px-3 py-5 transition-transform duration-300 ease-out",
+          "lg:top-[120px] lg:z-40",
+          sidebarOpen ? "translate-x-0" : "-translate-x-full",
+        )}
+      >
+        <div className="mb-5 flex items-start justify-between gap-2 px-3">
+          <div>
+            <p className="font-display text-lg font-semibold text-foreground">E.Practice</p>
+            <p className="font-label text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">Cliente Beta Testing</p>
+          </div>
+          <button
+            aria-label="Chiudi menu"
+            className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-container hover:text-foreground"
+            onClick={() => setSidebarOpen(false)}
+            type="button"
+          >
+            <X className="h-5 w-5" />
+          </button>
         </div>
 
         <nav className="flex-1 space-y-6">
-          {["Modulo", "Studio"].map((section) => (
+          {["Modulo", "Configurazioni"].map((section) => (
             <div className="space-y-1" key={section}>
-              <p className="px-3 pb-1 font-display text-[10px] font-medium uppercase tracking-[0.16em] text-muted">
-                {section}
-              </p>
+              {section === "Modulo" ? null : (
+                <p className="px-3 pb-1 font-display text-[10px] font-medium uppercase tracking-[0.16em] text-muted">
+                  {section}
+                </p>
+              )}
               {navItems
                 .filter((item) => item.section === section)
                 .map((item) => {
@@ -132,13 +197,31 @@ export function EWorkShell({ children, code }: EWorkShellProps) {
             <p className="font-display text-xs font-semibold text-foreground">Demo Gestione Pratiche</p>
             <p className="mt-1 text-xs leading-5 text-muted">Ambiente statico V0, pronto per walkthrough prodotto.</p>
           </div>
+          <Link
+            className="mt-3 flex h-9 items-center gap-3 rounded-lg px-3 text-[13.5px] font-medium text-foreground-variant transition-colors hover:bg-surface-container hover:text-foreground"
+            href="/"
+            title="Esci dalla demo e torna alla pagina di presentazione"
+          >
+            <LogOut className="h-4 w-4 text-muted" />
+            <span className="min-w-0 flex-1 truncate">Esci</span>
+          </Link>
         </div>
       </aside>
 
       <header className="sticky top-0 z-50 flex h-[120px] items-center justify-between bg-surface-lowest/95 px-3 backdrop-blur-xl md:px-3">
-          <div className="flex min-w-0 items-center gap-6">
+          <div className="flex min-w-0 items-center gap-3">
+            {sidebarOpen ? null : (
+              <button
+                aria-label="Apri menu"
+                className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-container hover:text-foreground"
+                onClick={() => setSidebarOpen(true)}
+                type="button"
+              >
+                <Menu className="h-5 w-5" />
+              </button>
+            )}
             <Image alt="ExcellIA" className="h-48 w-auto flex-shrink-0" height={192} priority src="/logo-excellia.svg" width={256} />
-            <div className="min-w-0">
+            <div className="hidden min-w-0 xl:block">
               <div className="flex items-center gap-2 overflow-hidden whitespace-nowrap text-sm">
                 <span className="font-display text-[11px] font-medium uppercase tracking-[0.14em] text-muted">
                   ExcellIA
@@ -158,9 +241,9 @@ export function EWorkShell({ children, code }: EWorkShellProps) {
           </div>
 
           <div className="flex items-center gap-5">
-            <div className="hidden items-center gap-2 rounded-full bg-surface-container px-3 py-1.5 md:flex">
+            <div className="flex items-center gap-2 rounded-full bg-surface-container px-3 py-1.5" title="Active Weekly Users 43%">
               <span className="font-display text-[10px] font-medium uppercase tracking-[0.14em] text-muted">AWU</span>
-              <div className="h-1 w-[60px] overflow-hidden rounded-full bg-surface-highest">
+              <div className="hidden h-1 w-[60px] overflow-hidden rounded-full bg-surface-highest xl:block">
                 <div className="h-full w-[43%] rounded-full bg-gradient-to-r from-primary to-[#00C2FF] shadow-[0_0_8px_rgba(146,217,255,0.5)]" />
               </div>
               <span className="font-display text-[11px] font-semibold text-foreground">43%</span>
@@ -206,7 +289,7 @@ export function EWorkShell({ children, code }: EWorkShellProps) {
                 IT
               </div>
             </V1Hint>
-            <label className="flex cursor-pointer items-center gap-3" htmlFor="demo-user-select" title="Cambia utente demo">
+            <label className="relative flex cursor-pointer items-center gap-3" htmlFor="demo-user-select" title="Cambia utente demo">
               <div
                 className={cn(
                   "flex h-8 w-8 items-center justify-center rounded-full font-display text-xs font-semibold text-white ring-0 transition-shadow hover:ring-2 hover:ring-primary/40",
@@ -215,27 +298,35 @@ export function EWorkShell({ children, code }: EWorkShellProps) {
               >
                 {activeUser.initials}
               </div>
-              <div className="hidden leading-tight sm:block">
-                <select
-                  aria-label="Utente demo"
-                  className="w-36 cursor-pointer bg-transparent font-label text-xs font-semibold text-foreground outline-none"
-                  id="demo-user-select"
-                  onChange={(event) => applyAction({ type: "set_user", userId: event.target.value })}
-                  value={activeUser.id}
-                >
-                  {users.map((user) => (
-                    <option className="bg-surface text-foreground" key={user.id} value={user.id}>
-                      {user.name}
-                    </option>
-                  ))}
-                </select>
+              <div className="pointer-events-none hidden leading-tight xl:block">
+                <p className="font-label text-xs font-semibold text-foreground">{activeUser.name}</p>
                 <p className="text-[11px] text-muted">{activeUser.role}</p>
               </div>
+              <select
+                aria-label="Utente demo"
+                className="absolute inset-0 cursor-pointer opacity-0"
+                id="demo-user-select"
+                onChange={(event) => applyAction({ type: "set_user", userId: event.target.value })}
+                value={activeUser.id}
+              >
+                {users.map((user) => (
+                  <option className="bg-surface text-foreground" key={user.id} value={user.id}>
+                    {user.name}
+                  </option>
+                ))}
+              </select>
             </label>
           </div>
         </header>
 
-      <div className="lg:pl-60">{children}</div>
+      <div
+        className={cn(
+          "transition-[padding] duration-300 ease-out",
+          sidebarOpen ? "lg:pl-60" : "lg:pl-0",
+        )}
+      >
+        {children}
+      </div>
     </div>
   );
 }

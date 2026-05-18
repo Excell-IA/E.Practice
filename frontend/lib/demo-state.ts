@@ -29,6 +29,7 @@ export type DemoNote = {
   author: DemoUser;
   body: string;
   createdAt: string;
+  occurredAt?: string | null;
 };
 
 export const DEMO_USERS = [
@@ -83,7 +84,7 @@ const practice: Practice = {
   dueDate: "2026-04-30",
   labels: [
     { id: "label-1", name: "Urgente", tone: "warning" },
-    { id: "label-2", name: "Studio Leali", tone: "info" },
+    { id: "label-2", name: "Beta Tester", tone: "info" },
     { id: "label-3", name: "Demo", tone: "success" },
   ],
   progress: 50,
@@ -157,29 +158,15 @@ const initialEvents: PracticeEvent[] = [
   },
 ];
 
-const initialNotes: DemoNote[] = [
-  {
-    id: "note-01",
-    author: DEMO_USERS[1],
-    body: "Bozza avviata, in attesa del dettaglio immobilizzazioni aggiornato.",
-    createdAt: "2026-03-12T10:30:00",
-    phaseId: "phase-04",
-  },
-  {
-    id: "note-02",
-    author: DEMO_USERS[0],
-    body: "Verificare esposizione leasing prima della revisione titolare.",
-    createdAt: "2026-03-13T15:15:00",
-    phaseId: "phase-04",
-  },
-];
+const initialNotes: DemoNote[] = [];
 
 function readStoredNotes() {
   if (typeof window === "undefined") return initialNotes;
   const raw = window.localStorage.getItem("epractice:notes");
   if (!raw) return initialNotes;
   try {
-    return JSON.parse(raw) as DemoNote[];
+    const parsed = JSON.parse(raw) as DemoNote[];
+    return parsed.filter((note) => note.id !== "note-01" && note.id !== "note-02");
   } catch {
     return initialNotes;
   }
@@ -194,7 +181,7 @@ type DemoAction =
   | { type: "set_practice_status"; status: Extract<PracticeStatus, "aperta" | "sospesa" | "chiusa"> }
   | { type: "update_phase"; phaseId: string; planned_end: string }
   | { type: "assign_phase"; phaseId: string; userId: string }
-  | { type: "add_note"; phaseId: string; body: string }
+  | { type: "add_note"; phaseId?: string | null; body: string; occurredAt?: string }
   | { type: "update_note"; noteId: string; body: string }
   | { type: "create_event"; phaseId: string; eventType: EventType; title: string; description: string; occurredAt: string }
   | {
@@ -257,14 +244,10 @@ function syncActionWithApi(action: DemoAction, state: DemoState) {
     void skipPhase(action.phaseId, state.activeUser.id).catch(console.warn);
   }
 
-  if (action.type === "set_phase_status" && isUuid(action.phaseId)) {
-    if (action.status === "done") {
-      void completePhase(action.phaseId, state.activeUser.id).catch(console.warn);
-    }
-    if (action.status === "skipped") {
-      void skipPhase(action.phaseId, state.activeUser.id).catch(console.warn);
-    }
-  }
+  // Nota: la sincronizzazione di set_phase_status verso il backend e' gestita
+  // direttamente nel NodeDrawer per poter awaitare la chiamata prima di
+  // invalidare le query React (necessario per leggere il recompute_status
+  // della pratica appena rigenerato lato server).
 
   if (action.type === "assign_phase" && isUuid(action.phaseId)) {
     void updatePhaseAssignee(action.phaseId, action.userId, state.activeUser.id).catch(console.warn);
@@ -278,13 +261,15 @@ function syncActionWithApi(action: DemoAction, state: DemoState) {
     void updatePracticeStatus(state.practice.id, action.status, state.activeUser.id).catch(console.warn);
   }
 
-  if (action.type === "add_note" && isUuid(action.phaseId) && isUuid(state.practice.id)) {
+  if (action.type === "add_note" && isUuid(state.practice.id)) {
+    const linkedPhaseId = action.phaseId && isUuid(action.phaseId) ? action.phaseId : undefined;
     void createNote(
       {
         author_id: state.activeUser.id,
         content: action.body,
-        phase_id: action.phaseId,
+        ...(linkedPhaseId ? { phase_id: linkedPhaseId } : {}),
         practice_id: state.practice.id,
+        ...(action.occurredAt ? { occurred_at: action.occurredAt } : {}),
       },
       state.activeUser.id,
     ).catch(console.warn);
@@ -340,13 +325,7 @@ export const useDemoStore = create<DemoState>((set) => ({
       }
 
       if (action.type === "hydrate_from_api") {
-        const localNotes = state.notes.filter((note) => !isUuid(note.id));
-        const localEvents = state.events.filter((event) => !isUuid(event.id));
-        return {
-          ...action.detail,
-          events: [...action.detail.events, ...localEvents],
-          notes: [...localNotes, ...action.detail.notes],
-        };
+        return { ...action.detail };
       }
 
       if (state.activeUser.permission === "viewer") {
@@ -405,12 +384,13 @@ export const useDemoStore = create<DemoState>((set) => ({
       }
 
       if (action.type === "add_note") {
-        const note: DemoNote = {
+        const note: DemoNote & { occurredAt?: string } = {
           id: `note-${Date.now()}`,
           author: state.activeUser,
           body: action.body,
           createdAt: new Date().toISOString(),
-          phaseId: action.phaseId,
+          phaseId: action.phaseId ?? "",
+          ...(action.occurredAt ? { occurredAt: action.occurredAt } : {}),
         };
         const notes = [note, ...state.notes];
         rememberNotes(notes);

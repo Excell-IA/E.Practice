@@ -5,7 +5,7 @@ type BezierEdgeProps = {
   fromY: number;
   toX: number;
   toY: number;
-  tone: "call" | "mail" | "warning";
+  tone: "call" | "mail" | "warning" | "note";
   arrow?: boolean;
 };
 
@@ -13,6 +13,7 @@ const toneClass = {
   call: "stroke-warning",
   mail: "stroke-[#C193FF]",
   warning: "stroke-warning",
+  note: "stroke-electric",
 };
 
 export function BezierEdge({ arrow = false, fromX, fromY, toX, toY, tone }: BezierEdgeProps) {

@@ -1,18 +1,27 @@
 "use client";
 
-import { formatDistanceToNow } from "date-fns";
+import { format, formatDistanceToNow, isAfter, startOfDay } from "date-fns";
 import { it } from "date-fns/locale";
-import { FileText, Pencil } from "lucide-react";
-import { useMemo, useState } from "react";
+import { FileText, Pencil, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { useDemoStore } from "@/lib/demo-state";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { useDemoStore, type DemoNote } from "@/lib/demo-state";
 import type { PracticePhase } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 type TabNotesProps = {
   phases: PracticePhase[];
+  focusNoteId?: string | null;
+  onFocusApplied?: () => void;
 };
+
+type EditableNote = DemoNote & {
+  occurredAt?: string | null;
+};
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 function avatarClass(userId: string) {
   if (userId.endsWith("0001")) return "bg-[#14532d]";
@@ -21,54 +30,181 @@ function avatarClass(userId: string) {
   return "bg-[#6b7280]";
 }
 
-export function TabNotes({ phases }: TabNotesProps) {
+function noteDate(note: DemoNote) {
+  const editableNote = note as EditableNote;
+  return editableNote.occurredAt ?? note.createdAt.slice(0, 10);
+}
+
+function persistNotes(notes: DemoNote[]) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem("epractice:notes", JSON.stringify(notes));
+}
+
+function isUuid(value: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
+
+async function updateNoteOnApi(noteId: string, body: string, occurredAt: string, userId: string) {
+  if (!isUuid(noteId)) return;
+  const response = await fetch(`${API_BASE_URL}/api/notes/${noteId}`, {
+    body: JSON.stringify({ body, occurred_at: occurredAt }),
+    headers: {
+      "Accept": "application/json",
+      "Content-Type": "application/json",
+      "X-User-Id": userId,
+    },
+    method: "PUT",
+  });
+  if (!response.ok) {
+    throw new Error(`Errore update nota: ${response.status}`);
+  }
+}
+
+async function deleteNoteOnApi(noteId: string, userId: string) {
+  if (!isUuid(noteId)) return;
+  const response = await fetch(`${API_BASE_URL}/api/notes/${noteId}`, {
+    headers: {
+      "Accept": "application/json",
+      "X-User-Id": userId,
+    },
+    method: "DELETE",
+  });
+  if (!response.ok) {
+    throw new Error(`Errore delete nota: ${response.status}`);
+  }
+}
+
+function todayIsoDate() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+export function TabNotes({ phases, focusNoteId, onFocusApplied }: TabNotesProps) {
   const [body, setBody] = useState("");
+  const [newNoteDate, setNewNoteDate] = useState(todayIsoDate);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingBody, setEditingBody] = useState("");
+  const [editingDate, setEditingDate] = useState("");
+  const [noteToDelete, setNoteToDelete] = useState<DemoNote | null>(null);
   const activeUser = useDemoStore((state) => state.activeUser);
   const notes = useDemoStore((state) => state.notes);
   const applyAction = useDemoStore((state) => state.applyAction);
-  const targetPhase = useMemo(
-    () => phases.find((phase) => phase.status === "in_progress") ?? phases[0],
-    [phases],
+  // intentionally not deriving a target phase: notes are free-standing on the practice timeline.
+  void phases;
+  const sortedNotes = useMemo(
+    () => [...notes].sort((a, b) => new Date(noteDate(a)).getTime() - new Date(noteDate(b)).getTime()),
+    [notes],
   );
-  const sortedNotes = [...notes].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   const canEdit = activeUser.permission !== "viewer";
 
+  // Anchor: nota più recente fino a oggi compreso
+  const todayDate = startOfDay(new Date());
+  const anchorId = useMemo(() => {
+    let anchor: DemoNote | null = null;
+    for (const note of sortedNotes) {
+      const d = new Date(noteDate(note));
+      if (!isAfter(startOfDay(d), todayDate)) anchor = note;
+    }
+    return anchor?.id ?? null;
+  }, [sortedNotes, todayDate]);
+
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const anchorRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!scrollContainerRef.current || !anchorRef.current) return;
+    const container = scrollContainerRef.current;
+    const anchor = anchorRef.current;
+    const offset = anchor.offsetTop - container.offsetTop - 12;
+    container.scrollTop = offset > 0 ? offset : 0;
+  }, [anchorId]);
+
+  // Focus da albero: scrolla alla nota cliccata e attiva edit
+  useEffect(() => {
+    if (!focusNoteId) return;
+    const target = sortedNotes.find((n) => n.id === focusNoteId);
+    if (!target) return;
+    setEditingId(target.id);
+    setEditingBody(target.body);
+    setEditingDate(noteDate(target));
+    window.setTimeout(() => {
+      const el = document.getElementById(`note-${target.id}`);
+      if (el && scrollContainerRef.current) {
+        const offset = el.offsetTop - scrollContainerRef.current.offsetTop - 12;
+        scrollContainerRef.current.scrollTop = offset > 0 ? offset : 0;
+      }
+    }, 60);
+    onFocusApplied?.();
+  }, [focusNoteId, sortedNotes, onFocusApplied]);
+
   function saveNote() {
-    if (!targetPhase || !body.trim()) return;
-    applyAction({ body: body.trim(), phaseId: targetPhase.id, type: "add_note" });
+    if (!body.trim()) return;
+    applyAction({
+      body: body.trim(),
+      occurredAt: newNoteDate || todayIsoDate(),
+      type: "add_note",
+    });
     setBody("");
+    setNewNoteDate(todayIsoDate());
   }
 
-  function startEditing(noteId: string, noteBody: string) {
-    setEditingId(noteId);
-    setEditingBody(noteBody);
+  function startEditing(note: DemoNote) {
+    setEditingId(note.id);
+    setEditingBody(note.body);
+    setEditingDate(noteDate(note));
   }
 
-  function saveEdit() {
-    if (!editingId || !editingBody.trim()) return;
-    applyAction({ body: editingBody.trim(), noteId: editingId, type: "update_note" });
+  async function saveEdit() {
+    if (!editingId || !editingBody.trim() || !editingDate) return;
+    const currentNotes = useDemoStore.getState().notes;
+    const updatedNotes = currentNotes.map((note) =>
+      note.id === editingId ? ({ ...note, body: editingBody.trim(), occurredAt: editingDate } satisfies EditableNote) : note,
+    );
+    useDemoStore.setState({ notes: updatedNotes });
+    persistNotes(updatedNotes);
+    void updateNoteOnApi(editingId, editingBody.trim(), editingDate, activeUser.id).catch(console.warn);
     setEditingId(null);
     setEditingBody("");
+    setEditingDate("");
+  }
+
+  function askDeleteNote(note: DemoNote) {
+    setNoteToDelete(note);
+  }
+
+  function confirmDeleteNote() {
+    if (!noteToDelete) return;
+    const updatedNotes = useDemoStore.getState().notes.filter((note) => note.id !== noteToDelete.id);
+    useDemoStore.setState({ notes: updatedNotes });
+    persistNotes(updatedNotes);
+    void deleteNoteOnApi(noteToDelete.id, activeUser.id).catch(console.warn);
+    setNoteToDelete(null);
   }
 
   return (
-    <section className="grid gap-5 lg:grid-cols-[1fr_360px]">
-      <div className="rounded-2xl border border-border bg-surface-low p-5">
-        <div className="mb-4 flex items-center justify-between gap-3">
+    <section className="flex min-h-0 flex-1 flex-col gap-5 lg:flex-row">
+      <div className="flex min-h-0 flex-col rounded-2xl border border-border bg-surface-low p-5 lg:flex-1">
+        <div className="mb-4 flex shrink-0 items-center justify-between gap-3">
           <div>
             <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">Registro note</p>
             <h3 className="font-display text-xl font-semibold text-foreground">Conversazione operativa</h3>
           </div>
           <span className="text-sm text-muted">{sortedNotes.length} note</span>
         </div>
-        <div className="space-y-3">
+        <div className="space-y-3 lg:flex-1 lg:overflow-y-auto lg:pr-1" ref={scrollContainerRef}>
           {sortedNotes.map((note) => {
             const canEditNote = note.author.id === activeUser.id || activeUser.permission === "admin";
             const isEditing = editingId === note.id;
+            const visibleDate = noteDate(note);
             return (
-            <article className="rounded-2xl border border-border bg-surface-container p-4" key={note.id}>
+            <article
+              className={cn(
+                "rounded-2xl border bg-surface-container p-4",
+                isEditing ? "border-electric/60 bg-electric/5" : "border-border",
+              )}
+              id={`note-${note.id}`}
+              key={note.id}
+              ref={note.id === anchorId ? anchorRef : undefined}
+            >
               <div className="mb-3 flex items-center gap-3">
                 <div
                   className={cn(
@@ -81,22 +217,43 @@ export function TabNotes({ phases }: TabNotesProps) {
                 <div className="min-w-0 flex-1">
                   <p className="font-label text-sm font-semibold text-foreground">{note.author.name}</p>
                   <p className="text-xs text-muted">
-                    {formatDistanceToNow(new Date(note.createdAt), { addSuffix: true, locale: it })}
+                    {format(new Date(visibleDate), "dd MMM yyyy", { locale: it })} ·{" "}
+                    {formatDistanceToNow(new Date(visibleDate), { addSuffix: true, locale: it })}
                   </p>
                 </div>
                 {canEditNote ? (
-                  <button
-                    aria-label="Modifica nota"
-                    className="rounded-lg p-1.5 text-muted transition-colors hover:bg-surface-high hover:text-foreground"
-                    onClick={() => startEditing(note.id, note.body)}
-                    type="button"
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </button>
+                  <div className="flex items-center gap-1">
+                    <button
+                      aria-label="Modifica nota"
+                      className="rounded-lg p-1.5 text-muted transition-colors hover:bg-surface-high hover:text-foreground"
+                      onClick={() => startEditing(note)}
+                      type="button"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </button>
+                    <button
+                      aria-label="Elimina nota"
+                      className="rounded-lg p-1.5 text-muted transition-colors hover:bg-danger/10 hover:text-danger"
+                      onClick={() => askDeleteNote(note)}
+                      type="button"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
                 ) : null}
               </div>
               {isEditing ? (
                 <div className="space-y-2">
+                  <label className="block space-y-1.5">
+                    <span className="text-xs font-semibold text-muted">Data nota</span>
+                    <input
+                      className="h-10 w-full rounded-xl border border-border bg-surface-low px-3 text-sm text-foreground outline-none"
+                      lang="it-IT"
+                      onChange={(event) => setEditingDate(event.target.value)}
+                      type="date"
+                      value={editingDate}
+                    />
+                  </label>
                   <textarea
                     className="min-h-24 w-full resize-none rounded-xl border border-border bg-surface-low p-3 text-sm text-foreground outline-none"
                     onChange={(event) => setEditingBody(event.target.value)}
@@ -120,7 +277,7 @@ export function TabNotes({ phases }: TabNotesProps) {
         </div>
       </div>
 
-      <aside className="rounded-2xl border border-border bg-surface-low p-5">
+      <aside className="shrink-0 rounded-2xl border border-border bg-surface-low p-5 lg:w-[360px] lg:overflow-y-auto">
         <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">Nuova nota</p>
         <div className="mt-4 flex items-center gap-3 rounded-xl border border-border bg-surface-container p-3">
           <div className={cn("flex h-9 w-9 items-center justify-center rounded-full font-display text-xs font-bold text-white", avatarClass(activeUser.id))}>
@@ -128,11 +285,22 @@ export function TabNotes({ phases }: TabNotesProps) {
           </div>
           <div>
             <p className="font-semibold text-foreground">{activeUser.name}</p>
-            <p className="text-xs text-muted">{targetPhase ? `Su: ${targetPhase.title}` : "Nessuna fase selezionata"}</p>
+            <p className="text-xs text-muted">Nota generale della pratica</p>
           </div>
         </div>
+        <label className="mt-4 block space-y-1.5">
+          <span className="text-xs font-semibold text-muted">Data nota</span>
+          <input
+            className="h-10 w-full rounded-xl border border-border bg-surface-container px-3 text-sm text-foreground outline-none disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={!canEdit}
+            lang="it-IT"
+            onChange={(event) => setNewNoteDate(event.target.value)}
+            type="date"
+            value={newNoteDate}
+          />
+        </label>
         <textarea
-          className="mt-4 min-h-36 w-full resize-none rounded-2xl border border-border bg-surface-container p-3 text-sm text-foreground outline-none placeholder:text-muted disabled:cursor-not-allowed disabled:opacity-50"
+          className="mt-3 min-h-36 w-full resize-none rounded-2xl border border-border bg-surface-container p-3 text-sm text-foreground outline-none placeholder:text-muted disabled:cursor-not-allowed disabled:opacity-50"
           disabled={!canEdit}
           onChange={(event) => setBody(event.target.value)}
           placeholder={canEdit ? "Scrivi una nota visibile al team..." : "Utente in sola lettura"}
@@ -143,6 +311,33 @@ export function TabNotes({ phases }: TabNotesProps) {
           Salva nota
         </Button>
       </aside>
+
+      <Sheet onOpenChange={(open) => !open && setNoteToDelete(null)} open={noteToDelete !== null}>
+        <SheetContent className="max-w-md">
+          <SheetHeader>
+            <SheetTitle>Eliminare nota?</SheetTitle>
+            <SheetDescription>
+              {noteToDelete
+                ? `Confermi l'eliminazione della nota di ${noteToDelete.author.name}? L'azione e' irreversibile.`
+                : "Confermi l'eliminazione della nota selezionata?"}
+            </SheetDescription>
+          </SheetHeader>
+          <div className="space-y-3">
+            <Button
+              className="w-full border border-danger/40 bg-danger/10 text-danger hover:bg-danger/15"
+              onClick={confirmDeleteNote}
+              type="button"
+              variant="outline"
+            >
+              <Trash2 className="h-4 w-4" />
+              Conferma eliminazione
+            </Button>
+            <Button className="w-full" onClick={() => setNoteToDelete(null)} type="button" variant="ghost">
+              Annulla
+            </Button>
+          </div>
+        </SheetContent>
+      </Sheet>
     </section>
   );
 }

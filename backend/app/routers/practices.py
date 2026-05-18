@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Annotated, Any
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from pydantic import BaseModel
 
 from app.deps import (
@@ -106,6 +106,19 @@ class AttachmentEnriched(BaseModel):
     uploaded_by_user: UserSummary | None = None
 
 
+class PracticeListItem(Practice):
+    """Practice arricchita con i contatori di fasi e la percentuale calcolata.
+
+    ``phases_closed`` = fasi con status completed o skipped.
+    ``phases_total``  = numero totale di fasi.
+    ``progress_pct``  = round(100 * phases_closed / phases_total).
+    """
+
+    phases_closed: int = 0
+    phases_total: int = 0
+    progress_pct: int = 0
+
+
 class PracticeDetail(BaseModel):
     """Aggregato joined per la pagina Dettaglio Pratica.
 
@@ -175,9 +188,12 @@ async def _load_users_index(user_repo: Repository[User]) -> dict[str, User]:
 # ---------------------------------------------------------------------------
 
 
-@router.get("", response_model=Page[Practice])
+@router.get("", response_model=Page[PracticeListItem])
 async def list_practices(
     practice_repo: Annotated[Repository[Practice], Depends(get_practice_repo)],
+    template_repo: Annotated[Repository[PhaseTemplate], Depends(get_phase_template_repo)],
+    phase_repo: Annotated[Repository[PracticePhase], Depends(get_practice_phase_repo)],
+    activity_repo: Annotated[Repository[ActivityLog], Depends(get_activity_log_repo)],
     pagination: Annotated[Pagination, Depends(get_pagination)],
     q: Annotated[str | None, Query(description="Ricerca su title, code")] = None,
     status_filter: Annotated[PracticeStatus | None, Query(alias="status")] = None,
@@ -185,7 +201,7 @@ async def list_practices(
     responsible_id: Annotated[UUID | None, Query()] = None,
     client_id: Annotated[UUID | None, Query()] = None,
     category_id: Annotated[UUID | None, Query()] = None,
-) -> Page[Practice]:
+) -> Page[PracticeListItem]:
     filters: dict[str, object] = {}
     if status_filter:
         filters["status"] = status_filter
@@ -206,8 +222,21 @@ async def list_practices(
             if needle in p.title.casefold() or (p.code and needle in p.code.casefold())
         ]
     items.sort(key=lambda p: (p.scadenza or p.apertura), reverse=True)
-    return Page[Practice](
-        items=items[pagination.offset : pagination.offset + pagination.limit],
+    paged = items[pagination.offset : pagination.offset + pagination.limit]
+    svc = PracticeService(practice_repo, template_repo, phase_repo, ActivityService(activity_repo))
+    enriched: list[PracticeListItem] = []
+    for practice in paged:
+        closed, total, pct = await svc.progress_stats(practice.id)
+        enriched.append(
+            PracticeListItem(
+                **practice.model_dump(),
+                phases_closed=closed,
+                phases_total=total,
+                progress_pct=pct,
+            )
+        )
+    return Page[PracticeListItem](
+        items=enriched,
         total=len(items),
         offset=pagination.offset,
         limit=pagination.limit,
@@ -471,6 +500,46 @@ async def archive_practice(
 ) -> Practice:
     svc = PracticeService(practice_repo, template_repo, phase_repo, ActivityService(activity_repo))
     return await svc.archive(practice_id, current_user_id)
+
+
+@router.delete("/{practice_id}", response_class=Response, status_code=status.HTTP_204_NO_CONTENT)
+async def delete_practice(
+    practice_id: UUID,
+    practice_repo: Annotated[Repository[Practice], Depends(get_practice_repo)],
+    phase_repo: Annotated[Repository[PracticePhase], Depends(get_practice_phase_repo)],
+    event_repo: Annotated[Repository[PracticeEvent], Depends(get_practice_event_repo)],
+    note_repo: Annotated[Repository[Note], Depends(get_note_repo)],
+    reminder_repo: Annotated[Repository[Reminder], Depends(get_reminder_repo)],
+    attachment_repo: Annotated[Repository[Attachment], Depends(get_attachment_repo)],
+    practice_label_repo: Annotated[InMemoryRepository[Any], Depends(get_practice_label_repo)],
+    activity_repo: Annotated[Repository[ActivityLog], Depends(get_activity_log_repo)],
+    current_user_id: Annotated[str, Depends(get_current_user_id)],
+) -> Response:
+    """Cancella la pratica e tutte le entità collegate (V0 in-memory)."""
+    existing = await practice_repo.get(str(practice_id))
+    if existing is None:
+        raise HTTPException(status_code=404, detail="Pratica non trovata")
+    for phase in await phase_repo.list(practice_id=practice_id):
+        await phase_repo.delete(str(phase.id))
+    for event in await event_repo.list(practice_id=practice_id):
+        await event_repo.delete(str(event.id))
+    for note in await note_repo.list(practice_id=practice_id):
+        await note_repo.delete(str(note.id))
+    for reminder in await reminder_repo.list(practice_id=practice_id):
+        await reminder_repo.delete(str(reminder.id))
+    for attachment in await attachment_repo.list(practice_id=practice_id):
+        await attachment_repo.delete(str(attachment.id))
+    for link in await practice_label_repo.list(practice_id=practice_id):
+        await practice_label_repo.delete(str(link.id))
+    await practice_repo.delete(str(practice_id))
+    await ActivityService(activity_repo).log(
+        actor_id=current_user_id,
+        action="deleted",
+        entity_type="practice",
+        entity_id=practice_id,
+        metadata={"code": existing.code},
+    )
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 # ---------------------------------------------------------------------------

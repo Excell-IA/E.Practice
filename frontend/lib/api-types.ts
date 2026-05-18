@@ -69,6 +69,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/users/{user_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update User
+         * @description V0 demo: modifica inline ruolo/stato utenti studio.
+         */
+        patch: operations["update_user_api_users__user_id__patch"];
+        trace?: never;
+    };
     "/api/clients/search": {
         parameters: {
             query?: never;
@@ -142,7 +162,8 @@ export interface paths {
         delete: operations["delete_client_api_clients__client_id__delete"];
         options?: never;
         head?: never;
-        patch?: never;
+        /** Patch Client */
+        patch: operations["patch_client_api_clients__client_id__patch"];
         trace?: never;
     };
     "/api/clients/{client_id}/practices": {
@@ -178,8 +199,32 @@ export interface paths {
          */
         get: operations["list_categories_api_categories_get"];
         put?: never;
-        post?: never;
+        /**
+         * Create Category
+         * @description Crea una nuova tipologia pratica V0 demo.
+         */
+        post: operations["create_category_api_categories_post"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/categories/{category_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete Category
+         * @description Elimina una tipologia solo se non usata da pratiche esistenti.
+         */
+        delete: operations["delete_category_api_categories__category_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -197,7 +242,16 @@ export interface paths {
          * @description Lista fasi del template per la categoria, ordinate per order_index.
          */
         get: operations["list_templates_for_category_api_templates__category_id__get"];
-        put?: never;
+        /**
+         * Replace Template For Category
+         * @description Sostituisce atomicamente le fasi template per la categoria.
+         *
+         *     Elimina tutte le fasi template esistenti per la categoria e crea le nuove
+         *     nell'ordine fornito (order_index assegnato per posizione). Le pratiche già
+         *     create non sono toccate: l'override del template incide solo sulle pratiche
+         *     create dopo la modifica.
+         */
+        put: operations["replace_template_for_category_api_templates__category_id__put"];
         post?: never;
         delete?: never;
         options?: never;
@@ -266,9 +320,14 @@ export interface paths {
          * @description Detail completo con joined names — una sola GET per la pagina.
          */
         get: operations["get_practice_detail_api_practices__practice_id__get"];
-        put?: never;
+        /** Update Practice */
+        put: operations["update_practice_api_practices__practice_id__put"];
         post?: never;
-        delete?: never;
+        /**
+         * Delete Practice
+         * @description Cancella la pratica e tutte le entità collegate (V0 in-memory).
+         */
+        delete: operations["delete_practice_api_practices__practice_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -352,10 +411,35 @@ export interface paths {
         get?: never;
         /**
          * Update Phase
-         * @description Modifica una fase. Solo se status=pending (le altre sono immutabili).
+         * @description Modifica una fase finche' non e' chiusa o saltata.
          */
         put: operations["update_phase_api_phases__phase_id__put"];
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/phases/{phase_id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Set Phase Status
+         * @description Imposta lo stato di una fase a uno dei cinque valori ammessi.
+         *
+         *     A differenza di ``/complete`` e ``/skip``, qui sono ammesse tutte le
+         *     transizioni (incluso il "riapri" da completed/skipped → pending) per
+         *     supportare il flusso UI di demo. Dopo l'aggiornamento ricalcola lo stato
+         *     della pratica padre.
+         */
+        post: operations["set_phase_status_api_phases__phase_id__status_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -467,7 +551,8 @@ export interface paths {
         /** Update Note */
         put: operations["update_note_api_notes__note_id__put"];
         post?: never;
-        delete?: never;
+        /** Delete Note */
+        delete: operations["delete_note_api_notes__note_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -773,6 +858,17 @@ export interface components {
              * Format: uuid
              */
             id: string;
+        };
+        /** CategoryCreateRequest */
+        CategoryCreateRequest: {
+            /** Name */
+            name: string;
+            /** Group Name */
+            group_name?: string | null;
+            /** Color */
+            color?: string | null;
+            /** Description */
+            description?: string | null;
         };
         /** CategoryDistribution */
         CategoryDistribution: {
@@ -1146,6 +1242,8 @@ export interface components {
              * Format: uuid
              */
             author_id: string;
+            /** Occurred At */
+            occurred_at?: string | null;
             /**
              * Id
              * Format: uuid
@@ -1175,24 +1273,13 @@ export interface components {
              * Format: uuid
              */
             author_id: string;
+            /** Occurred At */
+            occurred_at?: string | null;
         };
         /** NoteEnriched */
         NoteEnriched: {
             note: components["schemas"]["Note"];
             author?: components["schemas"]["UserSummary"] | null;
-        };
-        /** NoteUpdate */
-        NoteUpdate: {
-            /** Practice Id */
-            practice_id?: string | null;
-            /** Phase Id */
-            phase_id?: string | null;
-            /** Event Id */
-            event_id?: string | null;
-            /** Content */
-            content?: string | null;
-            /** Author Id */
-            author_id?: string | null;
         };
         /** Page[ActivityLog] */
         Page_ActivityLog_: {
@@ -1216,10 +1303,10 @@ export interface components {
             /** Limit */
             limit: number;
         };
-        /** Page[Practice] */
-        Page_Practice_: {
+        /** Page[PracticeListItem] */
+        Page_PracticeListItem_: {
             /** Items */
-            items: components["schemas"]["Practice"][];
+            items: components["schemas"]["PracticeListItem"][];
             /** Total */
             total: number;
             /** Offset */
@@ -1245,6 +1332,8 @@ export interface components {
             planned_start?: string | null;
             /** Planned End */
             planned_end?: string | null;
+            /** Assignee Id */
+            assignee_id?: string | null;
             /**
              * Enabled
              * @default true
@@ -1427,6 +1516,86 @@ export interface components {
             /** Visual Position */
             visual_position?: ("top" | "bottom") | null;
         };
+        /**
+         * PracticeListItem
+         * @description Practice arricchita con i contatori di fasi e la percentuale calcolata.
+         *
+         *     ``phases_closed`` = fasi con status completed o skipped.
+         *     ``phases_total``  = numero totale di fasi.
+         *     ``progress_pct``  = round(100 * phases_closed / phases_total).
+         */
+        PracticeListItem: {
+            /** Code */
+            code: string;
+            /** Title */
+            title: string;
+            /** Description */
+            description?: string | null;
+            /**
+             * Client Id
+             * Format: uuid
+             */
+            client_id: string;
+            /** Client Token */
+            client_token: string;
+            /**
+             * Category Id
+             * Format: uuid
+             */
+            category_id: string;
+            /** Responsible Id */
+            responsible_id?: string | null;
+            /**
+             * Apertura
+             * Format: date
+             */
+            apertura: string;
+            /** Scadenza */
+            scadenza?: string | null;
+            /**
+             * Priority
+             * @default media
+             * @enum {string}
+             */
+            priority: "bassa" | "media" | "alta";
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "aperta" | "in_corso" | "in_attesa" | "sospesa" | "chiusa" | "archiviata";
+            /**
+             * Created By
+             * Format: uuid
+             */
+            created_by: string;
+            /** Completed At */
+            completed_at?: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Phases Closed
+             * @default 0
+             */
+            phases_closed: number;
+            /**
+             * Phases Total
+             * @default 0
+             */
+            phases_total: number;
+            /**
+             * Progress Pct
+             * @default 0
+             */
+            progress_pct: number;
+        };
         /** PracticePhase */
         PracticePhase: {
             /**
@@ -1468,6 +1637,35 @@ export interface components {
              * Format: uuid
              */
             id: string;
+        };
+        /** PracticeUpdate */
+        PracticeUpdate: {
+            /** Code */
+            code?: string | null;
+            /** Title */
+            title?: string | null;
+            /** Description */
+            description?: string | null;
+            /** Client Id */
+            client_id?: string | null;
+            /** Client Token */
+            client_token?: string | null;
+            /** Category Id */
+            category_id?: string | null;
+            /** Responsible Id */
+            responsible_id?: string | null;
+            /** Apertura */
+            apertura?: string | null;
+            /** Scadenza */
+            scadenza?: string | null;
+            /** Priority */
+            priority?: ("bassa" | "media" | "alta") | null;
+            /** Status */
+            status?: ("aperta" | "in_corso" | "in_attesa" | "sospesa" | "chiusa" | "archiviata") | null;
+            /** Created By */
+            created_by?: string | null;
+            /** Completed At */
+            completed_at?: string | null;
         };
         /** Reminder */
         Reminder: {
@@ -1512,6 +1710,14 @@ export interface components {
              */
             created_at: string;
         };
+        /**
+         * ReplaceTemplateRequest
+         * @description Sostituzione atomica di tutte le fasi template di una categoria.
+         */
+        ReplaceTemplateRequest: {
+            /** Phases */
+            phases: components["schemas"]["TemplatePhaseInput"][];
+        };
         /** SearchHit */
         SearchHit: {
             /**
@@ -1552,6 +1758,16 @@ export interface components {
         SessionResponse: {
             user: components["schemas"]["User"];
         };
+        /** SetPhaseStatusBody */
+        SetPhaseStatusBody: {
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "pending" | "in_progress" | "completed" | "skipped" | "blocked";
+            /** Skip Reason */
+            skip_reason?: string | null;
+        };
         /** SkipPhaseBody */
         SkipPhaseBody: {
             /** Skip Reason */
@@ -1566,6 +1782,23 @@ export interface components {
             status: "aperta" | "in_corso" | "in_attesa" | "sospesa" | "chiusa" | "archiviata";
             /** Count */
             count: number;
+        };
+        /**
+         * TemplatePhaseInput
+         * @description Fase template in input per la modifica massiva del template categoria.
+         */
+        TemplatePhaseInput: {
+            /** Name */
+            name: string;
+            /** Description */
+            description?: string | null;
+            /**
+             * Duration Days
+             * @default 1
+             */
+            duration_days: number;
+            /** Default Role */
+            default_role?: string | null;
         };
         /** TemplatePhasePreview */
         TemplatePhasePreview: {
@@ -1648,6 +1881,15 @@ export interface components {
             /** Client Ragione Sociale */
             client_ragione_sociale?: string | null;
             responsible?: components["schemas"]["UserMiniSummary"] | null;
+        };
+        /** UpdateNoteRequest */
+        UpdateNoteRequest: {
+            /** Body */
+            body?: string | null;
+            /** Content */
+            content?: string | null;
+            /** Occurred At */
+            occurred_at?: string | null;
         };
         /** UpdatePhaseRequest */
         UpdatePhaseRequest: {
@@ -1736,6 +1978,23 @@ export interface components {
             initials: string;
             /** Avatar Color */
             avatar_color?: string | null;
+        };
+        /** UserUpdate */
+        UserUpdate: {
+            /** Email */
+            email?: string | null;
+            /** Nome */
+            nome?: string | null;
+            /** Cognome */
+            cognome?: string | null;
+            /** Role */
+            role?: ("titolare" | "senior" | "junior" | "esterno") | null;
+            /** Status */
+            status?: ("attivo" | "sospeso" | "disattivo") | null;
+            /** Avatar Color */
+            avatar_color?: string | null;
+            /** Last Access At */
+            last_access_at?: string | null;
         };
         /** UserWorkload */
         UserWorkload: {
@@ -1836,6 +2095,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["User"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_user_api_users__user_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UserUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"];
                 };
             };
             /** @description Validation Error */
@@ -2053,6 +2347,43 @@ export interface operations {
             };
         };
     };
+    patch_client_api_clients__client_id__patch: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-User-Id"?: string | null;
+            };
+            path: {
+                client_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClientUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Client"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_client_practices_api_clients__client_id__practices_get: {
         parameters: {
             query?: never;
@@ -2115,6 +2446,72 @@ export interface operations {
             };
         };
     };
+    create_category_api_categories_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-User-Id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CategoryCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Category"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_category_api_categories__category_id__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-User-Id"?: string | null;
+            };
+            path: {
+                category_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_templates_for_category_api_templates__category_id__get: {
         parameters: {
             query?: never;
@@ -2125,6 +2522,43 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PhaseTemplate"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    replace_template_for_category_api_templates__category_id__put: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-User-Id"?: string | null;
+            };
+            path: {
+                category_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReplaceTemplateRequest"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {
@@ -2205,7 +2639,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Page_Practice_"];
+                    "application/json": components["schemas"]["Page_PracticeListItem_"];
                 };
             };
             /** @description Validation Error */
@@ -2275,6 +2709,74 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["PracticeDetail"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_practice_api_practices__practice_id__put: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-User-Id"?: string | null;
+            };
+            path: {
+                practice_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PracticeUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Practice"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_practice_api_practices__practice_id__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-User-Id"?: string | null;
+            };
+            path: {
+                practice_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
@@ -2427,6 +2929,43 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["UpdatePhaseRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PracticePhase"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_phase_status_api_phases__phase_id__status_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-User-Id"?: string | null;
+            };
+            path: {
+                phase_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetPhaseStatusBody"];
             };
         };
         responses: {
@@ -2644,7 +3183,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["NoteUpdate"];
+                "application/json": components["schemas"]["UpdateNoteRequest"];
             };
         };
         responses: {
@@ -2656,6 +3195,37 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["Note"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_note_api_notes__note_id__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-User-Id"?: string | null;
+            };
+            path: {
+                note_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {

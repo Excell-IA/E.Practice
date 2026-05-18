@@ -4,7 +4,8 @@ import type { PracticeStatus } from "@/lib/types";
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 const DEFAULT_USER_ID = "11111111-1111-4111-8111-000000000001";
 
-export type ApiPracticePage = components["schemas"]["Page_Practice_"];
+export type ApiPracticePage = components["schemas"]["Page_PracticeListItem_"];
+export type ApiPracticeListItem = components["schemas"]["PracticeListItem"];
 export type ApiPracticeDetail = components["schemas"]["PracticeDetail"];
 export type ApiPracticePhase = components["schemas"]["PracticePhase"];
 export type ApiPracticeEvent = components["schemas"]["PracticeEvent"];
@@ -88,6 +89,28 @@ export function getCategories() {
   return apiFetch<ApiCategory[]>("/api/categories");
 }
 
+export type CategoryCreateInput = {
+  name: string;
+  group_name?: string | null;
+  color?: string | null;
+  description?: string | null;
+};
+
+export function createCategory(input: CategoryCreateInput, userId: string) {
+  return apiFetch<ApiCategory>("/api/categories", {
+    body: JSON.stringify(input),
+    method: "POST",
+    userId,
+  });
+}
+
+export function deleteCategory(categoryId: string, userId: string) {
+  return apiFetch<void>(`/api/categories/${categoryId}`, {
+    method: "DELETE",
+    userId,
+  });
+}
+
 export function getUsers() {
   return apiFetch<ApiUser[]>("/api/users");
 }
@@ -95,6 +118,29 @@ export function getUsers() {
 export function getTemplatePreview(categoryId: string, apertura: string) {
   const params = new URLSearchParams({ apertura });
   return apiFetch<ApiTemplatePreview>(`/api/templates/category/${categoryId}/preview?${params.toString()}`);
+}
+
+export type TemplatePhaseInput = {
+  name: string;
+  description?: string | null;
+  duration_days: number;
+  default_role?: string | null;
+};
+
+export function replaceTemplateForCategory(
+  categoryId: string,
+  phases: TemplatePhaseInput[],
+  userId: string,
+) {
+  return apiFetch<components["schemas"]["PhaseTemplate"][]>(`/api/templates/${categoryId}`, {
+    body: JSON.stringify({ phases }),
+    method: "PUT",
+    userId,
+  });
+}
+
+export function getTemplate(categoryId: string) {
+  return apiFetch<components["schemas"]["PhaseTemplate"][]>(`/api/templates/${categoryId}`);
 }
 
 export function createClient(input: components["schemas"]["ClientCreate"], userId: string) {
@@ -105,10 +151,36 @@ export function createClient(input: components["schemas"]["ClientCreate"], userI
   });
 }
 
+export function updateClient(
+  clientId: string,
+  input: components["schemas"]["ClientUpdate"],
+  userId: string,
+) {
+  return apiFetch<ApiClient>(`/api/clients/${clientId}`, {
+    body: JSON.stringify(input),
+    method: "PUT",
+    userId,
+  });
+}
+
+export function deleteClient(clientId: string, userId: string) {
+  return apiFetch<void>(`/api/clients/${clientId}`, {
+    method: "DELETE",
+    userId,
+  });
+}
+
 export function createPractice(input: components["schemas"]["CreatePracticeRequest"], userId: string) {
   return apiFetch<ApiCreatePracticeResponse>("/api/practices", {
     body: JSON.stringify(input),
     method: "POST",
+    userId,
+  });
+}
+
+export function deletePractice(practiceId: string, userId: string) {
+  return apiFetch<void>(`/api/practices/${practiceId}`, {
+    method: "DELETE",
     userId,
   });
 }
@@ -158,6 +230,16 @@ export function updatePhaseAssignee(phaseId: string, assigneeId: string, userId:
   return updatePhase(phaseId, { assignee_id: assigneeId }, userId);
 }
 
+export type ApiPhaseStatus = "pending" | "in_progress" | "completed" | "skipped" | "blocked";
+
+export function setPhaseStatus(phaseId: string, statusValue: ApiPhaseStatus, userId: string) {
+  return apiFetch<ApiPracticePhase>(`/api/phases/${phaseId}/status`, {
+    body: JSON.stringify({ status: statusValue }),
+    method: "POST",
+    userId,
+  });
+}
+
 export function createNote(input: components["schemas"]["NoteCreate"], userId: string) {
   return apiFetch<ApiNote>("/api/notes", {
     body: JSON.stringify(input),
@@ -166,7 +248,7 @@ export function createNote(input: components["schemas"]["NoteCreate"], userId: s
   });
 }
 
-export function updateNote(noteId: string, input: components["schemas"]["NoteUpdate"], userId: string) {
+export function updateNote(noteId: string, input: components["schemas"]["UpdateNoteRequest"], userId: string) {
   return apiFetch<ApiNote>(`/api/notes/${noteId}`, {
     body: JSON.stringify(input),
     method: "PUT",

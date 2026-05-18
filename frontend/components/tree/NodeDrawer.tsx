@@ -1,15 +1,12 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import {
   CalendarDays,
-  Check,
   FileText,
   Lock,
-  Paperclip,
   Pencil,
-  RotateCcw,
   Save,
-  SkipForward,
   UserRound,
 } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -17,8 +14,9 @@ import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { setPhaseStatus, type ApiPhaseStatus, type ApiPracticeDetail } from "@/lib/api";
 import { useDemoStore } from "@/lib/demo-state";
-import type { TreeSelection } from "@/lib/types";
+import type { PracticePhase, TreeSelection } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 type NodeDrawerProps = {
@@ -38,10 +36,22 @@ export function NodeDrawer({ selection, open, onOpenChange, onSwitchTab }: NodeD
     occurredAt: "",
     title: "",
   });
+  const [eventSaved, setEventSaved] = useState(false);
+  const [noteSaved, setNoteSaved] = useState(false);
+  const [noteAdded, setNoteAdded] = useState(false);
+  const [phaseSaved, setPhaseSaved] = useState(false);
+
+  function flashPhaseSaved() {
+    setPhaseSaved(true);
+    window.setTimeout(() => setPhaseSaved(false), 1500);
+  }
+  const queryClient = useQueryClient();
   const activeUser = useDemoStore((state) => state.activeUser);
   const users = useDemoStore((state) => state.users);
   const notes = useDemoStore((state) => state.notes);
+  const phases = useDemoStore((state) => state.phases);
   const applyAction = useDemoStore((state) => state.applyAction);
+  const [pendingCloseStatus, setPendingCloseStatus] = useState<"done" | "skipped" | null>(null);
 
   const isPhase = selection?.kind === "phase";
   const title = isPhase ? selection.item.title : selection?.item.title;
@@ -73,6 +83,8 @@ export function NodeDrawer({ selection, open, onOpenChange, onSwitchTab }: NodeD
     if (!isPhase || !noteBody.trim()) return;
     applyAction({ type: "add_note", phaseId: selection.item.id, body: noteBody.trim() });
     setNoteBody("");
+    setNoteAdded(true);
+    window.setTimeout(() => setNoteAdded(false), 2000);
   }
 
   function startEditingNote(noteId: string, body: string) {
@@ -81,14 +93,27 @@ export function NodeDrawer({ selection, open, onOpenChange, onSwitchTab }: NodeD
   }
 
   function saveNoteEdit() {
-    if (!editingNoteId || !editingNoteBody.trim()) return;
+    if (!editingNoteId || !editingNoteBody.trim() || noteSaved) return;
     applyAction({ type: "update_note", noteId: editingNoteId, body: editingNoteBody.trim() });
+    queryClient.setQueriesData<ApiPracticeDetail>({ queryKey: ["practice-detail"] }, (detail) => {
+      if (!detail) return detail;
+      return {
+        ...detail,
+        notes: detail.notes.map((item) =>
+          item.note.id === editingNoteId ? { ...item, note: { ...item.note, content: editingNoteBody.trim() } } : item,
+        ),
+      };
+    });
     setEditingNoteId(null);
     setEditingNoteBody("");
+    setNoteSaved(true);
+    window.setTimeout(() => setNoteSaved(false), 2000);
   }
 
   function saveEventEdit() {
-    if (selection?.kind !== "event" || !eventDraft.title.trim() || !eventDraft.occurredAt) return;
+    if (selection?.kind !== "event" || !eventDraft.title.trim() || !eventDraft.occurredAt || eventSaved) return;
+    const selectedAuthor = users.find((user) => user.id === eventDraft.authorId);
+    const [nome = "", ...cognomeParts] = selectedAuthor?.name.split(" ") ?? [];
     applyAction({
       type: "update_event",
       authorId: eventDraft.authorId,
@@ -98,11 +123,74 @@ export function NodeDrawer({ selection, open, onOpenChange, onSwitchTab }: NodeD
       phaseId: selection.item.phaseId,
       title: eventDraft.title.trim(),
     });
+    queryClient.setQueriesData<ApiPracticeDetail>({ queryKey: ["practice-detail"] }, (detail) => {
+      if (!detail) return detail;
+      return {
+        ...detail,
+        events: detail.events.map((item) =>
+          item.event.id === selection.item.id
+            ? {
+                ...item,
+                event: {
+                  ...item.event,
+                  author_id: eventDraft.authorId,
+                  description: eventDraft.description.trim(),
+                  event_date: eventDraft.occurredAt,
+                  title: eventDraft.title.trim(),
+                },
+              }
+            : item,
+        ),
+      };
+    });
+    queryClient.setQueriesData<ApiPracticeDetail>({ queryKey: ["practice-detail"] }, (detail) => {
+      if (!detail || !selectedAuthor) return detail;
+      return {
+        ...detail,
+        events: detail.events.map((item) =>
+          item.event.id === selection.item.id
+            ? {
+                ...item,
+                author: {
+                  avatar_color: selectedAuthor.avatarColor,
+                  cognome: cognomeParts.join(" "),
+                  id: selectedAuthor.id,
+                  initials: selectedAuthor.initials,
+                  nome,
+                  role: selectedAuthor.role,
+                },
+              }
+            : item,
+        ),
+      };
+    });
+    setEventSaved(true);
+    window.setTimeout(() => setEventSaved(false), 2000);
   }
 
   function switchTab(tab: "allegati" | "note") {
     onSwitchTab(tab);
     onOpenChange(false);
+  }
+
+  async function applyStatusChange(value: "pending" | "in_progress" | "done" | "skipped" | "blocked") {
+    if (!isPhase) return;
+    applyAction({
+      type: "set_phase_status",
+      phaseId: selection.item.id,
+      status: value,
+    });
+    flashPhaseSaved();
+    const apiStatus: ApiPhaseStatus = value === "done" ? "completed" : value;
+    try {
+      if (/^[0-9a-f-]{36}$/i.test(selection.item.id)) {
+        await setPhaseStatus(selection.item.id, apiStatus, activeUser.id);
+      }
+    } catch (err) {
+      console.warn("set_phase_status_failed", err);
+    }
+    await queryClient.invalidateQueries({ queryKey: ["practice-detail"] });
+    await queryClient.invalidateQueries({ queryKey: ["practices"] });
   }
 
   return (
@@ -118,32 +206,64 @@ export function NodeDrawer({ selection, open, onOpenChange, onSwitchTab }: NodeD
 
         <div className="flex flex-1 flex-col gap-6 overflow-y-auto">
           <section className="space-y-3">
-            <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">Stato</p>
-            <Badge variant={isPhase && selection.item.status === "in_progress" ? "info" : "default"}>
-              <span className="h-2 w-2 rounded-full bg-current" />
-              {isPhase ? selection.item.status.replace("_", " ") : selection?.item.type}
-            </Badge>
+            <div className="flex items-center justify-between gap-2">
+              <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">Stato</p>
+              {isPhase && phaseSaved ? <Badge variant="success">Salvato ✓</Badge> : null}
+            </div>
             {isPhase ? (
-              <select
-                className="h-10 w-full rounded-xl border border-border bg-surface-low px-3 text-sm text-foreground outline-none disabled:cursor-not-allowed disabled:opacity-50"
-                disabled={!canEdit}
-                onChange={(event) =>
-                  applyAction({
-                    type: "set_phase_status",
-                    phaseId: selection.item.id,
-                    status: event.target.value as typeof selection.item.status,
-                  })
-                }
-                title={canEdit ? "Cambia stato fase" : "Permesso non disponibile per utente viewer"}
-                value={selection.item.status}
-              >
-                <option value="pending">Da fare</option>
-                <option value="in_progress">In corso</option>
-                <option value="done">Completata</option>
-                <option value="skipped">Saltata</option>
-                <option value="blocked">Bloccata</option>
-              </select>
-            ) : null}
+              <div className="flex flex-wrap gap-2">
+                {(
+                  [
+                    { value: "pending", label: "Da fare", variant: "default" as const },
+                    { value: "in_progress", label: "In corso", variant: "info" as const },
+                    { value: "done", label: "Completata", variant: "success" as const },
+                    { value: "skipped", label: "Saltata", variant: "warning" as const },
+                    { value: "blocked", label: "Bloccata", variant: "danger" as const },
+                  ] as const
+                ).map((option) => {
+                  const isActive = selection.item.status === option.value;
+                  return (
+                    <button
+                      className={cn(
+                        "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors",
+                        isActive
+                          ? "border-electric/50 bg-electric/15 text-foreground"
+                          : "border-border bg-surface-low text-muted hover:border-electric/30 hover:text-foreground",
+                        !canEdit && "cursor-not-allowed opacity-50 hover:border-border hover:text-muted",
+                      )}
+                      disabled={!canEdit}
+                      key={option.value}
+                      onClick={() => {
+                        if (selection.item.status === option.value) return;
+                        if (option.value === "done" || option.value === "skipped") {
+                          const stillOpen = phases.filter(
+                            (phase: PracticePhase) =>
+                              phase.id !== selection.item.id &&
+                              phase.status !== "done" &&
+                              phase.status !== "skipped",
+                          ).length;
+                          if (stillOpen === 0) {
+                            setPendingCloseStatus(option.value);
+                            return;
+                          }
+                        }
+                        void applyStatusChange(option.value);
+                      }}
+                      title={canEdit ? `Imposta stato: ${option.label}` : "Permesso non disponibile per utente viewer"}
+                      type="button"
+                    >
+                      <span className={cn("h-2 w-2 rounded-full", isActive ? "bg-electric" : "bg-muted/50")} />
+                      {option.label}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <Badge variant="default">
+                <span className="h-2 w-2 rounded-full bg-current" />
+                {selection?.item.type}
+              </Badge>
+            )}
           </section>
 
           <section className="space-y-3">
@@ -168,8 +288,11 @@ export function NodeDrawer({ selection, open, onOpenChange, onSwitchTab }: NodeD
               <select
                 className="h-10 w-full rounded-xl border border-border bg-surface-low px-3 text-sm text-foreground outline-none disabled:cursor-not-allowed disabled:opacity-50"
                 disabled={!isAdmin}
-                onChange={(event) => applyAction({ type: "assign_phase", phaseId: selection.item.id, userId: event.target.value })}
-                title={isAdmin ? "Assegna fase" : "Solo l'admin puo assegnare le fasi"}
+                onChange={(event) => {
+                  applyAction({ type: "assign_phase", phaseId: selection.item.id, userId: event.target.value });
+                  flashPhaseSaved();
+                }}
+                title={isAdmin ? "Assegna fase (salvataggio automatico)" : "Solo l'admin puo assegnare le fasi"}
                 value={selection.item.assignee.id}
               >
                 {users.map((user) => (
@@ -211,6 +334,7 @@ export function NodeDrawer({ selection, open, onOpenChange, onSwitchTab }: NodeD
                     <input
                       className="h-10 w-full rounded-xl border border-border bg-surface-container px-3 text-sm text-foreground outline-none disabled:cursor-not-allowed disabled:opacity-50"
                       disabled={!canEdit}
+                      lang="it-IT"
                       onChange={(event) => setEventDraft((draft) => ({ ...draft, occurredAt: event.target.value }))}
                       type="date"
                       value={eventDraft.occurredAt}
@@ -232,10 +356,13 @@ export function NodeDrawer({ selection, open, onOpenChange, onSwitchTab }: NodeD
                     </select>
                   </label>
                 </div>
-                <Button disabled={!canEdit || !eventDraft.title.trim()} onClick={saveEventEdit} type="button">
-                  <Save className="h-4 w-4" />
-                  Salva modifiche
-                </Button>
+                <div className="flex flex-wrap items-center gap-3">
+                  <Button disabled={!canEdit || !eventDraft.title.trim() || eventSaved} onClick={saveEventEdit} type="button">
+                    <Save className="h-4 w-4" />
+                    Salva modifiche
+                  </Button>
+                  {eventSaved ? <Badge variant="success">Salvato ✓</Badge> : null}
+                </div>
               </div>
             </section>
           ) : null}
@@ -250,14 +377,16 @@ export function NodeDrawer({ selection, open, onOpenChange, onSwitchTab }: NodeD
                   <input
                     className="mt-2 h-9 w-full rounded-xl border border-border bg-surface-container px-3 font-label text-sm font-semibold text-foreground outline-none disabled:cursor-not-allowed disabled:opacity-50"
                     disabled={!canEdit}
-                    onChange={(event) =>
+                    lang="it-IT"
+                    onChange={(event) => {
                       applyAction({
                         type: "update_phase",
                         phaseId: selection.item.id,
                         planned_end: event.target.value,
-                      })
-                    }
-                    title={canEdit ? "Modifica scadenza fase" : "Permesso non disponibile per utente viewer"}
+                      });
+                      flashPhaseSaved();
+                    }}
+                    title={canEdit ? "Modifica scadenza fase (salvataggio automatico)" : "Permesso non disponibile per utente viewer"}
                     type="date"
                     value={selection.item.dueDate}
                   />
@@ -275,39 +404,14 @@ export function NodeDrawer({ selection, open, onOpenChange, onSwitchTab }: NodeD
             </div>
           </section>
 
-          <section className="space-y-3">
-            <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">Materiale</p>
-            <div className="space-y-2">
-              <button
-                className="flex w-full items-center justify-between rounded-2xl border border-border bg-surface-low p-3 text-left text-sm transition-colors hover:bg-surface-high"
-                onClick={() => switchTab("note")}
-                type="button"
-              >
-                <span className="flex items-center gap-2 text-foreground-variant">
-                  <FileText className="h-4 w-4 text-electric" />
-                  Note operative
-                </span>
-                <span className="text-muted">{isPhase ? selection.item.notesCount : 1}</span>
-              </button>
-              <button
-                className="flex w-full items-center justify-between rounded-2xl border border-border bg-surface-low p-3 text-left text-sm transition-colors hover:bg-surface-high"
-                onClick={() => switchTab("allegati")}
-                type="button"
-              >
-                <span className="flex items-center gap-2 text-foreground-variant">
-                  <Paperclip className="h-4 w-4 text-electric" />
-                  Allegati
-                </span>
-                <span className="text-muted">{isPhase ? selection.item.attachmentsCount : 0}</span>
-              </button>
-            </div>
-          </section>
-
           {isPhase ? (
             <section className="space-y-3">
-            <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
-                Note salvate in locale
-              </p>
+              <div className="flex items-center justify-between gap-2">
+                <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
+                  Annotazioni di questa fase ({phaseNotes.length})
+                </p>
+                <span className="text-[11px] text-muted">Visibili solo nella fase</span>
+              </div>
               <div className="space-y-2">
                 {phaseNotes.map((note) => {
                   const canEditNote = note.author.id === activeUser.id || isAdmin;
@@ -344,13 +448,14 @@ export function NodeDrawer({ selection, open, onOpenChange, onSwitchTab }: NodeD
                           onChange={(event) => setEditingNoteBody(event.target.value)}
                           value={editingNoteBody}
                         />
-                        <div className="flex gap-2">
-                          <Button disabled={!editingNoteBody.trim()} onClick={saveNoteEdit} size="sm" type="button">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Button disabled={!editingNoteBody.trim() || noteSaved} onClick={saveNoteEdit} size="sm" type="button">
                             Salva
                           </Button>
                           <Button onClick={() => setEditingNoteId(null)} size="sm" type="button" variant="ghost">
                             Annulla
                           </Button>
+                          {noteSaved ? <Badge variant="success">Salvato ✓</Badge> : null}
                         </div>
                       </div>
                     ) : (
@@ -359,6 +464,7 @@ export function NodeDrawer({ selection, open, onOpenChange, onSwitchTab }: NodeD
                   </div>
                 );
                 })}
+                {noteSaved && editingNoteId === null ? <Badge variant="success">Salvato ✓</Badge> : null}
               </div>
               <textarea
                 className="min-h-20 w-full resize-none rounded-2xl border border-border bg-surface-low p-3 text-sm text-foreground outline-none placeholder:text-muted disabled:cursor-not-allowed disabled:opacity-50"
@@ -368,54 +474,60 @@ export function NodeDrawer({ selection, open, onOpenChange, onSwitchTab }: NodeD
                 title={canEdit ? "Nota locale demo" : "Permesso non disponibile per utente viewer"}
                 value={noteBody}
               />
-              <Button disabled={!canEdit || !noteBody.trim()} onClick={addNote} type="button" variant="outline">
-                <FileText className="h-4 w-4" />
-                Salva nota
-              </Button>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button disabled={!canEdit || !noteBody.trim()} onClick={addNote} type="button" variant="outline">
+                  <FileText className="h-4 w-4" />
+                  Salva
+                </Button>
+                {noteAdded ? <Badge variant="success">Salvata ✓</Badge> : null}
+              </div>
             </section>
           ) : null}
 
           {isPhase ? (
-            <div className="mt-auto grid gap-2 border-t border-border pt-4 sm:grid-cols-3">
-              <Button
-                disabled={!canEdit}
-                onClick={() => applyAction({ type: "complete_phase", phaseId: selection.item.id })}
-                title={canEdit ? "Completa fase in locale" : "Permesso non disponibile per utente viewer"}
-                type="button"
-              >
-                <Check className="h-4 w-4" />
-                Completa
-              </Button>
-              <Button
-                disabled={!canEdit}
-                onClick={() => applyAction({ type: "reopen_phase", phaseId: selection.item.id })}
-                title={canEdit ? "Riapri fase in locale" : "Permesso non disponibile per utente viewer"}
-                type="button"
-                variant="outline"
-              >
-                <RotateCcw className="h-4 w-4" />
-                Riapri
-              </Button>
-              <Button
-                disabled={!canEdit}
-                onClick={() => applyAction({ type: "skip_phase", phaseId: selection.item.id })}
-                title={canEdit ? "Salta fase in locale" : "Permesso non disponibile per utente viewer"}
-                type="button"
-                variant="warning"
-              >
-                <SkipForward className="h-4 w-4" />
-                Salta
-              </Button>
+            <div className="mt-auto flex items-center justify-between gap-3 border-t border-border pt-4">
               {!canEdit ? (
-                <p className="col-span-full flex items-center gap-2 text-xs text-muted">
+                <p className="flex items-center gap-2 text-xs text-muted">
                   <Lock className="h-3.5 w-3.5" />
                   Utente viewer: azioni disponibili solo in lettura.
                 </p>
-              ) : null}
+              ) : (
+                <p className="text-xs text-muted">Le modifiche sono salvate automaticamente.</p>
+              )}
+              <Button onClick={() => onOpenChange(false)} type="button" variant="outline">
+                Chiudi
+              </Button>
             </div>
           ) : null}
         </div>
       </SheetContent>
+
+      <Sheet onOpenChange={(opened) => !opened && setPendingCloseStatus(null)} open={pendingCloseStatus !== null}>
+        <SheetContent className="max-w-md">
+          <SheetHeader>
+            <SheetTitle>Chiudere la pratica?</SheetTitle>
+            <SheetDescription>
+              Questa e&apos; l&apos;ultima fase ancora aperta. Confermandola, lo stato della pratica
+              passera&apos; automaticamente a Chiusa.
+            </SheetDescription>
+          </SheetHeader>
+          <div className="space-y-3">
+            <Button
+              className="w-full"
+              onClick={() => {
+                if (pendingCloseStatus) void applyStatusChange(pendingCloseStatus);
+                setPendingCloseStatus(null);
+              }}
+              type="button"
+            >
+              Conferma chiusura
+            </Button>
+            <Button className="w-full" onClick={() => setPendingCloseStatus(null)} type="button" variant="ghost">
+              Annulla
+            </Button>
+          </div>
+        </SheetContent>
+      </Sheet>
     </Sheet>
   );
 }

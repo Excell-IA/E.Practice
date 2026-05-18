@@ -1,16 +1,43 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Download, FileText, UploadCloud, X } from "lucide-react";
-import { useRef, useState } from "react";
+import { Download, FileText, Trash2, UploadCloud, X } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+
+import { isAfter, startOfDay } from "date-fns";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { V1Hint } from "@/components/ui/v1-hint";
-import { attachAttachment, deleteAttachment, listAttachments, uploadAttachment } from "@/lib/api";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { attachAttachment, deleteAttachment, listAttachments, uploadAttachment, type ApiAttachment } from "@/lib/api";
 import { DEMO_USERS, useDemoStore } from "@/lib/demo-state";
 import type { Practice, PracticePhase } from "@/lib/types";
 import { cn } from "@/lib/utils";
+
+function downloadAttachment(att: ApiAttachment) {
+  const storageKey = att.storage_key ?? "";
+  if (!storageKey.startsWith("memory:")) {
+    window.alert("Anteprima non disponibile per questo allegato.");
+    return;
+  }
+  try {
+    const binary = atob(storageKey.slice("memory:".length));
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    const blob = new Blob([bytes], { type: att.mime_type ?? "application/octet-stream" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = att.filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  } catch (err) {
+    console.error("attachment_decode_failed", err);
+    window.alert("Impossibile decodificare il file.");
+  }
+}
 
 type TabAllegatiProps = {
   practice: Practice;
@@ -35,6 +62,7 @@ export function TabAllegati({ phases, practice }: TabAllegatiProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [attachmentToDelete, setAttachmentToDelete] = useState<ApiAttachment | null>(null);
   const activeUser = useDemoStore((state) => state.activeUser);
   const queryClient = useQueryClient();
   const attachmentsQuery = useQuery({
@@ -64,24 +92,52 @@ export function TabAllegati({ phases, practice }: TabAllegatiProps) {
     }
   }
 
-  async function removeAttachment(id: string, filename: string) {
-    if (!window.confirm(`Eliminare ${filename}?`)) return;
+  function askRemoveAttachment(att: ApiAttachment) {
+    setAttachmentToDelete(att);
+  }
+
+  async function confirmRemoveAttachment() {
+    if (!attachmentToDelete) return;
     setError(null);
     try {
-      await deleteAttachment(id, activeUser.id);
+      await deleteAttachment(attachmentToDelete.id, activeUser.id);
       await queryClient.invalidateQueries({ queryKey: ["attachments", practice.id] });
       await queryClient.invalidateQueries({ queryKey: ["practice-detail", practice.id] });
+      setAttachmentToDelete(null);
     } catch (err) {
       console.error("practice_attachment_delete_failed", err);
       setError(err instanceof Error ? err.message : "Eliminazione allegato non riuscita.");
     }
   }
 
-  const attachments = attachmentsQuery.data ?? [];
+  const attachments = useMemo(
+    () => [...(attachmentsQuery.data ?? [])].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()),
+    [attachmentsQuery.data],
+  );
+
+  const todayDate = startOfDay(new Date());
+  const anchorId = useMemo(() => {
+    let anchor: typeof attachments[number] | null = null;
+    for (const att of attachments) {
+      if (!isAfter(startOfDay(new Date(att.created_at)), todayDate)) anchor = att;
+    }
+    return anchor?.id ?? null;
+  }, [attachments, todayDate]);
+
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const anchorRef = useRef<HTMLTableRowElement>(null);
+
+  useEffect(() => {
+    if (!scrollContainerRef.current || !anchorRef.current) return;
+    const container = scrollContainerRef.current;
+    const anchor = anchorRef.current;
+    const offset = anchor.offsetTop - container.offsetTop - 12;
+    container.scrollTop = offset > 0 ? offset : 0;
+  }, [anchorId]);
 
   return (
-    <section className="rounded-2xl border border-border bg-surface-low p-5">
-      <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+    <section className="flex min-h-0 flex-1 flex-col rounded-2xl border border-border bg-surface-low p-5">
+      <div className="mb-5 flex shrink-0 flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">Allegati</p>
           <h3 className="font-display text-xl font-semibold text-foreground">Documenti pratica</h3>
@@ -123,7 +179,7 @@ export function TabAllegati({ phases, practice }: TabAllegatiProps) {
         </p>
       ) : null}
 
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto lg:flex-1 lg:overflow-y-auto" ref={scrollContainerRef}>
         <table className="w-full min-w-[820px] border-separate border-spacing-y-2 text-left">
           <thead className="text-[11px] uppercase tracking-[0.14em] text-muted">
             <tr>
@@ -140,7 +196,11 @@ export function TabAllegati({ phases, practice }: TabAllegatiProps) {
               const author = DEMO_USERS.find((user) => user.id === attachment.uploaded_by) ?? DEMO_USERS[0];
               const phase = phases.find((item) => item.id === attachment.phase_id);
               return (
-                <tr className="rounded-2xl bg-surface-container text-sm text-foreground-variant" key={attachment.id}>
+                <tr
+                  className="rounded-2xl bg-surface-container text-sm text-foreground-variant"
+                  key={attachment.id}
+                  ref={attachment.id === anchorId ? anchorRef : undefined}
+                >
                   <td className="rounded-l-2xl px-3 py-3">
                     <span className="flex items-center gap-2 font-mono text-xs text-foreground">
                       <FileText className="h-4 w-4 text-electric" />
@@ -169,16 +229,21 @@ export function TabAllegati({ phases, practice }: TabAllegatiProps) {
                   </td>
                   <td className="rounded-r-2xl px-3 py-3 text-right">
                     <div className="flex justify-end gap-2">
-                      <V1Hint label="Disponibile in V1">
-                        <Button size="sm" type="button" variant="outline">
-                          <Download className="h-4 w-4" />
-                          Scarica
-                        </Button>
-                      </V1Hint>
+                      <Button
+                        onClick={() => downloadAttachment(attachment)}
+                        size="sm"
+                        title="Scarica file"
+                        type="button"
+                        variant="outline"
+                      >
+                        <Download className="h-4 w-4" />
+                        Scarica
+                      </Button>
                       <Button
                         aria-label={`Elimina ${attachment.filename}`}
-                        onClick={() => void removeAttachment(attachment.id, attachment.filename)}
+                        onClick={() => askRemoveAttachment(attachment)}
                         size="icon"
+                        title="Elimina allegato"
                         type="button"
                         variant="ghost"
                       >
@@ -198,6 +263,33 @@ export function TabAllegati({ phases, practice }: TabAllegatiProps) {
           Nessun allegato collegato alla pratica.
         </p>
       ) : null}
+
+      <Sheet onOpenChange={(open) => !open && setAttachmentToDelete(null)} open={attachmentToDelete !== null}>
+        <SheetContent className="max-w-md">
+          <SheetHeader>
+            <SheetTitle>Eliminare allegato?</SheetTitle>
+            <SheetDescription>
+              {attachmentToDelete
+                ? `Confermi l'eliminazione di "${attachmentToDelete.filename}"? L'azione e' irreversibile.`
+                : "Confermi l'eliminazione dell'allegato selezionato?"}
+            </SheetDescription>
+          </SheetHeader>
+          <div className="space-y-3">
+            <Button
+              className="w-full border border-danger/40 bg-danger/10 text-danger hover:bg-danger/15"
+              onClick={() => void confirmRemoveAttachment()}
+              type="button"
+              variant="outline"
+            >
+              <Trash2 className="h-4 w-4" />
+              Conferma eliminazione
+            </Button>
+            <Button className="w-full" onClick={() => setAttachmentToDelete(null)} type="button" variant="ghost">
+              Annulla
+            </Button>
+          </div>
+        </SheetContent>
+      </Sheet>
     </section>
   );
 }

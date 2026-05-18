@@ -16,6 +16,7 @@ class PhaseOverride(BaseModel):
     name: str | None = None
     planned_start: date | None = None
     planned_end: date | None = None
+    assignee_id: UUID | None = None
     enabled: bool = True
 
 
@@ -79,6 +80,14 @@ class SkipPhaseRequest(BaseModel):
 
 class CreateEventRequest(PracticeEventCreate):
     pass
+
+
+class UpdateNoteRequest(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, from_attributes=True)
+
+    body: str | None = None
+    content: str | None = None
+    occurred_at: date | None = None
 
 
 class AttachRequest(BaseModel):
