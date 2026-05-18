@@ -1302,10 +1302,10 @@ export interface components {
             /** Limit */
             limit: number;
         };
-        /** Page[Practice] */
-        Page_Practice_: {
+        /** Page[PracticeListItem] */
+        Page_PracticeListItem_: {
             /** Items */
-            items: components["schemas"]["Practice"][];
+            items: components["schemas"]["PracticeListItem"][];
             /** Total */
             total: number;
             /** Offset */
@@ -1514,6 +1514,72 @@ export interface components {
             author_id?: string | null;
             /** Visual Position */
             visual_position?: ("top" | "bottom") | null;
+        };
+        /**
+         * PracticeListItem
+         * @description Practice arricchita con la percentuale di avanzamento calcolata.
+         */
+        PracticeListItem: {
+            /** Code */
+            code: string;
+            /** Title */
+            title: string;
+            /** Description */
+            description?: string | null;
+            /**
+             * Client Id
+             * Format: uuid
+             */
+            client_id: string;
+            /** Client Token */
+            client_token: string;
+            /**
+             * Category Id
+             * Format: uuid
+             */
+            category_id: string;
+            /** Responsible Id */
+            responsible_id?: string | null;
+            /**
+             * Apertura
+             * Format: date
+             */
+            apertura: string;
+            /** Scadenza */
+            scadenza?: string | null;
+            /**
+             * Priority
+             * @default media
+             * @enum {string}
+             */
+            priority: "bassa" | "media" | "alta";
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "aperta" | "in_corso" | "in_attesa" | "sospesa" | "chiusa" | "archiviata";
+            /**
+             * Created By
+             * Format: uuid
+             */
+            created_by: string;
+            /** Completed At */
+            completed_at?: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Progress Pct
+             * @default 0
+             */
+            progress_pct: number;
         };
         /** PracticePhase */
         PracticePhase: {
@@ -2521,7 +2587,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Page_Practice_"];
+                    "application/json": components["schemas"]["Page_PracticeListItem_"];
                 };
             };
             /** @description Validation Error */

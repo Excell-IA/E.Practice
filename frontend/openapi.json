@@ -1151,7 +1151,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Page_Practice_"
+                  "$ref": "#/components/schemas/Page_PracticeListItem_"
                 }
               }
             }
@@ -4494,11 +4494,11 @@
         ],
         "title": "Page[Client]"
       },
-      "Page_Practice_": {
+      "Page_PracticeListItem_": {
         "properties": {
           "items": {
             "items": {
-              "$ref": "#/components/schemas/Practice"
+              "$ref": "#/components/schemas/PracticeListItem"
             },
             "type": "array",
             "title": "Items"
@@ -4523,7 +4523,7 @@
           "offset",
           "limit"
         ],
-        "title": "Page[Practice]"
+        "title": "Page[PracticeListItem]"
       },
       "PhaseEnriched": {
         "properties": {
@@ -5148,6 +5148,141 @@
         },
         "type": "object",
         "title": "PracticeEventUpdate"
+      },
+      "PracticeListItem": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "client_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Client Id"
+          },
+          "client_token": {
+            "type": "string",
+            "title": "Client Token"
+          },
+          "category_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Category Id"
+          },
+          "responsible_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Responsible Id"
+          },
+          "apertura": {
+            "type": "string",
+            "format": "date",
+            "title": "Apertura"
+          },
+          "scadenza": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scadenza"
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "bassa",
+              "media",
+              "alta"
+            ],
+            "title": "Priority",
+            "default": "media"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "aperta",
+              "in_corso",
+              "in_attesa",
+              "sospesa",
+              "chiusa",
+              "archiviata"
+            ],
+            "title": "Status"
+          },
+          "created_by": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Created By"
+          },
+          "completed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "progress_pct": {
+            "type": "integer",
+            "title": "Progress Pct",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "title",
+          "client_id",
+          "client_token",
+          "category_id",
+          "apertura",
+          "status",
+          "created_by",
+          "id",
+          "created_at"
+        ],
+        "title": "PracticeListItem",
+        "description": "Practice arricchita con la percentuale di avanzamento calcolata."
       },
       "PracticePhase": {
         "properties": {

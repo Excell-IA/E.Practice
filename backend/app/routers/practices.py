@@ -106,6 +106,12 @@ class AttachmentEnriched(BaseModel):
     uploaded_by_user: UserSummary | None = None
 
 
+class PracticeListItem(Practice):
+    """Practice arricchita con la percentuale di avanzamento calcolata."""
+
+    progress_pct: int = 0
+
+
 class PracticeDetail(BaseModel):
     """Aggregato joined per la pagina Dettaglio Pratica.
 
@@ -175,9 +181,12 @@ async def _load_users_index(user_repo: Repository[User]) -> dict[str, User]:
 # ---------------------------------------------------------------------------
 
 
-@router.get("", response_model=Page[Practice])
+@router.get("", response_model=Page[PracticeListItem])
 async def list_practices(
     practice_repo: Annotated[Repository[Practice], Depends(get_practice_repo)],
+    template_repo: Annotated[Repository[PhaseTemplate], Depends(get_phase_template_repo)],
+    phase_repo: Annotated[Repository[PracticePhase], Depends(get_practice_phase_repo)],
+    activity_repo: Annotated[Repository[ActivityLog], Depends(get_activity_log_repo)],
     pagination: Annotated[Pagination, Depends(get_pagination)],
     q: Annotated[str | None, Query(description="Ricerca su title, code")] = None,
     status_filter: Annotated[PracticeStatus | None, Query(alias="status")] = None,
@@ -185,7 +194,7 @@ async def list_practices(
     responsible_id: Annotated[UUID | None, Query()] = None,
     client_id: Annotated[UUID | None, Query()] = None,
     category_id: Annotated[UUID | None, Query()] = None,
-) -> Page[Practice]:
+) -> Page[PracticeListItem]:
     filters: dict[str, object] = {}
     if status_filter:
         filters["status"] = status_filter
@@ -206,8 +215,14 @@ async def list_practices(
             if needle in p.title.casefold() or (p.code and needle in p.code.casefold())
         ]
     items.sort(key=lambda p: (p.scadenza or p.apertura), reverse=True)
-    return Page[Practice](
-        items=items[pagination.offset : pagination.offset + pagination.limit],
+    paged = items[pagination.offset : pagination.offset + pagination.limit]
+    svc = PracticeService(practice_repo, template_repo, phase_repo, ActivityService(activity_repo))
+    enriched: list[PracticeListItem] = []
+    for practice in paged:
+        progress = await svc.progress_percentage(practice.id)
+        enriched.append(PracticeListItem(**practice.model_dump(), progress_pct=progress))
+    return Page[PracticeListItem](
+        items=enriched,
         total=len(items),
         offset=pagination.offset,
         limit=pagination.limit,
