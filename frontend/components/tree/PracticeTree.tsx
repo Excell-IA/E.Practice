@@ -3,20 +3,18 @@
 import {
   AlertTriangle,
   CalendarDays,
-  Mail,
   Maximize2,
   MessageSquareText,
   Minus,
   MoveHorizontal,
-  PhoneCall,
   Plus,
   Smartphone,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent, type PointerEvent } from "react";
 
+import { EventComposer } from "@/components/practice/EventComposer";
 import { HelpButton } from "@/components/ui/help-button";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { V1Hint } from "@/components/ui/v1-hint";
@@ -89,9 +87,6 @@ export function PracticeTree({ practice, phases, events, onSwitchTab, pendingSel
   }, [todayDate]);
   const [selection, setSelection] = useState<TreeSelection | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [composerType, setComposerType] = useState<PracticeEvent["type"] | "note" | null>(null);
-  const [composerTitle, setComposerTitle] = useState("");
-  const [composerDescription, setComposerDescription] = useState("");
   const [composerDate, setComposerDate] = useState(todayIso);
 
   useEffect(() => {
@@ -334,38 +329,6 @@ export function PracticeTree({ practice, phases, events, onSwitchTab, pendingSel
     scrollArea.scrollTo({ behavior: "smooth", left: Math.max(targetLeft, 0) });
   }
 
-  function openComposer(eventType: ComposerKind, date = todayIso, phaseId = currentPhase?.id) {
-    setComposerType(eventType);
-    setComposerTitle("");
-    setComposerDescription("");
-    setComposerDate(date);
-    setComposerPhaseId(phaseId ?? null);
-  }
-
-  function createEvent() {
-    if (!composerType) return;
-    if (composerType === "note") {
-      if (!composerDescription.trim()) return;
-      applyAction({
-        type: "add_note",
-        body: composerDescription.trim(),
-        occurredAt: composerDate,
-      });
-    } else {
-      const phaseId = composerPhaseId ?? currentPhase?.id;
-      if (!phaseId || !composerTitle.trim()) return;
-      applyAction({
-        type: "create_event",
-        description: composerDescription.trim() || "",
-        eventType: composerType,
-        occurredAt: composerDate,
-        phaseId,
-        title: composerTitle.trim(),
-      });
-    }
-    setComposerType(null);
-  }
-
   function svgPointFromPointer(event: MouseEvent<SVGLineElement> | PointerEvent<SVGLineElement>) {
     const svg = event.currentTarget.ownerSVGElement;
     if (!svg) return null;
@@ -415,59 +378,17 @@ export function PracticeTree({ practice, phases, events, onSwitchTab, pendingSel
 
       <Card className="hidden overflow-hidden rounded-2xl bg-surface-low/90 md:block">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-4">
-          <div className="flex flex-wrap items-end gap-3">
-            <div>
-              <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-electric">
-                Aggiungi evento
-              </p>
-              <label className="mt-1 flex items-center gap-2">
-                <span className="text-xs font-semibold text-muted">Data</span>
-                <input
-                  className="h-9 rounded-xl border border-border bg-surface-container px-3 font-label text-sm font-semibold text-foreground outline-none"
-                  lang="it-IT"
-                  onChange={(event) => {
-                    setComposerDate(event.target.value);
-                    setComposerPhaseId(closestPhaseId(event.target.value));
-                  }}
-                  title="Imposta la data dell'evento o clicca sul tronco dell'albero"
-                  type="date"
-                  value={composerDate}
-                />
-              </label>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <Button
-                disabled={activeUser.permission === "viewer"}
-                onClick={() => openComposer("note", composerDate, composerPhaseId ?? currentPhase?.id)}
-                title={activeUser.permission === "viewer" ? "Permesso non disponibile per utente viewer" : "Aggiungi nota all'albero"}
-                type="button"
-                variant="outline"
-              >
-                <MessageSquareText className="h-4 w-4" />
-                Nota
-              </Button>
-              <Button
-                disabled={activeUser.permission === "viewer"}
-                onClick={() => openComposer("call", composerDate, composerPhaseId ?? currentPhase?.id)}
-                title={activeUser.permission === "viewer" ? "Permesso non disponibile per utente viewer" : "Aggiungi telefonata"}
-                type="button"
-                variant="outline"
-              >
-                <PhoneCall className="h-4 w-4" />
-                Telefonata
-              </Button>
-              <Button
-                disabled={activeUser.permission === "viewer"}
-                onClick={() => openComposer("mail", composerDate, composerPhaseId ?? currentPhase?.id)}
-                title={activeUser.permission === "viewer" ? "Permesso non disponibile per utente viewer" : "Aggiungi email"}
-                type="button"
-                variant="outline"
-              >
-                <Mail className="h-4 w-4" />
-                Email
-              </Button>
-            </div>
-          </div>
+          <EventComposer
+            controlledDate={composerDate}
+            controlledPhaseId={composerPhaseId}
+            currentPhase={currentPhase}
+            onControlledDateChange={(next) => {
+              setComposerDate(next);
+              setComposerPhaseId(closestPhaseId(next));
+            }}
+            onControlledPhaseIdChange={setComposerPhaseId}
+            phases={phases}
+          />
           <div className="flex flex-wrap items-center gap-2">
             <Button onClick={() => scrollToTimelineX(todayX)} size="sm" title="Centra l'albero sulla data di oggi" type="button" variant="outline">
               <CalendarDays className="h-4 w-4" />
@@ -534,70 +455,6 @@ export function PracticeTree({ practice, phases, events, onSwitchTab, pendingSel
         </div>
 
         <CardContent className="p-0">
-          {composerType ? (
-            <div className="border-b border-border bg-surface-container px-5 py-4">
-              {composerType === "note" ? (
-                <div className="grid gap-3 md:grid-cols-[180px_1fr_auto] md:items-center">
-                  <Badge className="justify-self-start px-4 py-2" variant="info">
-                    <span className="font-display text-base font-bold uppercase tracking-wider">Nota</span>
-                  </Badge>
-                  <label className="text-sm font-semibold text-muted">
-                    Testo della nota
-                    <textarea
-                      autoFocus
-                      className="mt-1 min-h-20 w-full resize-none rounded-xl border border-border bg-surface-low p-3 font-normal text-foreground outline-none"
-                      onChange={(event) => setComposerDescription(event.target.value)}
-                      placeholder="Scrivi qui la nota..."
-                      value={composerDescription}
-                    />
-                  </label>
-                  <div className="flex gap-2">
-                    <Button disabled={!composerDescription.trim() || !composerDate} onClick={createEvent} type="button">
-                      Salva
-                    </Button>
-                    <Button onClick={() => setComposerType(null)} type="button" variant="ghost">
-                      Annulla
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <div className="grid gap-3 md:grid-cols-[180px_1fr_1.4fr_auto] md:items-center">
-                  <Badge className="justify-self-start px-4 py-2" variant={composerType === "warning" ? "warning" : "info"}>
-                    <span className="font-display text-base font-bold uppercase tracking-wider">
-                      {composerType === "call" ? "Telefonata" : composerType === "mail" ? "Email" : "Avviso"}
-                    </span>
-                  </Badge>
-                  <label className="text-sm font-semibold text-muted">
-                    Titolo
-                    <input
-                      autoFocus
-                      className="mt-1 h-10 w-full rounded-xl border border-border bg-surface-low px-3 font-normal text-foreground outline-none"
-                      onChange={(event) => setComposerTitle(event.target.value)}
-                      placeholder="Titolo evento"
-                      value={composerTitle}
-                    />
-                  </label>
-                  <label className="text-sm font-semibold text-muted">
-                    Descrizione
-                    <input
-                      className="mt-1 h-10 w-full rounded-xl border border-border bg-surface-low px-3 font-normal text-foreground outline-none"
-                      onChange={(event) => setComposerDescription(event.target.value)}
-                      placeholder={`Collegato a ${currentPhase?.title ?? "fase corrente"}`}
-                      value={composerDescription}
-                    />
-                  </label>
-                  <div className="flex gap-2">
-                    <Button disabled={!composerTitle.trim() || !composerDate} onClick={createEvent} type="button">
-                      Crea
-                    </Button>
-                    <Button onClick={() => setComposerType(null)} type="button" variant="ghost">
-                      Annulla
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </div>
-          ) : null}
           <div className="overflow-x-auto" ref={scrollAreaRef}>
             <svg
               aria-label="Albero della pratica"

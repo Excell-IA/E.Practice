@@ -126,6 +126,64 @@
             }
           }
         }
+      },
+      "post": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Create User",
+        "description": "Crea un utente studio. In V0 lo stato viene sempre forzato ad attivo.",
+        "operationId": "create_user_api_users_post",
+        "parameters": [
+          {
+            "name": "X-User-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/users/{user_id}": {
@@ -168,6 +226,57 @@
                 }
               }
             }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Delete User",
+        "description": "Elimina un utente solo se non ha assegnazioni operative aperte.",
+        "operationId": "delete_user_api_users__user_id__delete",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "User Id"
+            }
+          },
+          {
+            "name": "X-User-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-User-Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
           },
           "422": {
             "description": "Validation Error",
@@ -2617,7 +2726,8 @@
                     "event",
                     "note",
                     "attachment",
-                    "client"
+                    "client",
+                    "user"
                   ],
                   "type": "string"
                 },
@@ -2805,7 +2915,8 @@
               "event",
               "note",
               "attachment",
-              "client"
+              "client",
+              "user"
             ],
             "title": "Entity Type"
           },
@@ -2892,7 +3003,8 @@
               "event",
               "note",
               "attachment",
-              "client"
+              "client",
+              "user"
             ],
             "title": "Entity Type"
           },
@@ -6348,6 +6460,61 @@
           "created_at"
         ],
         "title": "User"
+      },
+      "UserCreate": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "nome": {
+            "type": "string",
+            "title": "Nome"
+          },
+          "cognome": {
+            "type": "string",
+            "title": "Cognome"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "titolare",
+              "senior",
+              "junior",
+              "esterno"
+            ],
+            "title": "Role"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "attivo",
+              "sospeso",
+              "disattivo"
+            ],
+            "title": "Status",
+            "default": "attivo"
+          },
+          "avatar_color": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avatar Color"
+          }
+        },
+        "type": "object",
+        "required": [
+          "email",
+          "nome",
+          "cognome",
+          "role"
+        ],
+        "title": "UserCreate"
       },
       "UserMiniSummary": {
         "properties": {

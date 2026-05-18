@@ -6,6 +6,7 @@ import { CheckCircle2, Mail, MessageSquareText, PhoneCall, PlayCircle, TriangleA
 import { useMemo, useState, type ReactNode } from "react";
 
 import { Badge } from "@/components/ui/badge";
+import { EventComposer } from "@/components/practice/EventComposer";
 import { useDemoStore, type DemoNote } from "@/lib/demo-state";
 import { phaseStatusLabel } from "@/lib/phase-labels";
 import type { PracticeEvent, PracticePhase, User } from "@/lib/types";
@@ -169,8 +170,11 @@ export function TabTimeline({ events, onRequestTreeSelect, onSwitchTab, phases }
     }
   }
 
+  const currentPhase = phases.find((phase) => phase.status === "in_progress") ?? phases[0] ?? null;
+
   return (
     <section className="flex min-h-0 flex-1 flex-col rounded-2xl border border-border bg-surface-low p-5">
+      <EventComposer className="mb-5 shrink-0" currentPhase={currentPhase} phases={phases} />
       <div className="mb-5 flex shrink-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
