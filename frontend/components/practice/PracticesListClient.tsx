@@ -3,7 +3,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
-import { ChevronDown, FileText, Plus, Search, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronDown, FileText, Filter, Plus, Search, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -18,9 +18,9 @@ import { useDemoStore } from "@/lib/demo-state";
 import { mapApiPracticeToDirectoryPractice } from "@/lib/mappers/practice-list";
 import { cn } from "@/lib/utils";
 
+type SortKey = "code" | "title" | "clientName" | "category" | "responsible" | "dueDate" | "status" | "progress";
+type SortDirection = "asc" | "desc";
 type ColumnFilterKey = "status" | "category" | "responsible" | "client";
-
-const ALL_VALUE = "__all__";
 
 function statusLabel(status: DirectoryPractice["status"]) {
   if (status === "aperta") return "Aperta";
@@ -49,14 +49,25 @@ function formatFileSize(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-type ColumnFilterDropdownProps = {
+type ColumnHeaderProps = {
   label: string;
-  options: { value: string; label: string }[];
-  value: string;
-  onChange: (value: string) => void;
+  sortKey?: SortKey;
+  currentSort: { key: SortKey; direction: SortDirection } | null;
+  onSort?: (key: SortKey) => void;
+  filterOptions?: { value: string; label: string }[];
+  selectedValues?: string[];
+  onFilterChange?: (values: string[]) => void;
 };
 
-function ColumnFilterDropdown({ label, options, value, onChange }: ColumnFilterDropdownProps) {
+function ColumnHeader({
+  label,
+  sortKey,
+  currentSort,
+  onSort,
+  filterOptions,
+  selectedValues,
+  onFilterChange,
+}: ColumnHeaderProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement | null>(null);
 
@@ -69,59 +80,92 @@ function ColumnFilterDropdown({ label, options, value, onChange }: ColumnFilterD
     return () => document.removeEventListener("mousedown", onDocClick);
   }, [open]);
 
-  const active = value !== ALL_VALUE;
-  const currentLabel = active ? options.find((opt) => opt.value === value)?.label ?? label : label;
+  const filterActive = (selectedValues?.length ?? 0) > 0;
+  const isSorted = sortKey != null && currentSort?.key === sortKey;
+  const SortIcon = isSorted && currentSort.direction === "desc" ? ArrowDown : ArrowUp;
+
+  const handleTitleClick = () => {
+    if (sortKey && onSort) onSort(sortKey);
+  };
+
+  const toggleFilterValue = (value: string) => {
+    if (!onFilterChange) return;
+    const set = new Set(selectedValues ?? []);
+    if (set.has(value)) set.delete(value);
+    else set.add(value);
+    onFilterChange(Array.from(set));
+  };
 
   return (
-    <div className="relative inline-block" ref={ref}>
+    <div className="relative inline-flex items-center gap-1" ref={ref}>
       <button
-        aria-label={`Filtra per ${label}`}
         className={cn(
-          "inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-left transition-colors",
-          "font-display text-[11px] uppercase tracking-[0.14em]",
-          active ? "bg-electric/15 text-electric" : "text-muted hover:text-foreground",
+          "inline-flex items-center gap-1 rounded px-1 py-0.5 text-left transition-colors",
+          "font-display text-[11px] uppercase tracking-[0.14em] text-muted",
+          sortKey && "hover:text-foreground cursor-pointer",
+          isSorted && "text-foreground",
         )}
-        onClick={() => setOpen((current) => !current)}
+        disabled={!sortKey}
+        onClick={handleTitleClick}
         type="button"
       >
-        <span className="truncate">{currentLabel}</span>
-        <ChevronDown className="h-3 w-3 shrink-0" />
+        <span className="whitespace-nowrap">{label}</span>
+        {isSorted ? <SortIcon className="h-3 w-3 shrink-0" /> : null}
       </button>
-      {open ? (
-        <div className="absolute left-0 top-full z-30 mt-1 min-w-[180px] overflow-hidden rounded-xl border border-border bg-surface-container shadow-lg">
-          <ul className="max-h-72 overflow-y-auto py-1 text-xs normal-case tracking-normal">
-            <li>
+      {filterOptions ? (
+        <button
+          aria-label={`Filtra per ${label}`}
+          className={cn(
+            "inline-flex h-5 w-5 items-center justify-center rounded transition-colors",
+            filterActive ? "text-electric" : "text-muted hover:text-foreground",
+          )}
+          onClick={() => setOpen((current) => !current)}
+          title={filterActive ? `Filtro attivo (${selectedValues?.length})` : "Apri filtro"}
+          type="button"
+        >
+          {filterActive ? (
+            <span className="relative inline-flex h-3 w-3 items-center justify-center">
+              <Filter className="h-3 w-3 fill-electric" />
+              <span className="absolute -right-1 -top-1 inline-flex h-2.5 w-2.5 items-center justify-center rounded-full bg-electric font-display text-[8px] text-[var(--on-primary)]">
+                {selectedValues?.length}
+              </span>
+            </span>
+          ) : (
+            <ChevronDown className="h-3 w-3" />
+          )}
+        </button>
+      ) : null}
+      {open && filterOptions ? (
+        <div className="absolute left-0 top-full z-30 mt-1 min-w-[200px] overflow-hidden rounded-xl border border-border bg-surface-container shadow-lg">
+          <div className="flex items-center justify-between border-b border-border px-3 py-2 text-xs normal-case tracking-normal">
+            <span className="font-label font-semibold text-muted">Filtra {label.toLowerCase()}</span>
+            {filterActive ? (
               <button
-                className={cn(
-                  "block w-full px-3 py-1.5 text-left transition-colors hover:bg-surface-high",
-                  value === ALL_VALUE && "bg-surface-high text-electric",
-                )}
-                onClick={() => {
-                  onChange(ALL_VALUE);
-                  setOpen(false);
-                }}
+                className="text-xs text-electric hover:underline"
+                onClick={() => onFilterChange?.([])}
                 type="button"
               >
-                Tutti
+                Pulisci
               </button>
-            </li>
-            {options.map((opt) => (
-              <li key={opt.value}>
-                <button
-                  className={cn(
-                    "block w-full px-3 py-1.5 text-left transition-colors hover:bg-surface-high",
-                    value === opt.value && "bg-surface-high text-electric",
-                  )}
-                  onClick={() => {
-                    onChange(opt.value);
-                    setOpen(false);
-                  }}
-                  type="button"
-                >
-                  {opt.label}
-                </button>
-              </li>
-            ))}
+            ) : null}
+          </div>
+          <ul className="max-h-72 overflow-y-auto py-1 text-xs normal-case tracking-normal">
+            {filterOptions.map((opt) => {
+              const checked = selectedValues?.includes(opt.value) ?? false;
+              return (
+                <li key={opt.value}>
+                  <label className="flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 transition-colors hover:bg-surface-high">
+                    <input
+                      checked={checked}
+                      className="h-3.5 w-3.5 rounded border-border accent-electric"
+                      onChange={() => toggleFilterValue(opt.value)}
+                      type="checkbox"
+                    />
+                    <span className="flex-1">{opt.label}</span>
+                  </label>
+                </li>
+              );
+            })}
           </ul>
         </div>
       ) : null}
@@ -134,11 +178,15 @@ export function PracticesListClient() {
   const queryClient = useQueryClient();
   const activeUser = useDemoStore((state) => state.activeUser);
   const [query, setQuery] = useState("");
-  const [columnFilters, setColumnFilters] = useState<Record<ColumnFilterKey, string>>({
-    category: ALL_VALUE,
-    client: ALL_VALUE,
-    responsible: ALL_VALUE,
-    status: ALL_VALUE,
+  const [columnFilters, setColumnFilters] = useState<Record<ColumnFilterKey, string[]>>({
+    category: [],
+    client: [],
+    responsible: [],
+    status: [],
+  });
+  const [sort, setSort] = useState<{ key: SortKey; direction: SortDirection } | null>({
+    key: "dueDate",
+    direction: "desc",
   });
   const [attachmentsPractice, setAttachmentsPractice] = useState<DirectoryPractice | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -186,24 +234,61 @@ export function PracticesListClient() {
   }, [sourcePractices]);
 
   function matchesColumnFilters(practice: DirectoryPractice) {
-    if (columnFilters.status !== ALL_VALUE && practice.status !== columnFilters.status) return false;
-    if (columnFilters.category !== ALL_VALUE && practice.category !== columnFilters.category) return false;
-    if (columnFilters.responsible !== ALL_VALUE && practice.responsible.name !== columnFilters.responsible) return false;
-    if (columnFilters.client !== ALL_VALUE && practice.clientName !== columnFilters.client) return false;
+    if (columnFilters.status.length && !columnFilters.status.includes(practice.status)) return false;
+    if (columnFilters.category.length && !columnFilters.category.includes(practice.category)) return false;
+    if (
+      columnFilters.responsible.length &&
+      !columnFilters.responsible.includes(practice.responsible.name)
+    )
+      return false;
+    if (columnFilters.client.length && !columnFilters.client.includes(practice.clientName)) return false;
     return true;
+  }
+
+  function compareForSort(a: DirectoryPractice, b: DirectoryPractice, key: SortKey): number {
+    switch (key) {
+      case "code":
+        return a.code.localeCompare(b.code, "it");
+      case "title":
+        return a.title.localeCompare(b.title, "it");
+      case "clientName":
+        return a.clientName.localeCompare(b.clientName, "it");
+      case "category":
+        return a.category.localeCompare(b.category, "it");
+      case "responsible":
+        return a.responsible.name.localeCompare(b.responsible.name, "it");
+      case "dueDate":
+        return a.dueDate.localeCompare(b.dueDate);
+      case "status":
+        return statusLabel(a.status).localeCompare(statusLabel(b.status), "it");
+      case "progress":
+        return a.progress - b.progress;
+    }
   }
 
   const practices = useMemo(() => {
     const needle = query.trim().toLowerCase();
-    return sourcePractices.filter((practice) => {
+    const filtered = sourcePractices.filter((practice) => {
       const text = `${practice.code} ${practice.title} ${practice.clientName}`.toLowerCase();
       return matchesColumnFilters(practice) && (!needle || text.includes(needle));
     });
+    if (sort) {
+      const direction = sort.direction === "asc" ? 1 : -1;
+      filtered.sort((a, b) => direction * compareForSort(a, b, sort.key));
+    }
+    return filtered;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [columnFilters, query, sourcePractices]);
+  }, [columnFilters, query, sort, sourcePractices]);
 
-  function setFilter(key: ColumnFilterKey, value: string) {
-    setColumnFilters((current) => ({ ...current, [key]: value }));
+  function toggleSort(key: SortKey) {
+    setSort((current) => {
+      if (current?.key !== key) return { key, direction: "asc" };
+      return { key, direction: current.direction === "asc" ? "desc" : "asc" };
+    });
+  }
+
+  function setFilter(key: ColumnFilterKey, values: string[]) {
+    setColumnFilters((current) => ({ ...current, [key]: values }));
   }
 
   async function removePractice(practice: DirectoryPractice) {
@@ -268,43 +353,63 @@ export function PracticesListClient() {
           <table className="w-full min-w-[1080px] border-collapse text-sm">
             <thead className="bg-surface-container text-left font-display text-[11px] uppercase tracking-[0.14em] text-muted">
               <tr>
-                <th className="px-4 py-3">Numero</th>
-                <th className="px-4 py-3">Titolo</th>
-                <th className="px-2 py-3">
-                  <ColumnFilterDropdown
+                <th className="px-4 py-3">
+                  <ColumnHeader currentSort={sort} label="Numero" onSort={toggleSort} sortKey="code" />
+                </th>
+                <th className="px-4 py-3">
+                  <ColumnHeader currentSort={sort} label="Titolo" onSort={toggleSort} sortKey="title" />
+                </th>
+                <th className="px-3 py-3">
+                  <ColumnHeader
+                    currentSort={sort}
+                    filterOptions={clientOptions}
                     label="Cliente"
-                    onChange={(value) => setFilter("client", value)}
-                    options={clientOptions}
-                    value={columnFilters.client}
+                    onFilterChange={(values) => setFilter("client", values)}
+                    onSort={toggleSort}
+                    selectedValues={columnFilters.client}
+                    sortKey="clientName"
                   />
                 </th>
-                <th className="px-2 py-3">
-                  <ColumnFilterDropdown
+                <th className="px-3 py-3">
+                  <ColumnHeader
+                    currentSort={sort}
+                    filterOptions={categoryOptions}
                     label="Categoria"
-                    onChange={(value) => setFilter("category", value)}
-                    options={categoryOptions}
-                    value={columnFilters.category}
+                    onFilterChange={(values) => setFilter("category", values)}
+                    onSort={toggleSort}
+                    selectedValues={columnFilters.category}
+                    sortKey="category"
                   />
                 </th>
-                <th className="px-2 py-3">
-                  <ColumnFilterDropdown
+                <th className="px-3 py-3">
+                  <ColumnHeader
+                    currentSort={sort}
+                    filterOptions={responsibleOptions}
                     label="Responsabile"
-                    onChange={(value) => setFilter("responsible", value)}
-                    options={responsibleOptions}
-                    value={columnFilters.responsible}
+                    onFilterChange={(values) => setFilter("responsible", values)}
+                    onSort={toggleSort}
+                    selectedValues={columnFilters.responsible}
+                    sortKey="responsible"
                   />
                 </th>
-                <th className="px-4 py-3">Scadenza</th>
-                <th className="px-2 py-3">
-                  <ColumnFilterDropdown
+                <th className="px-4 py-3">
+                  <ColumnHeader currentSort={sort} label="Scadenza" onSort={toggleSort} sortKey="dueDate" />
+                </th>
+                <th className="px-3 py-3">
+                  <ColumnHeader
+                    currentSort={sort}
+                    filterOptions={statusOptions}
                     label="Stato"
-                    onChange={(value) => setFilter("status", value)}
-                    options={statusOptions}
-                    value={columnFilters.status}
+                    onFilterChange={(values) => setFilter("status", values)}
+                    onSort={toggleSort}
+                    selectedValues={columnFilters.status}
+                    sortKey="status"
                   />
                 </th>
                 <th className="px-4 py-3">Documenti</th>
-                <th className="px-4 py-3">Progress</th>
+                <th className="px-4 py-3">
+                  <ColumnHeader currentSort={sort} label="Progress" onSort={toggleSort} sortKey="progress" />
+                </th>
                 <th className="px-4 py-3 text-right">Azioni</th>
               </tr>
             </thead>
