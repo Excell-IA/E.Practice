@@ -42,10 +42,10 @@ const navItems = [
   { label: "Nuovo documento", icon: FileText, section: "Modulo", href: "/pratiche/importa" },
   { label: "Agenda", icon: CalendarDays, section: "Modulo" },
   { label: "Scadenze", icon: Clock3, section: "Modulo", badge: 7 },
-  { label: "Tipologie pratica", icon: FolderKanban, section: "Studio", href: "/tipologie" },
-  { label: "Utenti", icon: UserSquare2, section: "Studio", href: "/utenti" },
-  { label: "Connessione ERP", icon: Plug, section: "Studio" },
-  { label: "Configurazione", icon: Settings, section: "Studio" },
+  { label: "Tipologie pratica", icon: FolderKanban, section: "Configurazioni", href: "/tipologie" },
+  { label: "Utenti", icon: UserSquare2, section: "Configurazioni", href: "/utenti" },
+  { label: "Connessione ERP", icon: Plug, section: "Configurazioni" },
+  { label: "Opzioni", icon: Settings, section: "Configurazioni" },
 ];
 
 function LogoMark() {
@@ -143,11 +143,13 @@ export function EWorkShell({ children, code }: EWorkShellProps) {
         </div>
 
         <nav className="flex-1 space-y-6">
-          {["Modulo", "Studio"].map((section) => (
+          {["Modulo", "Configurazioni"].map((section) => (
             <div className="space-y-1" key={section}>
-              <p className="px-3 pb-1 font-display text-[10px] font-medium uppercase tracking-[0.16em] text-muted">
-                {section}
-              </p>
+              {section === "Modulo" ? null : (
+                <p className="px-3 pb-1 font-display text-[10px] font-medium uppercase tracking-[0.16em] text-muted">
+                  {section}
+                </p>
+              )}
               {navItems
                 .filter((item) => item.section === section)
                 .map((item) => {
