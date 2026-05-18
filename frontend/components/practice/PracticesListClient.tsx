@@ -456,7 +456,7 @@ export function PracticesListClient() {
                 <th className="px-4 py-3">
                   <ColumnHeader currentSort={sort} label="Progress" onSort={toggleSort} sortKey="progress" />
                 </th>
-                <th className="px-4 py-3 text-right">Azioni</th>
+                <th className="pl-4 pr-6 py-3 text-right">Azioni</th>
               </tr>
             </thead>
             <tbody>
@@ -554,8 +554,9 @@ export function PracticesListClient() {
                         </span>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-right">
-                      <button
+                    <td className="pl-4 pr-6 py-3">
+                      <div className="flex justify-end">
+                        <button
                         aria-label={`Elimina pratica ${practice.code}`}
                         className={cn(
                           "inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted transition-colors hover:bg-danger/10 hover:text-danger",
@@ -571,6 +572,7 @@ export function PracticesListClient() {
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
+                      </div>
                     </td>
                   </tr>
                 );
