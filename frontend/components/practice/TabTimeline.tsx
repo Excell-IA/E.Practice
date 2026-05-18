@@ -1,12 +1,11 @@
 "use client";
 
-import { format, isAfter, isSameDay, startOfDay } from "date-fns";
+import { format } from "date-fns";
 import { it } from "date-fns/locale";
 import { CheckCircle2, Mail, MessageSquareText, PhoneCall, PlayCircle, TriangleAlert } from "lucide-react";
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 
 import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
 import { useDemoStore, type DemoNote } from "@/lib/demo-state";
 import { phaseStatusLabel } from "@/lib/phase-labels";
 import type { PracticeEvent, PracticePhase, User } from "@/lib/types";
@@ -20,21 +19,21 @@ type TabTimelineProps = {
 };
 
 type TimelineFilter = "all" | "phases" | "events" | "notes";
+type BadgeVariant = "default" | "info" | "success" | "warning" | "danger";
 
 type TimelineEntry = {
   id: string;
   kind: "phase" | "event" | "note";
-  date: string;
+  typeLabel: string;
   title: string;
   subtitle: string;
+  date: string;
+  statusLabel?: string;
+  statusVariant?: BadgeVariant;
   author?: User;
   icon: ReactNode;
   iconTitle: string;
-  colorClass: string;
-  badgeLabel: string;
-  badgeVariant: "default" | "info" | "success" | "warning" | "danger";
-  phaseOrder?: number;
-  phaseStatus?: PracticePhase["status"];
+  badgeVariant: BadgeVariant;
 };
 
 const filters: { label: string; title: string; value: TimelineFilter }[] = [
@@ -51,16 +50,37 @@ function avatarClass(userId?: string) {
   return "bg-[#6b7280]";
 }
 
-function eventIcon(event: PracticeEvent) {
-  if (event.type === "call") return { icon: <PhoneCall className="h-4 w-4" />, title: "Telefonata" };
-  if (event.type === "mail") return { icon: <Mail className="h-4 w-4" />, title: "Email" };
-  return { icon: <TriangleAlert className="h-4 w-4" />, title: "Avviso" };
+function eventMeta(event: PracticeEvent) {
+  if (event.type === "call") {
+    return {
+      badgeVariant: "warning" as const,
+      icon: <PhoneCall className="h-4 w-4" />,
+      iconTitle: "Telefonata",
+      typeLabel: "Evento - Telefonata",
+    };
+  }
+  if (event.type === "mail") {
+    return {
+      badgeVariant: "info" as const,
+      icon: <Mail className="h-4 w-4" />,
+      iconTitle: "Email",
+      typeLabel: "Evento - Email",
+    };
+  }
+  return {
+    badgeVariant: "danger" as const,
+    icon: <TriangleAlert className="h-4 w-4" />,
+    iconTitle: "Avviso",
+    typeLabel: "Evento - Avviso",
+  };
 }
 
-function eventColor(event: PracticeEvent) {
-  if (event.type === "call") return "border-l-warning";
-  if (event.type === "mail") return "border-l-purple-400";
-  return "border-l-danger";
+function phaseStatusVariant(status: PracticePhase["status"]): BadgeVariant {
+  if (status === "done") return "success";
+  if (status === "in_progress") return "info";
+  if (status === "blocked") return "danger";
+  if (status === "skipped") return "default";
+  return "warning";
 }
 
 function noteDate(note: DemoNote) {
@@ -70,49 +90,46 @@ function noteDate(note: DemoNote) {
 
 function buildEntries(phases: PracticePhase[], events: PracticeEvent[], notes: DemoNote[]) {
   const phaseEntries = phases.map((phase): TimelineEntry => ({
-    colorClass: phase.status === "done" ? "border-l-success" : "border-l-electric",
-    badgeLabel: "FASE",
     badgeVariant: "info",
     date: phase.plannedDate || phase.dueDate,
     icon: phase.status === "done" ? <CheckCircle2 className="h-4 w-4" /> : <PlayCircle className="h-4 w-4" />,
     iconTitle: phase.status === "done" ? "Fase completata" : "Fase del template",
     id: phase.id,
     kind: "phase",
-    phaseOrder: phase.order,
-    phaseStatus: phase.status,
+    statusLabel: phaseStatusLabel[phase.status],
+    statusVariant: phaseStatusVariant(phase.status),
     subtitle: `Fase ${phase.order} del template`,
     title: phase.title,
+    typeLabel: "Fase",
   }));
 
   const eventEntries = events.map((event): TimelineEntry => {
-    const eventIconData = eventIcon(event);
+    const meta = eventMeta(event);
     return {
       author: event.author,
-      badgeLabel: eventIconData.title.toUpperCase(),
-      badgeVariant: event.type === "mail" ? "info" : event.type === "call" ? "warning" : "danger",
-      colorClass: eventColor(event),
+      badgeVariant: meta.badgeVariant,
       date: event.occurredAt,
-      icon: eventIconData.icon,
-      iconTitle: eventIconData.title,
+      icon: meta.icon,
+      iconTitle: meta.iconTitle,
       id: event.id,
       kind: "event",
       subtitle: event.description,
       title: event.title,
+      typeLabel: meta.typeLabel,
     };
   });
 
   const noteEntries = notes.map((note): TimelineEntry => ({
     author: note.author,
-    badgeLabel: "NOTA",
     badgeVariant: "default",
-    colorClass: "border-l-purple-400",
     date: noteDate(note),
     icon: <MessageSquareText className="h-4 w-4" />,
     iconTitle: "Nota",
     id: note.id,
     kind: "note",
-    subtitle: note.body.length > 80 ? `${note.body.slice(0, 80)}...` : note.body,
+    subtitle: note.body.length > 90 ? `${note.body.slice(0, 90)}...` : note.body,
     title: `Nota da ${note.author.name}`,
+    typeLabel: "Nota",
   }));
 
   return [...phaseEntries, ...eventEntries, ...noteEntries];
@@ -123,6 +140,10 @@ function matchesFilter(entry: TimelineEntry, filter: TimelineFilter) {
   if (filter === "phases") return entry.kind === "phase";
   if (filter === "events") return entry.kind === "event";
   return entry.kind === "note";
+}
+
+function formatDate(date: string) {
+  return format(new Date(date), "dd/MM/yyyy", { locale: it });
 }
 
 export function TabTimeline({ events, onRequestTreeSelect, onSwitchTab, phases }: TabTimelineProps) {
@@ -137,36 +158,15 @@ export function TabTimeline({ events, onRequestTreeSelect, onSwitchTab, phases }
     [entries, filter],
   );
 
-  const todayDate = startOfDay(new Date());
-
-  // Anchor: l'entry più recente fino a oggi compreso (default focus)
-  const anchorId = useMemo(() => {
-    let anchor: TimelineEntry | null = null;
-    for (const entry of visibleEntries) {
-      const d = new Date(entry.date);
-      if (!isAfter(startOfDay(d), todayDate)) {
-        anchor = entry;
-      }
+  function handleEntryClick(entry: TimelineEntry) {
+    if (entry.kind === "note") {
+      onSwitchTab?.("note");
+      window.setTimeout(() => document.getElementById(`note-${entry.id}`)?.scrollIntoView({ block: "center" }), 120);
+      return;
     }
-    return anchor?.id ?? null;
-  }, [visibleEntries, todayDate]);
-
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const anchorRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!scrollContainerRef.current || !anchorRef.current) return;
-    const container = scrollContainerRef.current;
-    const anchor = anchorRef.current;
-    const offset = anchor.offsetTop - container.offsetTop - 12;
-    container.scrollTop = offset > 0 ? offset : 0;
-  }, [anchorId, filter]);
-
-  function cardClass(entry: TimelineEntry) {
-    const date = startOfDay(new Date(entry.date));
-    if (isSameDay(date, todayDate)) return "border-electric/60 bg-electric/10";
-    if (isAfter(date, todayDate)) return "border-dashed border-muted/40 bg-surface-high";
-    return "bg-surface-container";
+    if (entry.kind === "phase" || entry.kind === "event") {
+      onRequestTreeSelect?.(entry.kind, entry.id);
+    }
   }
 
   return (
@@ -199,79 +199,68 @@ export function TabTimeline({ events, onRequestTreeSelect, onSwitchTab, phases }
       </div>
 
       {visibleEntries.length ? (
-        <div className="space-y-2 lg:flex-1 lg:overflow-y-auto lg:pr-1" ref={scrollContainerRef}>
-          {visibleEntries.map((entry) => (
-            <div key={entry.id} ref={entry.id === anchorId ? anchorRef : undefined}>
-              <Card
-                className={cn(
-                  "cursor-pointer border-l-4 px-3 py-2 transition-colors hover:bg-surface-high",
-                  cardClass(entry),
-                  entry.colorClass,
-                )}
-                onClick={() => {
-                  if (entry.kind === "note") {
-                    onSwitchTab?.("note");
-                    window.setTimeout(() => document.getElementById(`note-${entry.id}`)?.scrollIntoView({ block: "center" }), 120);
-                  } else if (onRequestTreeSelect) {
-                    onRequestTreeSelect(entry.kind, entry.id);
-                  } else {
-                    onSwitchTab?.("albero");
-                  }
-                }}
-                role="button"
-                tabIndex={0}
-              >
-                <div className="flex min-w-0 items-center gap-2 overflow-hidden">
-                  <div
-                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-border bg-surface-low text-electric"
-                    title={entry.iconTitle}
-                  >
-                    {entry.icon}
-                  </div>
-                  <Badge className="shrink-0" variant={entry.badgeVariant}>
-                    {entry.badgeLabel}
-                  </Badge>
-                  <span className="min-w-0 truncate font-label text-sm font-semibold text-foreground">
-                    {entry.title}
-                  </span>
-                  <span aria-hidden="true" className="shrink-0 text-xs text-foreground-variant">·</span>
-                  <span className="shrink-0 whitespace-nowrap text-xs font-semibold text-foreground-variant">
-                    {format(new Date(entry.date), "dd MMM · HH:mm", { locale: it })}
-                  </span>
-                  {entry.author ? (
-                    <>
-                      <span aria-hidden="true" className="hidden shrink-0 text-xs text-foreground-variant sm:inline">·</span>
-                      <span className="hidden shrink-0 items-center gap-1.5 sm:flex">
+        <div className="overflow-x-auto rounded-2xl border border-border bg-surface-container">
+          <table className="w-full min-w-[760px] border-collapse text-sm">
+            <thead className="bg-surface-high text-left font-display text-[11px] uppercase tracking-[0.14em] text-muted">
+              <tr>
+                <th className="px-4 py-3">Tipo</th>
+                <th className="px-4 py-3">Titolo</th>
+                <th className="px-4 py-3">Data</th>
+                <th className="px-4 py-3">Stato</th>
+                <th className="px-4 py-3">Autore</th>
+              </tr>
+            </thead>
+            <tbody>
+              {visibleEntries.map((entry) => (
+                <tr
+                  className="cursor-pointer border-t border-border transition-colors hover:bg-surface-high"
+                  key={entry.id}
+                  onClick={() => handleEntryClick(entry)}
+                  role="button"
+                  tabIndex={0}
+                >
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border bg-surface-low text-electric"
+                        title={entry.iconTitle}
+                      >
+                        {entry.icon}
+                      </span>
+                      <Badge variant={entry.badgeVariant}>{entry.typeLabel}</Badge>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3">
+                    <p className="font-semibold text-foreground">{entry.title}</p>
+                    {entry.subtitle ? <p className="mt-1 line-clamp-1 text-xs text-muted">{entry.subtitle}</p> : null}
+                  </td>
+                  <td className="whitespace-nowrap px-4 py-3 font-label text-foreground-variant">
+                    {formatDate(entry.date)}
+                  </td>
+                  <td className="px-4 py-3">
+                    {entry.statusLabel && entry.statusVariant ? (
+                      <Badge variant={entry.statusVariant}>{entry.statusLabel}</Badge>
+                    ) : null}
+                  </td>
+                  <td className="px-4 py-3">
+                    {entry.author ? (
+                      <div className="flex items-center gap-2">
                         <span
                           className={cn(
-                            "flex h-5 w-5 items-center justify-center rounded-full font-display text-[9px] font-bold text-white",
+                            "flex h-7 w-7 items-center justify-center rounded-full font-display text-[10px] font-bold text-white",
                             avatarClass(entry.author.id),
                           )}
                         >
                           {entry.author.initials}
                         </span>
-                        <span className="whitespace-nowrap text-xs text-foreground-variant">{entry.author.name}</span>
-                      </span>
-                    </>
-                  ) : null}
-                  {entry.kind === "phase" && entry.phaseStatus ? (
-                    <>
-                      <span aria-hidden="true" className="hidden shrink-0 text-xs text-foreground-variant sm:inline">·</span>
-                      <span className="hidden shrink-0 whitespace-nowrap text-xs text-muted sm:inline">
-                        Fase {entry.phaseOrder} · {phaseStatusLabel[entry.phaseStatus]}
-                      </span>
-                    </>
-                  ) : null}
-                  {entry.subtitle ? (
-                    <>
-                      <span aria-hidden="true" className="hidden shrink-0 text-xs text-foreground-variant md:inline">·</span>
-                      <span className="hidden min-w-0 flex-1 truncate text-xs text-muted md:inline">{entry.subtitle}</span>
-                    </>
-                  ) : null}
-                </div>
-              </Card>
-            </div>
-          ))}
+                        <span className="whitespace-nowrap text-foreground-variant">{entry.author.name}</span>
+                      </div>
+                    ) : null}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       ) : (
         <div className="rounded-2xl border border-dashed border-border bg-surface-container p-10 text-center text-sm text-muted">
