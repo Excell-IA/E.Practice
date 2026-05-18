@@ -134,10 +134,7 @@ export function ImportPracticeClient() {
   return (
     <main className="min-h-[calc(100vh-120px)] bg-surface">
       <header className="border-b border-border bg-surface-low/80 px-6 py-[14px] md:px-10">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <h1 className="font-display text-3xl font-semibold text-foreground md:text-4xl">
-            Nuovo documento
-          </h1>
+        <div className="flex flex-wrap items-center gap-3">
           <HelpButton title="Nuovo documento" subtitle="Carica file e crea o aggiorna una pratica">
             <section>
               <p>Trascina o seleziona uno o piu file. Una volta caricati scegli cosa farne:</p>
@@ -153,6 +150,9 @@ export function ImportPracticeClient() {
               </p>
             </section>
           </HelpButton>
+          <h1 className="font-display text-3xl font-semibold text-foreground md:text-4xl">
+            Nuovo documento
+          </h1>
         </div>
       </header>
 
@@ -214,7 +214,7 @@ export function ImportPracticeClient() {
                     <Link href={newPracticeHref}>Crea una nuova pratica con questi allegati</Link>
                   </Button>
                   <Button
-                    className="w-full !bg-none !bg-surface-high !text-foreground !shadow-none hover:!bg-surface-highest"
+                    className="w-full !bg-electric/15 !text-electric !shadow-none border border-electric/40 hover:!bg-electric/25"
                     onClick={() => setAttachDialogOpen(true)}
                     type="button"
                   >
