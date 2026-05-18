@@ -151,6 +151,25 @@ export function createClient(input: components["schemas"]["ClientCreate"], userI
   });
 }
 
+export function updateClient(
+  clientId: string,
+  input: components["schemas"]["ClientUpdate"],
+  userId: string,
+) {
+  return apiFetch<ApiClient>(`/api/clients/${clientId}`, {
+    body: JSON.stringify(input),
+    method: "PATCH",
+    userId,
+  });
+}
+
+export function deleteClient(clientId: string, userId: string) {
+  return apiFetch<void>(`/api/clients/${clientId}`, {
+    method: "DELETE",
+    userId,
+  });
+}
+
 export function createPractice(input: components["schemas"]["CreatePracticeRequest"], userId: string) {
   return apiFetch<ApiCreatePracticeResponse>("/api/practices", {
     body: JSON.stringify(input),
