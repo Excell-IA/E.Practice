@@ -1,13 +1,14 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Download, FileText, UploadCloud, X } from "lucide-react";
+import { Download, FileText, Trash2, UploadCloud, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { isAfter, startOfDay } from "date-fns";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { attachAttachment, deleteAttachment, listAttachments, uploadAttachment, type ApiAttachment } from "@/lib/api";
 import { DEMO_USERS, useDemoStore } from "@/lib/demo-state";
 import type { Practice, PracticePhase } from "@/lib/types";
@@ -61,6 +62,7 @@ export function TabAllegati({ phases, practice }: TabAllegatiProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [attachmentToDelete, setAttachmentToDelete] = useState<ApiAttachment | null>(null);
   const activeUser = useDemoStore((state) => state.activeUser);
   const queryClient = useQueryClient();
   const attachmentsQuery = useQuery({
@@ -90,13 +92,18 @@ export function TabAllegati({ phases, practice }: TabAllegatiProps) {
     }
   }
 
-  async function removeAttachment(id: string, filename: string) {
-    if (!window.confirm(`Eliminare ${filename}?`)) return;
+  function askRemoveAttachment(att: ApiAttachment) {
+    setAttachmentToDelete(att);
+  }
+
+  async function confirmRemoveAttachment() {
+    if (!attachmentToDelete) return;
     setError(null);
     try {
-      await deleteAttachment(id, activeUser.id);
+      await deleteAttachment(attachmentToDelete.id, activeUser.id);
       await queryClient.invalidateQueries({ queryKey: ["attachments", practice.id] });
       await queryClient.invalidateQueries({ queryKey: ["practice-detail", practice.id] });
+      setAttachmentToDelete(null);
     } catch (err) {
       console.error("practice_attachment_delete_failed", err);
       setError(err instanceof Error ? err.message : "Eliminazione allegato non riuscita.");
@@ -234,7 +241,7 @@ export function TabAllegati({ phases, practice }: TabAllegatiProps) {
                       </Button>
                       <Button
                         aria-label={`Elimina ${attachment.filename}`}
-                        onClick={() => void removeAttachment(attachment.id, attachment.filename)}
+                        onClick={() => askRemoveAttachment(attachment)}
                         size="icon"
                         title="Elimina allegato"
                         type="button"
@@ -256,6 +263,33 @@ export function TabAllegati({ phases, practice }: TabAllegatiProps) {
           Nessun allegato collegato alla pratica.
         </p>
       ) : null}
+
+      <Sheet onOpenChange={(open) => !open && setAttachmentToDelete(null)} open={attachmentToDelete !== null}>
+        <SheetContent className="max-w-md">
+          <SheetHeader>
+            <SheetTitle>Eliminare allegato?</SheetTitle>
+            <SheetDescription>
+              {attachmentToDelete
+                ? `Confermi l'eliminazione di "${attachmentToDelete.filename}"? L'azione e' irreversibile.`
+                : "Confermi l'eliminazione dell'allegato selezionato?"}
+            </SheetDescription>
+          </SheetHeader>
+          <div className="space-y-3">
+            <Button
+              className="w-full border border-danger/40 bg-danger/10 text-danger hover:bg-danger/15"
+              onClick={() => void confirmRemoveAttachment()}
+              type="button"
+              variant="outline"
+            >
+              <Trash2 className="h-4 w-4" />
+              Conferma eliminazione
+            </Button>
+            <Button className="w-full" onClick={() => setAttachmentToDelete(null)} type="button" variant="ghost">
+              Annulla
+            </Button>
+          </div>
+        </SheetContent>
+      </Sheet>
     </section>
   );
 }

@@ -6,6 +6,7 @@ import { FileText, Pencil, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useDemoStore, type DemoNote } from "@/lib/demo-state";
 import type { PracticePhase } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -83,6 +84,7 @@ export function TabNotes({ phases, focusNoteId, onFocusApplied }: TabNotesProps)
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingBody, setEditingBody] = useState("");
   const [editingDate, setEditingDate] = useState("");
+  const [noteToDelete, setNoteToDelete] = useState<DemoNote | null>(null);
   const activeUser = useDemoStore((state) => state.activeUser);
   const notes = useDemoStore((state) => state.notes);
   const applyAction = useDemoStore((state) => state.applyAction);
@@ -165,13 +167,17 @@ export function TabNotes({ phases, focusNoteId, onFocusApplied }: TabNotesProps)
     setEditingDate("");
   }
 
-  function deleteNote(noteId: string) {
-    const confirmed = window.confirm("Eliminare questa nota?");
-    if (!confirmed) return;
-    const updatedNotes = useDemoStore.getState().notes.filter((note) => note.id !== noteId);
+  function askDeleteNote(note: DemoNote) {
+    setNoteToDelete(note);
+  }
+
+  function confirmDeleteNote() {
+    if (!noteToDelete) return;
+    const updatedNotes = useDemoStore.getState().notes.filter((note) => note.id !== noteToDelete.id);
     useDemoStore.setState({ notes: updatedNotes });
     persistNotes(updatedNotes);
-    void deleteNoteOnApi(noteId, activeUser.id).catch(console.warn);
+    void deleteNoteOnApi(noteToDelete.id, activeUser.id).catch(console.warn);
+    setNoteToDelete(null);
   }
 
   return (
@@ -228,7 +234,7 @@ export function TabNotes({ phases, focusNoteId, onFocusApplied }: TabNotesProps)
                     <button
                       aria-label="Elimina nota"
                       className="rounded-lg p-1.5 text-muted transition-colors hover:bg-danger/10 hover:text-danger"
-                      onClick={() => deleteNote(note.id)}
+                      onClick={() => askDeleteNote(note)}
                       type="button"
                     >
                       <Trash2 className="h-4 w-4" />
@@ -305,6 +311,33 @@ export function TabNotes({ phases, focusNoteId, onFocusApplied }: TabNotesProps)
           Salva nota
         </Button>
       </aside>
+
+      <Sheet onOpenChange={(open) => !open && setNoteToDelete(null)} open={noteToDelete !== null}>
+        <SheetContent className="max-w-md">
+          <SheetHeader>
+            <SheetTitle>Eliminare nota?</SheetTitle>
+            <SheetDescription>
+              {noteToDelete
+                ? `Confermi l'eliminazione della nota di ${noteToDelete.author.name}? L'azione e' irreversibile.`
+                : "Confermi l'eliminazione della nota selezionata?"}
+            </SheetDescription>
+          </SheetHeader>
+          <div className="space-y-3">
+            <Button
+              className="w-full border border-danger/40 bg-danger/10 text-danger hover:bg-danger/15"
+              onClick={confirmDeleteNote}
+              type="button"
+              variant="outline"
+            >
+              <Trash2 className="h-4 w-4" />
+              Conferma eliminazione
+            </Button>
+            <Button className="w-full" onClick={() => setNoteToDelete(null)} type="button" variant="ghost">
+              Annulla
+            </Button>
+          </div>
+        </SheetContent>
+      </Sheet>
     </section>
   );
 }
