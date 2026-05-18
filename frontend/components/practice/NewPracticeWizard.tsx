@@ -115,7 +115,7 @@ export function NewPracticeWizard() {
   const initialClientId = searchParams.get("clientId");
   const [clientQuery, setClientQuery] = useState("");
   const [clientHits, setClientHits] = useState<ApiClientSearchHit[]>(fallbackClients);
-  const [selectedClientId, setSelectedClientId] = useState(initialClientId ?? fallbackClients[0]?.id ?? "");
+  const [selectedClientId, setSelectedClientId] = useState(initialClientId ?? "");
   const [clientError, setClientError] = useState(false);
   const [titleError, setTitleError] = useState(false);
   const [clientSheetOpen, setClientSheetOpen] = useState(false);
@@ -518,9 +518,11 @@ export function NewPracticeWizard() {
                   }}
                   value={selectedClientId}
                 >
-                  {clientHits.length === 0 ? (
-                    <option value="">Nessun cliente — usa &quot;+ Nuovo cliente&quot;</option>
-                  ) : null}
+                  <option value="">
+                    {clientHits.length === 0
+                      ? "Nessun cliente — usa \"+ Nuovo cliente\""
+                      : "— Seleziona un cliente —"}
+                  </option>
                   {clientHits.map((client) => (
                     <option key={client.id} value={client.id}>
                       {client.ragione_sociale}
