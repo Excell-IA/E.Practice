@@ -187,14 +187,26 @@ class PracticeService:
         )
         return CreatePracticeResponse(practice_id=practice_id, code=code, phase_ids=phase_ids)
 
-    async def progress_percentage(self, practice_id: UUID | str) -> int:
-        """Percentuale di fasi completate (esclude `skipped` dal denominatore)."""
+    async def progress_stats(self, practice_id: UUID | str) -> tuple[int, int, int]:
+        """Ritorna ``(closed, total, pct)`` calcolato dalle fasi della pratica.
+
+        ``closed`` = fasi con status ``completed`` o ``skipped``.
+        ``total`` = numero totale di fasi.
+        ``pct`` = round(100 * closed / total), 0 se nessuna fase.
+
+        Formula unica usata sia dal detail aggregato sia dalla list.
+        """
         phases = await self._phases.list(practice_id=UUID(str(practice_id)))
-        countable = [p for p in phases if p.status != "skipped"]
-        if not countable:
-            return 0
-        done = sum(1 for p in countable if p.status == "completed")
-        return round(100 * done / len(countable))
+        total = len(phases)
+        if total == 0:
+            return 0, 0, 0
+        closed = sum(1 for p in phases if p.status in ("completed", "skipped"))
+        return closed, total, round(100 * closed / total)
+
+    async def progress_percentage(self, practice_id: UUID | str) -> int:
+        """Percentuale di fasi chiuse (completed o skipped) sul totale."""
+        _, _, pct = await self.progress_stats(practice_id)
+        return pct
 
     async def recompute_status(
         self,

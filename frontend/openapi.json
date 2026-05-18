@@ -5262,6 +5262,16 @@
             "format": "date-time",
             "title": "Created At"
           },
+          "phases_closed": {
+            "type": "integer",
+            "title": "Phases Closed",
+            "default": 0
+          },
+          "phases_total": {
+            "type": "integer",
+            "title": "Phases Total",
+            "default": 0
+          },
           "progress_pct": {
             "type": "integer",
             "title": "Progress Pct",
@@ -5282,7 +5292,7 @@
           "created_at"
         ],
         "title": "PracticeListItem",
-        "description": "Practice arricchita con la percentuale di avanzamento calcolata."
+        "description": "Practice arricchita con i contatori di fasi e la percentuale calcolata.\n\n``phases_closed`` = fasi con status completed o skipped.\n``phases_total``  = numero totale di fasi.\n``progress_pct``  = round(100 * phases_closed / phases_total)."
       },
       "PracticePhase": {
         "properties": {

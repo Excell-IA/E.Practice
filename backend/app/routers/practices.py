@@ -107,8 +107,15 @@ class AttachmentEnriched(BaseModel):
 
 
 class PracticeListItem(Practice):
-    """Practice arricchita con la percentuale di avanzamento calcolata."""
+    """Practice arricchita con i contatori di fasi e la percentuale calcolata.
 
+    ``phases_closed`` = fasi con status completed o skipped.
+    ``phases_total``  = numero totale di fasi.
+    ``progress_pct``  = round(100 * phases_closed / phases_total).
+    """
+
+    phases_closed: int = 0
+    phases_total: int = 0
     progress_pct: int = 0
 
 
@@ -219,8 +226,15 @@ async def list_practices(
     svc = PracticeService(practice_repo, template_repo, phase_repo, ActivityService(activity_repo))
     enriched: list[PracticeListItem] = []
     for practice in paged:
-        progress = await svc.progress_percentage(practice.id)
-        enriched.append(PracticeListItem(**practice.model_dump(), progress_pct=progress))
+        closed, total, pct = await svc.progress_stats(practice.id)
+        enriched.append(
+            PracticeListItem(
+                **practice.model_dump(),
+                phases_closed=closed,
+                phases_total=total,
+                progress_pct=pct,
+            )
+        )
     return Page[PracticeListItem](
         items=enriched,
         total=len(items),

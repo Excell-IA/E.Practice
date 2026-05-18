@@ -1517,7 +1517,11 @@ export interface components {
         };
         /**
          * PracticeListItem
-         * @description Practice arricchita con la percentuale di avanzamento calcolata.
+         * @description Practice arricchita con i contatori di fasi e la percentuale calcolata.
+         *
+         *     ``phases_closed`` = fasi con status completed o skipped.
+         *     ``phases_total``  = numero totale di fasi.
+         *     ``progress_pct``  = round(100 * phases_closed / phases_total).
          */
         PracticeListItem: {
             /** Code */
@@ -1575,6 +1579,16 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+            /**
+             * Phases Closed
+             * @default 0
+             */
+            phases_closed: number;
+            /**
+             * Phases Total
+             * @default 0
+             */
+            phases_total: number;
             /**
              * Progress Pct
              * @default 0
