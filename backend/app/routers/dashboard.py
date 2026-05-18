@@ -195,7 +195,7 @@ async def get_dashboard(
     status_counter: Counter[str] = Counter(p.status for p in practices)
     counts_per_status = [
         StatusCount(status=s, count=status_counter.get(s, 0))
-        for s in ("aperta", "in_corso", "in_attesa", "sospesa", "chiusa", "archiviata")
+        for s in ("aperta", "in_attesa", "sospesa", "chiusa", "archiviata")
     ]
 
     in_ritardo = [p for p in open_practices if p.scadenza and p.scadenza < today]
