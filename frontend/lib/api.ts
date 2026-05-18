@@ -210,6 +210,16 @@ export function updatePhaseAssignee(phaseId: string, assigneeId: string, userId:
   return updatePhase(phaseId, { assignee_id: assigneeId }, userId);
 }
 
+export type ApiPhaseStatus = "pending" | "in_progress" | "completed" | "skipped" | "blocked";
+
+export function setPhaseStatus(phaseId: string, statusValue: ApiPhaseStatus, userId: string) {
+  return apiFetch<ApiPracticePhase>(`/api/phases/${phaseId}/status`, {
+    body: JSON.stringify({ status: statusValue }),
+    method: "POST",
+    userId,
+  });
+}
+
 export function createNote(input: components["schemas"]["NoteCreate"], userId: string) {
   return apiFetch<ApiNote>("/api/notes", {
     body: JSON.stringify(input),
@@ -218,7 +228,7 @@ export function createNote(input: components["schemas"]["NoteCreate"], userId: s
   });
 }
 
-export function updateNote(noteId: string, input: components["schemas"]["NoteUpdate"], userId: string) {
+export function updateNote(noteId: string, input: components["schemas"]["UpdateNoteRequest"], userId: string) {
   return apiFetch<ApiNote>(`/api/notes/${noteId}`, {
     body: JSON.stringify(input),
     method: "PUT",
