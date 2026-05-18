@@ -227,7 +227,9 @@ export function PracticesListClient() {
     direction: "desc",
   });
   const [attachmentsPractice, setAttachmentsPractice] = useState<DirectoryPractice | null>(null);
+  const [practiceToDelete, setPracticeToDelete] = useState<DirectoryPractice | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deletePracticeError, setDeletePracticeError] = useState<string | null>(null);
   const practicesQuery = useQuery({
     queryFn: () => getPractices(),
     queryKey: ["practices"],
@@ -329,16 +331,23 @@ export function PracticesListClient() {
     setColumnFilters((current) => ({ ...current, [key]: values }));
   }
 
-  async function removePractice(practice: DirectoryPractice) {
-    if (!window.confirm(`Eliminare la pratica ${practice.code} (${practice.title})?\n\nL'azione è irreversibile e cancella anche fasi, eventi, note e allegati collegati.`)) return;
-    setDeletingId(practice.id);
+  function askDeletePractice(practice: DirectoryPractice) {
+    setPracticeToDelete(practice);
+    setDeletePracticeError(null);
+  }
+
+  async function confirmDeletePractice() {
+    if (!practiceToDelete) return;
+    setDeletingId(practiceToDelete.id);
+    setDeletePracticeError(null);
     try {
-      await deletePractice(practice.id, activeUser.id);
+      await deletePractice(practiceToDelete.id, activeUser.id);
       await queryClient.invalidateQueries({ queryKey: ["practices"] });
       await queryClient.invalidateQueries({ queryKey: ["attachments-all"] });
+      setPracticeToDelete(null);
     } catch (err) {
       console.error("delete_practice_failed", err);
-      window.alert("Eliminazione non riuscita. Riprova.");
+      setDeletePracticeError(err instanceof Error ? err.message : "Eliminazione non riuscita.");
     } finally {
       setDeletingId(null);
     }
@@ -556,7 +565,7 @@ export function PracticesListClient() {
                         disabled={deletingId === practice.id}
                         onClick={(event) => {
                           event.stopPropagation();
-                          void removePractice(practice);
+                          askDeletePractice(practice);
                         }}
                         title="Elimina pratica"
                         type="button"
@@ -615,6 +624,39 @@ export function PracticesListClient() {
               </div>
             </>
           ) : null}
+        </SheetContent>
+      </Sheet>
+
+      <Sheet onOpenChange={(open) => !open && setPracticeToDelete(null)} open={practiceToDelete !== null}>
+        <SheetContent className="max-w-md">
+          <SheetHeader>
+            <SheetTitle>Eliminare pratica?</SheetTitle>
+            <SheetDescription>
+              {practiceToDelete
+                ? `Confermi l'eliminazione di ${practiceToDelete.code} — ${practiceToDelete.title}? L'azione è irreversibile e cancella anche fasi, eventi, note e allegati collegati.`
+                : "Confermi l'eliminazione della pratica selezionata?"}
+            </SheetDescription>
+          </SheetHeader>
+          <div className="space-y-3">
+            {deletePracticeError ? (
+              <p className="rounded-xl border border-danger/40 bg-danger/10 px-3 py-2 text-sm font-semibold text-danger">
+                {deletePracticeError}
+              </p>
+            ) : null}
+            <Button
+              className="w-full border border-danger/40 bg-danger/10 text-danger hover:bg-danger/15"
+              disabled={deletingId !== null}
+              onClick={() => void confirmDeletePractice()}
+              type="button"
+              variant="outline"
+            >
+              <Trash2 className="h-4 w-4" />
+              {deletingId ? "Eliminazione..." : "Conferma eliminazione"}
+            </Button>
+            <Button className="w-full" onClick={() => setPracticeToDelete(null)} type="button" variant="ghost">
+              Annulla
+            </Button>
+          </div>
         </SheetContent>
       </Sheet>
     </main>
