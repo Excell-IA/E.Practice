@@ -1,12 +1,12 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { differenceInCalendarDays, format } from "date-fns";
+import { format } from "date-fns";
 import { it } from "date-fns/locale";
-import { FileText, Plus, Search, Trash2 } from "lucide-react";
+import { ChevronDown, FileText, Plus, Search, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { Badge, type BadgeProps } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -18,15 +18,9 @@ import { useDemoStore } from "@/lib/demo-state";
 import { mapApiPracticeToDirectoryPractice } from "@/lib/mappers/practice-list";
 import { cn } from "@/lib/utils";
 
-type PracticeFilter = "all" | "open" | "progress" | "done" | "late";
+type ColumnFilterKey = "status" | "category" | "responsible" | "client";
 
-const filters: { id: PracticeFilter; label: string }[] = [
-  { id: "all", label: "Tutte" },
-  { id: "open", label: "Aperte" },
-  { id: "progress", label: "In corso" },
-  { id: "done", label: "Completate" },
-  { id: "late", label: "In ritardo" },
-];
+const ALL_VALUE = "__all__";
 
 function statusLabel(status: DirectoryPractice["status"]) {
   if (status === "aperta") return "Aperta";
@@ -49,22 +43,90 @@ function categoryVariant(color: string): BadgeProps["variant"] {
   return "info";
 }
 
-function isLate(practice: DirectoryPractice) {
-  return practice.status !== "chiusa" && differenceInCalendarDays(new Date(practice.dueDate), new Date()) < 0;
-}
-
-function matchesFilter(practice: DirectoryPractice, filter: PracticeFilter) {
-  if (filter === "all") return true;
-  if (filter === "open") return practice.status === "aperta";
-  if (filter === "progress") return practice.status === "in_corso" || practice.status === "in_attesa";
-  if (filter === "done") return practice.status === "chiusa";
-  return isLate(practice);
-}
-
 function formatFileSize(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+type ColumnFilterDropdownProps = {
+  label: string;
+  options: { value: string; label: string }[];
+  value: string;
+  onChange: (value: string) => void;
+};
+
+function ColumnFilterDropdown({ label, options, value, onChange }: ColumnFilterDropdownProps) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function onDocClick(event: MouseEvent) {
+      if (!ref.current?.contains(event.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", onDocClick);
+    return () => document.removeEventListener("mousedown", onDocClick);
+  }, [open]);
+
+  const active = value !== ALL_VALUE;
+  const currentLabel = active ? options.find((opt) => opt.value === value)?.label ?? label : label;
+
+  return (
+    <div className="relative inline-block" ref={ref}>
+      <button
+        aria-label={`Filtra per ${label}`}
+        className={cn(
+          "inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-left transition-colors",
+          "font-display text-[11px] uppercase tracking-[0.14em]",
+          active ? "bg-electric/15 text-electric" : "text-muted hover:text-foreground",
+        )}
+        onClick={() => setOpen((current) => !current)}
+        type="button"
+      >
+        <span className="truncate">{currentLabel}</span>
+        <ChevronDown className="h-3 w-3 shrink-0" />
+      </button>
+      {open ? (
+        <div className="absolute left-0 top-full z-30 mt-1 min-w-[180px] overflow-hidden rounded-xl border border-border bg-surface-container shadow-lg">
+          <ul className="max-h-72 overflow-y-auto py-1 text-xs normal-case tracking-normal">
+            <li>
+              <button
+                className={cn(
+                  "block w-full px-3 py-1.5 text-left transition-colors hover:bg-surface-high",
+                  value === ALL_VALUE && "bg-surface-high text-electric",
+                )}
+                onClick={() => {
+                  onChange(ALL_VALUE);
+                  setOpen(false);
+                }}
+                type="button"
+              >
+                Tutti
+              </button>
+            </li>
+            {options.map((opt) => (
+              <li key={opt.value}>
+                <button
+                  className={cn(
+                    "block w-full px-3 py-1.5 text-left transition-colors hover:bg-surface-high",
+                    value === opt.value && "bg-surface-high text-electric",
+                  )}
+                  onClick={() => {
+                    onChange(opt.value);
+                    setOpen(false);
+                  }}
+                  type="button"
+                >
+                  {opt.label}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+    </div>
+  );
 }
 
 export function PracticesListClient() {
@@ -72,7 +134,12 @@ export function PracticesListClient() {
   const queryClient = useQueryClient();
   const activeUser = useDemoStore((state) => state.activeUser);
   const [query, setQuery] = useState("");
-  const [filter, setFilter] = useState<PracticeFilter>("all");
+  const [columnFilters, setColumnFilters] = useState<Record<ColumnFilterKey, string>>({
+    category: ALL_VALUE,
+    client: ALL_VALUE,
+    responsible: ALL_VALUE,
+    status: ALL_VALUE,
+  });
   const [attachmentsPractice, setAttachmentsPractice] = useState<DirectoryPractice | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const practicesQuery = useQuery({
@@ -97,16 +164,46 @@ export function PracticesListClient() {
     }
     return map;
   }, [attachmentsQuery.data]);
+  const statusOptions = useMemo(() => {
+    const seen = new Map<string, string>();
+    for (const practice of sourcePractices) seen.set(practice.status, statusLabel(practice.status));
+    return Array.from(seen.entries()).map(([value, label]) => ({ value, label }));
+  }, [sourcePractices]);
+  const categoryOptions = useMemo(() => {
+    const seen = new Set<string>();
+    for (const practice of sourcePractices) seen.add(practice.category);
+    return Array.from(seen).sort((a, b) => a.localeCompare(b, "it")).map((name) => ({ value: name, label: name }));
+  }, [sourcePractices]);
+  const responsibleOptions = useMemo(() => {
+    const seen = new Set<string>();
+    for (const practice of sourcePractices) seen.add(practice.responsible.name);
+    return Array.from(seen).sort((a, b) => a.localeCompare(b, "it")).map((name) => ({ value: name, label: name }));
+  }, [sourcePractices]);
+  const clientOptions = useMemo(() => {
+    const seen = new Set<string>();
+    for (const practice of sourcePractices) seen.add(practice.clientName);
+    return Array.from(seen).sort((a, b) => a.localeCompare(b, "it")).map((name) => ({ value: name, label: name }));
+  }, [sourcePractices]);
+
+  function matchesColumnFilters(practice: DirectoryPractice) {
+    if (columnFilters.status !== ALL_VALUE && practice.status !== columnFilters.status) return false;
+    if (columnFilters.category !== ALL_VALUE && practice.category !== columnFilters.category) return false;
+    if (columnFilters.responsible !== ALL_VALUE && practice.responsible.name !== columnFilters.responsible) return false;
+    if (columnFilters.client !== ALL_VALUE && practice.clientName !== columnFilters.client) return false;
+    return true;
+  }
+
   const practices = useMemo(() => {
     const needle = query.trim().toLowerCase();
     return sourcePractices.filter((practice) => {
       const text = `${practice.code} ${practice.title} ${practice.clientName}`.toLowerCase();
-      return matchesFilter(practice, filter) && (!needle || text.includes(needle));
+      return matchesColumnFilters(practice) && (!needle || text.includes(needle));
     });
-  }, [filter, query, sourcePractices]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [columnFilters, query, sourcePractices]);
 
-  function count(filterId: PracticeFilter) {
-    return sourcePractices.filter((practice) => matchesFilter(practice, filterId)).length;
+  function setFilter(key: ColumnFilterKey, value: string) {
+    setColumnFilters((current) => ({ ...current, [key]: value }));
   }
 
   async function removePractice(practice: DirectoryPractice) {
@@ -125,17 +222,13 @@ export function PracticesListClient() {
   }
 
   return (
-    <main className="min-h-[calc(100vh-120px)] bg-surface px-6 md:px-10">
+    <main className="min-h-[calc(100vh-120px)] bg-surface px-6 py-6 md:px-10">
       <div>
         <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
-          <div className="flex items-start gap-3">
-            <div>
-              <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-electric">Home</p>
-              <h1 className="mt-2 font-display text-3xl font-semibold text-foreground">Elenco pratiche</h1>
-            </div>
+          <div className="flex items-center gap-3">
             <HelpButton title="Elenco pratiche" subtitle="Come orientarsi in questa schermata">
               <section>
-                <p>L&apos;elenco mostra tutte le pratiche dello studio. Usa i <strong className="text-foreground">filtri</strong> in alto (Tutte / Aperte / In corso / Completate / In ritardo) o la <strong className="text-foreground">ricerca</strong> per nome cliente o codice.</p>
+                <p>L&apos;elenco mostra tutte le pratiche dello studio. Usa i <strong className="text-foreground">filtri a dropdown</strong> sui titoli di colonna (Stato, Categoria, Responsabile, Cliente) o la <strong className="text-foreground">ricerca</strong> per nome cliente o codice.</p>
               </section>
               <section>
                 <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-electric">Colonne</p>
@@ -150,6 +243,7 @@ export function PracticesListClient() {
                 <p>Click su una riga → apri il dettaglio della pratica. Click su <strong className="text-foreground">+ Nuova pratica</strong> in alto a destra → wizard di creazione.</p>
               </section>
             </HelpButton>
+            <h1 className="font-display text-3xl font-semibold text-foreground">Elenco pratiche</h1>
           </div>
           <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
             <label className="relative w-full max-w-sm sm:w-72">
@@ -170,34 +264,45 @@ export function PracticesListClient() {
           </div>
         </div>
 
-        <div className="mb-4 flex flex-wrap gap-2">
-          {filters.map((item) => (
-            <button
-              className={cn(
-                "inline-flex h-9 items-center gap-2 rounded-full border border-border px-3 font-label text-sm font-semibold text-muted transition-colors",
-                filter === item.id && "border-electric/40 bg-electric/10 text-electric",
-              )}
-              key={item.id}
-              onClick={() => setFilter(item.id)}
-              type="button"
-            >
-              {item.label}
-              <span className="rounded-full bg-surface-high px-2 py-0.5 text-[11px]">{count(item.id)}</span>
-            </button>
-          ))}
-        </div>
-
         <div className="overflow-x-auto rounded-2xl border border-border bg-surface-low">
           <table className="w-full min-w-[1080px] border-collapse text-sm">
             <thead className="bg-surface-container text-left font-display text-[11px] uppercase tracking-[0.14em] text-muted">
               <tr>
                 <th className="px-4 py-3">Numero</th>
                 <th className="px-4 py-3">Titolo</th>
-                <th className="px-4 py-3">Cliente</th>
-                <th className="px-4 py-3">Categoria</th>
-                <th className="px-4 py-3">Responsabile</th>
+                <th className="px-2 py-3">
+                  <ColumnFilterDropdown
+                    label="Cliente"
+                    onChange={(value) => setFilter("client", value)}
+                    options={clientOptions}
+                    value={columnFilters.client}
+                  />
+                </th>
+                <th className="px-2 py-3">
+                  <ColumnFilterDropdown
+                    label="Categoria"
+                    onChange={(value) => setFilter("category", value)}
+                    options={categoryOptions}
+                    value={columnFilters.category}
+                  />
+                </th>
+                <th className="px-2 py-3">
+                  <ColumnFilterDropdown
+                    label="Responsabile"
+                    onChange={(value) => setFilter("responsible", value)}
+                    options={responsibleOptions}
+                    value={columnFilters.responsible}
+                  />
+                </th>
                 <th className="px-4 py-3">Scadenza</th>
-                <th className="px-4 py-3">Stato</th>
+                <th className="px-2 py-3">
+                  <ColumnFilterDropdown
+                    label="Stato"
+                    onChange={(value) => setFilter("status", value)}
+                    options={statusOptions}
+                    value={columnFilters.status}
+                  />
+                </th>
                 <th className="px-4 py-3">Documenti</th>
                 <th className="px-4 py-3">Progress</th>
                 <th className="px-4 py-3 text-right">Azioni</th>
@@ -293,7 +398,9 @@ export function PracticesListClient() {
                         <div className="h-2 w-24 overflow-hidden rounded-full bg-surface-high">
                           <div className="h-full rounded-full bg-brand" style={{ width: `${practice.progress}%` }} />
                         </div>
-                        <span className="font-label text-xs font-semibold text-muted">{practice.progress}%</span>
+                        <span className="font-label whitespace-nowrap text-xs font-semibold text-muted">
+                          {practice.progress}%
+                        </span>
                       </div>
                     </td>
                     <td className="px-4 py-3 text-right">
