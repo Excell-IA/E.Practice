@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { ArrowDown, ArrowUp, Link as LinkIcon, Plus, Search, UserRound } from "lucide-react";
+import { ArrowDown, ArrowUp, Link as LinkIcon, Plus, Search, Trash2, UserRound, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { HelpButton } from "@/components/ui/help-button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { V1Hint } from "@/components/ui/v1-hint";
-import { createClient, getPractices } from "@/lib/api";
+import { createClient, deleteClient, getPractices, updateClient } from "@/lib/api";
 import { directoryClients, directoryPractices, type DirectoryClient, type DirectoryPractice } from "@/lib/demo-directory";
 import { useDemoStore } from "@/lib/demo-state";
 import { mapApiPracticeToDirectoryPractice } from "@/lib/mappers/practice-list";
@@ -27,6 +27,13 @@ type NewClientDraft = {
   vat: string;
 };
 
+type ClientEditDraft = {
+  email: string;
+  labels: string[];
+  name: string;
+  phone: string;
+};
+
 function initials(name: string) {
   return name
     .split(" ")
@@ -40,6 +47,15 @@ export function ClientsListClient() {
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<DirectoryClient | null>(null);
+  const [selectedDraft, setSelectedDraft] = useState<ClientEditDraft | null>(null);
+  const [labelDraft, setLabelDraft] = useState("");
+  const [clientOverrides, setClientOverrides] = useState<Record<string, DirectoryClient>>({});
+  const [deletedClientIds, setDeletedClientIds] = useState<Set<string>>(() => new Set());
+  const [savingClient, setSavingClient] = useState(false);
+  const [clientSaveMessage, setClientSaveMessage] = useState<string | null>(null);
+  const [clientEditError, setClientEditError] = useState<string | null>(null);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deletingClient, setDeletingClient] = useState(false);
   const [sortKey, setSortKey] = useState<SortKey>("code");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
   const [newClientOpen, setNewClientOpen] = useState(false);
@@ -63,9 +79,12 @@ export function ClientsListClient() {
   }, [practicesQuery.data?.items]);
   const clients = useMemo(() => {
     const needle = query.trim().toLowerCase();
-    const filtered = needle ? directoryClients.filter((client) =>
+    const baseClients = directoryClients
+      .filter((client) => !deletedClientIds.has(client.id))
+      .map((client) => clientOverrides[client.id] ?? client);
+    const filtered = needle ? baseClients.filter((client) =>
       `${client.name} ${client.vat} ${client.taxCode}`.toLowerCase().includes(needle),
-    ) : directoryClients;
+    ) : baseClients;
     return [...filtered].sort((a, b) => {
       const openA = allPractices.filter((practice) => practice.clientId === a.id && practice.status !== "chiusa").length;
       const openB = allPractices.filter((practice) => practice.clientId === b.id && practice.status !== "chiusa").length;
@@ -76,8 +95,11 @@ export function ClientsListClient() {
         : String(left).localeCompare(String(right), "it");
       return sortDirection === "asc" ? result : -result;
     });
-  }, [allPractices, query, sortDirection, sortKey]);
+  }, [allPractices, clientOverrides, deletedClientIds, query, sortDirection, sortKey]);
   const clientPractices = selected ? allPractices.filter((practice) => practice.clientId === selected.id) : [];
+  const selectedView = selected && selectedDraft
+    ? { ...selected, email: selectedDraft.email, labels: selectedDraft.labels, name: selectedDraft.name, phone: selectedDraft.phone }
+    : selected;
 
   function toggleSort(nextKey: SortKey) {
     if (sortKey === nextKey) {
@@ -92,6 +114,100 @@ export function ClientsListClient() {
     if (sortKey !== key) return null;
     const Icon = sortDirection === "asc" ? ArrowUp : ArrowDown;
     return <Icon className="h-3.5 w-3.5" />;
+  }
+
+  function openClient(client: DirectoryClient) {
+    setSelected(client);
+    setSelectedDraft({
+      email: client.email,
+      labels: client.labels,
+      name: client.name,
+      phone: client.phone,
+    });
+    setLabelDraft("");
+    setClientEditError(null);
+    setClientSaveMessage(null);
+    setDeleteConfirmOpen(false);
+  }
+
+  function closeClient() {
+    setSelected(null);
+    setSelectedDraft(null);
+    setLabelDraft("");
+    setClientEditError(null);
+    setClientSaveMessage(null);
+    setDeleteConfirmOpen(false);
+  }
+
+  function addLabel() {
+    const nextLabel = labelDraft.trim();
+    if (!nextLabel || !selectedDraft) return;
+    if (selectedDraft.labels.some((label) => label.toLowerCase() === nextLabel.toLowerCase())) {
+      setLabelDraft("");
+      return;
+    }
+    setSelectedDraft((draft) => draft ? { ...draft, labels: [...draft.labels, nextLabel] } : draft);
+    setLabelDraft("");
+  }
+
+  async function saveSelectedClient() {
+    if (!selected || !selectedDraft) return;
+    setSavingClient(true);
+    setClientEditError(null);
+    setClientSaveMessage(null);
+    try {
+      const updated = await updateClient(
+        selected.id,
+        {
+          email: selectedDraft.email.trim() || null,
+          ragione_sociale: selectedDraft.name.trim(),
+          telefono: selectedDraft.phone.trim() || null,
+        },
+        activeUser.id,
+      );
+      const nextClient: DirectoryClient = {
+        ...selected,
+        email: updated.email ?? "",
+        labels: selectedDraft.labels,
+        name: updated.ragione_sociale,
+        phone: updated.telefono ?? "",
+      };
+      setClientOverrides((current) => ({ ...current, [nextClient.id]: nextClient }));
+      setSelected(nextClient);
+      setSelectedDraft({
+        email: nextClient.email,
+        labels: nextClient.labels,
+        name: nextClient.name,
+        phone: nextClient.phone,
+      });
+      setClientSaveMessage("Modifiche salvate.");
+    } catch (err) {
+      console.error("update_client_failed", err);
+      setClientEditError(err instanceof Error ? err.message : "Salvataggio cliente non riuscito.");
+    } finally {
+      setSavingClient(false);
+    }
+  }
+
+  async function confirmDeleteClient() {
+    if (!selected) return;
+    setDeletingClient(true);
+    setClientEditError(null);
+    try {
+      await deleteClient(selected.id, activeUser.id);
+      setDeletedClientIds((current) => {
+        const next = new Set(current);
+        next.add(selected.id);
+        return next;
+      });
+      closeClient();
+    } catch (err) {
+      console.error("delete_client_failed", err);
+      setClientEditError(err instanceof Error ? err.message : "Eliminazione cliente non riuscita.");
+      setDeleteConfirmOpen(false);
+    } finally {
+      setDeletingClient(false);
+    }
   }
 
   async function submitNewClient() {
@@ -196,12 +312,12 @@ export function ClientsListClient() {
             </thead>
             <tbody>
               {clients.map((client) => {
-                const openCount = directoryPractices.filter((practice) => practice.clientId === client.id && practice.status !== "chiusa").length;
+                const openCount = allPractices.filter((practice) => practice.clientId === client.id && practice.status !== "chiusa").length;
                 return (
                   <tr
                     className="cursor-pointer border-t border-border transition-colors hover:bg-surface-container"
                     key={client.id}
-                    onClick={() => setSelected(client)}
+                    onClick={() => openClient(client)}
                   >
                     <td className="px-4 py-3 font-label text-xs font-semibold text-muted">{client.code}</td>
                     <td className="px-4 py-3">
@@ -242,35 +358,109 @@ export function ClientsListClient() {
         </div>
       </div>
 
-      <Sheet onOpenChange={(open) => !open && setSelected(null)} open={Boolean(selected)}>
+      <Sheet onOpenChange={(open) => !open && closeClient()} open={Boolean(selected)}>
         <SheetContent className="max-w-xl">
-          {selected ? (
+          {selected && selectedView && selectedDraft ? (
             <>
               <SheetHeader>
-                <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-electric">{selected.code}</p>
-                <SheetTitle>{selected.name}</SheetTitle>
-                <SheetDescription>{selected.address}</SheetDescription>
+                <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-electric">{selectedView.code}</p>
+                <SheetTitle>{selectedView.name}</SheetTitle>
+                <SheetDescription>{selectedView.address}</SheetDescription>
               </SheetHeader>
               <div className="space-y-6 overflow-y-auto">
                 <section className="rounded-2xl border border-border bg-surface-low p-4">
                   <div className="mb-4 flex items-center gap-3">
                     <div className="flex h-12 w-12 items-center justify-center rounded-full bg-brand font-display font-bold text-white">
-                      {initials(selected.name)}
+                      {initials(selectedView.name)}
                     </div>
                     <div>
-                      <p className="font-semibold text-foreground">{selected.name}</p>
-                      <p className="text-xs text-muted">{selected.type === "societa" ? "Societa" : "Persona fisica"}</p>
+                      <p className="font-semibold text-foreground">{selectedView.name}</p>
+                      <p className="text-xs text-muted">{selectedView.type === "societa" ? "Societa" : "Persona fisica"}</p>
                     </div>
                   </div>
+                  {clientEditError ? (
+                    <p className="mb-3 rounded-xl border border-danger/40 bg-danger/10 px-3 py-2 text-sm font-semibold text-danger">
+                      {clientEditError}
+                    </p>
+                  ) : null}
+                  {clientSaveMessage ? (
+                    <p className="mb-3 rounded-xl border border-success/40 bg-success/10 px-3 py-2 text-sm font-semibold text-success">
+                      {clientSaveMessage}
+                    </p>
+                  ) : null}
                   <div className="grid gap-3 text-sm sm:grid-cols-2">
-                    <p><span className="text-muted">P.IVA</span><br />{selected.vat}</p>
-                    <p><span className="text-muted">CF</span><br />{selected.taxCode}</p>
-                    <p><span className="text-muted">Email</span><br />{selected.email}</p>
-                    <p><span className="text-muted">Telefono</span><br />{selected.phone}</p>
+                    <label className="sm:col-span-2">
+                      <span className="text-muted">Ragione sociale</span>
+                      <input
+                        className="mt-1 h-10 w-full rounded-xl border border-border bg-surface px-3 text-sm text-foreground outline-none focus:border-electric"
+                        onChange={(event) => setSelectedDraft((draft) => draft ? { ...draft, name: event.target.value } : draft)}
+                        value={selectedDraft.name}
+                      />
+                    </label>
+                    <p><span className="text-muted">P.IVA</span><br />{selectedView.vat}</p>
+                    <p><span className="text-muted">CF</span><br />{selectedView.taxCode}</p>
+                    <label>
+                      <span className="text-muted">Email</span>
+                      <input
+                        className="mt-1 h-10 w-full rounded-xl border border-border bg-surface px-3 text-sm text-foreground outline-none focus:border-electric"
+                        onChange={(event) => setSelectedDraft((draft) => draft ? { ...draft, email: event.target.value } : draft)}
+                        type="email"
+                        value={selectedDraft.email}
+                      />
+                    </label>
+                    <label>
+                      <span className="text-muted">Telefono</span>
+                      <input
+                        className="mt-1 h-10 w-full rounded-xl border border-border bg-surface px-3 text-sm text-foreground outline-none focus:border-electric"
+                        onChange={(event) => setSelectedDraft((draft) => draft ? { ...draft, phone: event.target.value } : draft)}
+                        value={selectedDraft.phone}
+                      />
+                    </label>
                   </div>
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    {selected.labels.map((label) => <Badge key={label} variant="info">{label}</Badge>)}
+                  <div className="mt-4 space-y-2">
+                    <p className="text-sm text-muted">Etichette</p>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedDraft.labels.map((label) => (
+                        <Badge className="gap-1.5" key={label} variant="info">
+                          {label}
+                          <button
+                            aria-label={`Rimuovi etichetta ${label}`}
+                            className="rounded-full text-muted hover:text-foreground"
+                            onClick={() => setSelectedDraft((draft) => draft ? { ...draft, labels: draft.labels.filter((item) => item !== label) } : draft)}
+                            type="button"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </Badge>
+                      ))}
+                    </div>
+                    <div className="flex gap-2">
+                      <input
+                        className="h-10 min-w-0 flex-1 rounded-xl border border-border bg-surface px-3 text-sm text-foreground outline-none focus:border-electric"
+                        onChange={(event) => setLabelDraft(event.target.value)}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter") {
+                            event.preventDefault();
+                            addLabel();
+                          }
+                        }}
+                        placeholder="Nuova etichetta"
+                        value={labelDraft}
+                      />
+                      <Button onClick={addLabel} type="button" variant="outline">
+                        <Plus className="h-4 w-4" />
+                        Aggiungi
+                      </Button>
+                    </div>
                   </div>
+                  <Button
+                    className="mt-4 w-full"
+                    disabled={savingClient || !selectedDraft.name.trim()}
+                    onClick={saveSelectedClient}
+                    type="button"
+                  >
+                    {savingClient ? "Salvataggio..." : "Salva modifiche"}
+                  </Button>
                 </section>
 
                 <section>
@@ -298,9 +488,60 @@ export function ClientsListClient() {
                     )}
                   </div>
                 </section>
+
+                <section className="rounded-2xl border border-danger/30 bg-danger/5 p-4">
+                  <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-danger">
+                    Zona eliminazione
+                  </p>
+                  <p className="mt-2 text-sm text-muted">
+                    Il cliente puo essere eliminato solo se non ha pratiche aperte.
+                  </p>
+                  <Button
+                    className="mt-3 border border-danger/40 bg-danger/10 text-danger hover:bg-danger/15"
+                    onClick={() => setDeleteConfirmOpen(true)}
+                    type="button"
+                    variant="outline"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    Elimina cliente
+                  </Button>
+                </section>
               </div>
             </>
           ) : null}
+        </SheetContent>
+      </Sheet>
+
+      <Sheet onOpenChange={setDeleteConfirmOpen} open={deleteConfirmOpen}>
+        <SheetContent className="max-w-md">
+          <SheetHeader>
+            <SheetTitle>Eliminare cliente?</SheetTitle>
+            <SheetDescription>
+              {selectedView
+                ? `Confermi l'eliminazione di ${selectedView.name}? Se ci sono pratiche aperte il sistema blocchera l'operazione.`
+                : "Confermi l'eliminazione del cliente selezionato?"}
+            </SheetDescription>
+          </SheetHeader>
+          <div className="space-y-3">
+            {clientEditError ? (
+              <p className="rounded-xl border border-danger/40 bg-danger/10 px-3 py-2 text-sm font-semibold text-danger">
+                {clientEditError}
+              </p>
+            ) : null}
+            <Button
+              className="w-full border border-danger/40 bg-danger/10 text-danger hover:bg-danger/15"
+              disabled={deletingClient}
+              onClick={confirmDeleteClient}
+              type="button"
+              variant="outline"
+            >
+              <Trash2 className="h-4 w-4" />
+              {deletingClient ? "Eliminazione..." : "Conferma eliminazione"}
+            </Button>
+            <Button className="w-full" onClick={() => setDeleteConfirmOpen(false)} type="button" variant="ghost">
+              Annulla
+            </Button>
+          </div>
         </SheetContent>
       </Sheet>
 
