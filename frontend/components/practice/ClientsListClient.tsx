@@ -44,12 +44,19 @@ function initials(name: string) {
     .toUpperCase();
 }
 
+function getInitialClientLabels() {
+  return Array.from(new Set(directoryClients.flatMap((client) => client.labels))).sort((a, b) =>
+    a.localeCompare(b, "it"),
+  );
+}
+
 export function ClientsListClient() {
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<DirectoryClient | null>(null);
   const [selectedDraft, setSelectedDraft] = useState<ClientEditDraft | null>(null);
   const [labelDraft, setLabelDraft] = useState("");
+  const [labelCatalog, setLabelCatalog] = useState<string[]>(getInitialClientLabels);
   const [clientOverrides, setClientOverrides] = useState<Record<string, DirectoryClient>>({});
   const [deletedClientIds, setDeletedClientIds] = useState<Set<string>>(() => new Set());
   const [savingClient, setSavingClient] = useState(false);
@@ -108,20 +115,8 @@ export function ClientsListClient() {
       phone: selectedDraft.phone,
     }
     : selected;
-  const labelOptions = useMemo(() => {
-    // V1: spostare catalogo, colori e governance etichette in una configurazione persistente.
-    const labels = new Set<string>();
-    for (const client of directoryClients) {
-      for (const label of client.labels) labels.add(label);
-    }
-    for (const client of Object.values(clientOverrides)) {
-      for (const label of client.labels) labels.add(label);
-    }
-    if (selectedDraft) {
-      for (const label of selectedDraft.labels) labels.add(label);
-    }
-    return Array.from(labels).sort((a, b) => a.localeCompare(b, "it"));
-  }, [clientOverrides, selectedDraft]);
+  // V1: spostare catalogo, colori e governance etichette in una configurazione persistente.
+  const labelOptions = labelCatalog;
 
   function toggleSort(nextKey: SortKey) {
     if (sortKey === nextKey) {
@@ -169,6 +164,10 @@ export function ClientsListClient() {
       setLabelDraft("");
       return;
     }
+    setLabelCatalog((current) => {
+      if (current.some((label) => label.toLowerCase() === nextLabel.toLowerCase())) return current;
+      return [...current, nextLabel].sort((a, b) => a.localeCompare(b, "it"));
+    });
     setSelectedDraft((draft) => draft ? { ...draft, labels: [...draft.labels, nextLabel] } : draft);
     setLabelDraft("");
   }
@@ -483,11 +482,9 @@ export function ClientsListClient() {
                         value={labelDraft}
                       />
                       <datalist id="client-label-options">
-                        {labelOptions
-                          .filter((label) => !selectedDraft.labels.some((item) => item.toLowerCase() === label.toLowerCase()))
-                          .map((label) => (
-                            <option key={label} value={label} />
-                          ))}
+                        {labelOptions.map((label) => (
+                          <option key={label} value={label} />
+                        ))}
                       </datalist>
                       <Button onClick={addLabel} type="button" variant="outline">
                         <Plus className="h-4 w-4" />
