@@ -62,7 +62,11 @@ export interface paths {
          */
         get: operations["list_users_api_users_get"];
         put?: never;
-        post?: never;
+        /**
+         * Create User
+         * @description Crea un utente studio. In V0 lo stato viene sempre forzato ad attivo.
+         */
+        post: operations["create_user_api_users_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -79,7 +83,11 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        delete?: never;
+        /**
+         * Delete User
+         * @description Elimina un utente solo se non ha assegnazioni operative aperte.
+         */
+        delete: operations["delete_user_api_users__user_id__delete"];
         options?: never;
         head?: never;
         /**
@@ -724,7 +732,7 @@ export interface components {
              * Entity Type
              * @enum {string}
              */
-            entity_type: "practice" | "phase" | "event" | "note" | "attachment" | "client";
+            entity_type: "practice" | "phase" | "event" | "note" | "attachment" | "client" | "user";
             /**
              * Entity Id
              * Format: uuid
@@ -754,7 +762,7 @@ export interface components {
              * Entity Type
              * @enum {string}
              */
-            entity_type: "practice" | "phase" | "event" | "note" | "attachment" | "client";
+            entity_type: "practice" | "phase" | "event" | "note" | "attachment" | "client" | "user";
             /**
              * Entity Id
              * Format: uuid
@@ -1938,6 +1946,28 @@ export interface components {
             /** Last Access At */
             last_access_at?: string | null;
         };
+        /** UserCreate */
+        UserCreate: {
+            /** Email */
+            email: string;
+            /** Nome */
+            nome: string;
+            /** Cognome */
+            cognome: string;
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "titolare" | "senior" | "junior" | "esterno";
+            /**
+             * Status
+             * @default attivo
+             * @enum {string}
+             */
+            status: "attivo" | "sospeso" | "disattivo";
+            /** Avatar Color */
+            avatar_color?: string | null;
+        };
         /** UserMiniSummary */
         UserMiniSummary: {
             /**
@@ -2096,6 +2126,72 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["User"][];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_user_api_users_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-User-Id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UserCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_user_api_users__user_id__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-User-Id"?: string | null;
+            };
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
@@ -3408,7 +3504,7 @@ export interface operations {
             query?: {
                 actor_id?: string | null;
                 action?: ("created" | "updated" | "deleted" | "completed" | "uploaded" | "attached" | "commented" | "viewed_l1") | null;
-                entity_type?: ("practice" | "phase" | "event" | "note" | "attachment" | "client") | null;
+                entity_type?: ("practice" | "phase" | "event" | "note" | "attachment" | "client" | "user") | null;
                 practice_id?: string | null;
                 offset?: number;
                 limit?: number;
