@@ -446,11 +446,7 @@ export function NewPracticeWizard() {
   return (
     <main className="min-h-[calc(100vh-120px)] bg-surface px-6 pb-28 pt-6 md:px-10">
       <div className="space-y-5">
-        <div className="flex items-start gap-3">
-          <div>
-            <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-electric">Nuova pratica</p>
-            <h1 className="mt-2 font-display text-3xl font-semibold text-foreground">Crea pratica</h1>
-          </div>
+        <div className="flex items-center gap-3">
           <HelpButton title="Creare una nuova pratica" subtitle="2 step: cliente + dati, poi fasi + allegati">
             <section>
               <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-electric">Step 1 — Cliente e dati</p>
@@ -474,6 +470,7 @@ export function NewPracticeWizard() {
               <p>Puoi tornare allo Step 1 in qualsiasi momento con <strong className="text-foreground">Indietro</strong>. Il pulsante <strong className="text-foreground">Crea pratica</strong> è attivo solo se cliente e titolo sono compilati.</p>
             </section>
           </HelpButton>
+          <h1 className="font-display text-3xl font-semibold text-foreground">Crea pratica</h1>
         </div>
 
         <div className="flex items-center gap-3 rounded-2xl border border-border bg-surface-low px-4 py-3 text-sm">

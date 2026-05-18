@@ -43,7 +43,7 @@ const navItems = [
   { label: "Agenda", icon: CalendarDays, section: "Modulo" },
   { label: "Scadenze", icon: Clock3, section: "Modulo", badge: 7 },
   { label: "Tipologie pratica", icon: FolderKanban, section: "Studio", href: "/tipologie" },
-  { label: "Utenti studio", icon: UserSquare2, section: "Studio", href: "/utenti" },
+  { label: "Utenti", icon: UserSquare2, section: "Studio", href: "/utenti" },
   { label: "Connessione ERP", icon: Plug, section: "Studio" },
   { label: "Configurazione", icon: Settings, section: "Studio" },
 ];

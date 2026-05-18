@@ -121,14 +121,6 @@ export default function CategoriesPage() {
         <div>
           <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
             <div className="flex items-start gap-3">
-              <div>
-                <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-electric">Studio</p>
-                <h1 className="mt-2 font-display text-3xl font-semibold text-foreground">Tipologie pratica</h1>
-                <p className="mt-1 text-sm text-muted">
-                  Ogni tipologia ha un template di fasi standard che viene proposto quando crei una nuova pratica.
-                  Click su <strong className="text-foreground">Modifica template</strong> per personalizzare le fasi della categoria.
-                </p>
-              </div>
               <HelpButton title="Tipologie pratica" subtitle="Template di fasi standard per categoria">
                 <section>
                   <p>Le tipologie pratica raggruppano i lavori dello studio per categoria (es. Bilancio, Contenzioso, Costituzione). Ogni tipologia ha un <strong className="text-foreground">template</strong> di fasi standard.</p>
@@ -146,6 +138,13 @@ export default function CategoriesPage() {
                   <p className="mt-2">Usa <strong className="text-foreground">+ Nuova tipologia</strong> in alto a destra per aggiungerne una. Dentro l&apos;editor template c&apos;e&apos; il bottone <strong className="text-foreground">Elimina tipologia</strong>: bloccato se ci sono pratiche associate.</p>
                 </section>
               </HelpButton>
+              <div>
+                <h1 className="font-display text-3xl font-semibold text-foreground">Tipologie pratica</h1>
+                <p className="mt-1 text-sm text-muted">
+                  Ogni tipologia ha un template di fasi standard che viene proposto quando crei una nuova pratica.
+                  Click su <strong className="text-foreground">Modifica template</strong> per personalizzare le fasi della categoria.
+                </p>
+              </div>
             </div>
             <Button onClick={() => { setCreateError(null); setCreateOpen(true); }} type="button">
               <Plus className="h-4 w-4" />

@@ -137,15 +137,6 @@ export default function CategoryTemplateEditorPage({ params }: { params: { categ
         <div className="mx-auto max-w-5xl space-y-5">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="flex items-start gap-3">
-              <div>
-                <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-electric">Studio / Tipologie</p>
-                <h1 className="mt-2 font-display text-3xl font-semibold text-foreground">
-                  {category ? `Template: ${category.name}` : "Template di categoria"}
-                </h1>
-                {category?.description ? (
-                  <p className="mt-1 text-sm text-muted">{category.description}</p>
-                ) : null}
-              </div>
               <HelpButton title="Editor template" subtitle="Modifica le fasi standard della categoria">
                 <section>
                   <p>Le fasi qui definite vengono proposte come default quando crei una nuova pratica di questa categoria. Le pratiche già create non sono toccate.</p>
@@ -164,6 +155,14 @@ export default function CategoryTemplateEditorPage({ params }: { params: { categ
                   <p>Salva sostituisce atomicamente tutto il template della categoria. Le modifiche valgono per le pratiche create dopo il salvataggio.</p>
                 </section>
               </HelpButton>
+              <div>
+                <h1 className="font-display text-3xl font-semibold text-foreground">
+                  {category ? `Template: ${category.name}` : "Template di categoria"}
+                </h1>
+                {category?.description ? (
+                  <p className="mt-1 text-sm text-muted">{category.description}</p>
+                ) : null}
+              </div>
             </div>
             <div className="flex items-center gap-2">
               <Button onClick={() => { setDeleteError(null); setDeleteOpen(true); }} type="button" variant="outline">

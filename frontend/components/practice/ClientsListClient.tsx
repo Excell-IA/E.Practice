@@ -132,10 +132,6 @@ export function ClientsListClient() {
       <div>
         <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
           <div className="flex items-start gap-3">
-            <div>
-              <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-electric">Home</p>
-              <h1 className="mt-2 font-display text-3xl font-semibold text-foreground">Rubrica clienti</h1>
-            </div>
             <HelpButton title="Rubrica clienti" subtitle="Anagrafica + pratiche aperte per cliente">
               <section>
                 <p>La rubrica raccoglie tutti i clienti dello studio. Ogni riga mostra codice, ragione sociale, tipo (Società/Persona), P.IVA o CF, città, etichette e numero di pratiche aperte.</p>
@@ -150,6 +146,7 @@ export function ClientsListClient() {
                 </ul>
               </section>
             </HelpButton>
+            <h1 className="font-display text-3xl font-semibold text-foreground">Rubrica clienti</h1>
           </div>
           <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
             <label className="relative w-full max-w-sm sm:w-72">

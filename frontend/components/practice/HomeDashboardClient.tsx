@@ -66,10 +66,7 @@ export function HomeDashboardClient() {
       <header className="border-b border-border bg-surface-low/80 px-6 py-[14px] md:px-10">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-electric">
-              E.Practice — Beta Version
-            </p>
-            <h1 className="mt-1 font-display text-3xl font-semibold text-foreground md:text-4xl">
+            <h1 className="font-display text-3xl font-semibold text-foreground md:text-4xl">
               Cliente Beta Testing
             </h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-foreground-variant">
@@ -127,7 +124,7 @@ export function HomeDashboardClient() {
           description="Operatori dello studio, ruoli e stato attivo."
           href="/utenti"
           icon={<UserSquare2 className="h-5 w-5" />}
-          title="Utenti studio"
+          title="Utenti"
         />
       </section>
     </main>

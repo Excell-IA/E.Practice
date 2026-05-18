@@ -58,15 +58,11 @@ export default function UsersPage() {
   }
 
   return (
-    <EWorkShell code="Utenti studio">
+    <EWorkShell code="Utenti">
       <main className="min-h-[calc(100vh-120px)] bg-surface px-6 py-6 md:px-10">
         <div>
           <div className="mb-5 flex items-start gap-3">
-            <div>
-              <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-electric">Studio</p>
-              <h1 className="mt-2 font-display text-3xl font-semibold text-foreground">Utenti studio</h1>
-            </div>
-            <HelpButton title="Utenti studio" subtitle="Gestione dei collaboratori e dei ruoli">
+            <HelpButton title="Utenti" subtitle="Gestione dei collaboratori e dei ruoli">
               <section>
                 <p>La pagina elenca gli utenti dello studio con avatar, email e ruolo. Solo gli utenti con ruolo <strong className="text-foreground">Admin</strong> possono modificare ruoli e stato degli altri.</p>
               </section>
@@ -87,6 +83,7 @@ export default function UsersPage() {
                 </ul>
               </section>
             </HelpButton>
+            <h1 className="font-display text-3xl font-semibold text-foreground">Utenti</h1>
           </div>
           <div className="overflow-x-auto rounded-2xl border border-border bg-surface-low">
             <table className="w-full min-w-[760px] border-collapse text-sm">
