@@ -214,7 +214,7 @@ export function ImportPracticeClient() {
                     <Link href={newPracticeHref}>Crea una nuova pratica con questi allegati</Link>
                   </Button>
                   <Button
-                    className="w-full !bg-electric/15 !text-electric !shadow-none border border-electric/40 hover:!bg-electric/25"
+                    className="w-full !bg-electric/30 !text-[var(--on-primary)] !shadow-none border border-electric/50 hover:!bg-electric/40"
                     onClick={() => setAttachDialogOpen(true)}
                     type="button"
                   >

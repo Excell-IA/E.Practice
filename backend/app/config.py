@@ -44,6 +44,13 @@ class Settings(BaseSettings):
         default=["http://localhost:3000", "http://localhost:3001"],
         description="Origini autorizzate. In production: dominio Vercel del frontend.",
     )
+    cors_origin_regex: str | None = Field(
+        default=r"https://e-practice.*-excellia-projects\.vercel\.app",
+        description=(
+            "Regex di origini autorizzate (usato per i preview deploy Vercel, che "
+            "generano un URL diverso ad ogni build). Override con env CORS_ORIGIN_REGEX."
+        ),
+    )
 
     # --- Auth ---
     basic_auth_user: str | None = Field(
