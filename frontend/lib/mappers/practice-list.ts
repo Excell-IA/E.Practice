@@ -23,6 +23,8 @@ export function mapApiPracticeToDirectoryPractice(practice: ApiPracticeListItem)
     code: practice.code,
     dueDate: practice.scadenza ?? practice.apertura,
     id: practice.id,
+    phasesClosed: practice.phases_closed,
+    phasesTotal: practice.phases_total,
     progress: practice.progress_pct,
     responsible: fallback?.responsible ?? { color: "#0f766e", initials: "SS", name: "Sara Salvi" },
     status: statusToDirectory(practice.status),

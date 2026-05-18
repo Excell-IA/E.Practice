@@ -399,7 +399,7 @@ export function PracticesListClient() {
                           <div className="h-full rounded-full bg-brand" style={{ width: `${practice.progress}%` }} />
                         </div>
                         <span className="font-label whitespace-nowrap text-xs font-semibold text-muted">
-                          {practice.progress}%
+                          {practice.phasesClosed}/{practice.phasesTotal} &middot; {practice.progress}%
                         </span>
                       </div>
                     </td>

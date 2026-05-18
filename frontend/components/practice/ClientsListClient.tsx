@@ -1,5 +1,6 @@
 "use client";
 
+import { useQuery } from "@tanstack/react-query";
 import { ArrowDown, ArrowUp, Link as LinkIcon, Plus, Search, UserRound } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -10,9 +11,10 @@ import { Button } from "@/components/ui/button";
 import { HelpButton } from "@/components/ui/help-button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { V1Hint } from "@/components/ui/v1-hint";
-import { createClient } from "@/lib/api";
-import { directoryClients, directoryPractices, type DirectoryClient } from "@/lib/demo-directory";
+import { createClient, getPractices } from "@/lib/api";
+import { directoryClients, directoryPractices, type DirectoryClient, type DirectoryPractice } from "@/lib/demo-directory";
 import { useDemoStore } from "@/lib/demo-state";
+import { mapApiPracticeToDirectoryPractice } from "@/lib/mappers/practice-list";
 
 type SortKey = "code" | "name" | "city" | "openCount";
 type SortDirection = "asc" | "desc";
@@ -51,14 +53,22 @@ export function ClientsListClient() {
   const [creatingClient, setCreatingClient] = useState(false);
   const [newClientError, setNewClientError] = useState<string | null>(null);
   const activeUser = useDemoStore((state) => state.activeUser);
+  const practicesQuery = useQuery({
+    queryFn: () => getPractices(),
+    queryKey: ["practices"],
+  });
+  const allPractices: DirectoryPractice[] = useMemo(() => {
+    const fromApi = practicesQuery.data?.items.map(mapApiPracticeToDirectoryPractice) ?? [];
+    return fromApi.length ? fromApi : directoryPractices;
+  }, [practicesQuery.data?.items]);
   const clients = useMemo(() => {
     const needle = query.trim().toLowerCase();
     const filtered = needle ? directoryClients.filter((client) =>
       `${client.name} ${client.vat} ${client.taxCode}`.toLowerCase().includes(needle),
     ) : directoryClients;
     return [...filtered].sort((a, b) => {
-      const openA = directoryPractices.filter((practice) => practice.clientId === a.id && practice.status !== "chiusa").length;
-      const openB = directoryPractices.filter((practice) => practice.clientId === b.id && practice.status !== "chiusa").length;
+      const openA = allPractices.filter((practice) => practice.clientId === a.id && practice.status !== "chiusa").length;
+      const openB = allPractices.filter((practice) => practice.clientId === b.id && practice.status !== "chiusa").length;
       const left = sortKey === "openCount" ? openA : a[sortKey];
       const right = sortKey === "openCount" ? openB : b[sortKey];
       const result = typeof left === "number" && typeof right === "number"
@@ -66,8 +76,8 @@ export function ClientsListClient() {
         : String(left).localeCompare(String(right), "it");
       return sortDirection === "asc" ? result : -result;
     });
-  }, [query, sortDirection, sortKey]);
-  const clientPractices = selected ? directoryPractices.filter((practice) => practice.clientId === selected.id) : [];
+  }, [allPractices, query, sortDirection, sortKey]);
+  const clientPractices = selected ? allPractices.filter((practice) => practice.clientId === selected.id) : [];
 
   function toggleSort(nextKey: SortKey) {
     if (sortKey === nextKey) {
@@ -276,7 +286,9 @@ export function ClientsListClient() {
                           <p className="font-label text-xs font-semibold text-electric">{practice.code}</p>
                           <p className="font-semibold text-foreground">{practice.title}</p>
                         </div>
-                        <Badge variant={practice.status === "chiusa" ? "success" : "warning"}>{practice.progress}%</Badge>
+                        <Badge variant={practice.status === "chiusa" ? "success" : "warning"}>
+                          {practice.phasesClosed}/{practice.phasesTotal} &middot; {practice.progress}%
+                        </Badge>
                       </Link>
                     )) : (
                       <div className="rounded-xl border border-border bg-surface-low p-4 text-sm text-muted">
