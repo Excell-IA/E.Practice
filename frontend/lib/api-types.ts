@@ -162,7 +162,8 @@ export interface paths {
         delete: operations["delete_client_api_clients__client_id__delete"];
         options?: never;
         head?: never;
-        patch?: never;
+        /** Patch Client */
+        patch: operations["patch_client_api_clients__client_id__patch"];
         trace?: never;
     };
     "/api/clients/{client_id}/practices": {
@@ -2334,6 +2335,43 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    patch_client_api_clients__client_id__patch: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-User-Id"?: string | null;
+            };
+            path: {
+                client_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClientUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Client"];
+                };
             };
             /** @description Validation Error */
             422: {
