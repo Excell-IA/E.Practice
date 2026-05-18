@@ -159,7 +159,12 @@ def main() -> int:
         "author_id": MARIO_ID,
         "content": f"Nota usability test {datetime.utcnow().isoformat()}",
     }
-    s, p, ms = request(base, "POST", "/api/notes", body=note_body, )
+    s, p, ms = request(
+        base,
+        "POST",
+        "/api/notes",
+        body=note_body,
+    )
     record(steps, "crea nota generale", "POST", "/api/notes", s, p, ms, expected=201)
     new_note_id = json.loads(p).get("id") if p and s == 201 else None
 
