@@ -28,6 +28,7 @@ type NewClientDraft = {
 };
 
 type ClientEditDraft = {
+  address: string;
   email: string;
   labels: string[];
   name: string;
@@ -98,8 +99,29 @@ export function ClientsListClient() {
   }, [allPractices, clientOverrides, deletedClientIds, query, sortDirection, sortKey]);
   const clientPractices = selected ? allPractices.filter((practice) => practice.clientId === selected.id) : [];
   const selectedView = selected && selectedDraft
-    ? { ...selected, email: selectedDraft.email, labels: selectedDraft.labels, name: selectedDraft.name, phone: selectedDraft.phone }
+    ? {
+      ...selected,
+      address: selectedDraft.address,
+      email: selectedDraft.email,
+      labels: selectedDraft.labels,
+      name: selectedDraft.name,
+      phone: selectedDraft.phone,
+    }
     : selected;
+  const labelOptions = useMemo(() => {
+    // V1: spostare catalogo, colori e governance etichette in una configurazione persistente.
+    const labels = new Set<string>();
+    for (const client of directoryClients) {
+      for (const label of client.labels) labels.add(label);
+    }
+    for (const client of Object.values(clientOverrides)) {
+      for (const label of client.labels) labels.add(label);
+    }
+    if (selectedDraft) {
+      for (const label of selectedDraft.labels) labels.add(label);
+    }
+    return Array.from(labels).sort((a, b) => a.localeCompare(b, "it"));
+  }, [clientOverrides, selectedDraft]);
 
   function toggleSort(nextKey: SortKey) {
     if (sortKey === nextKey) {
@@ -119,6 +141,7 @@ export function ClientsListClient() {
   function openClient(client: DirectoryClient) {
     setSelected(client);
     setSelectedDraft({
+      address: client.address,
       email: client.email,
       labels: client.labels,
       name: client.name,
@@ -160,6 +183,7 @@ export function ClientsListClient() {
         selected.id,
         {
           email: selectedDraft.email.trim() || null,
+          indirizzo_sede: selectedDraft.address.trim() || null,
           ragione_sociale: selectedDraft.name.trim(),
           telefono: selectedDraft.phone.trim() || null,
         },
@@ -167,6 +191,7 @@ export function ClientsListClient() {
       );
       const nextClient: DirectoryClient = {
         ...selected,
+        address: updated.indirizzo_sede ?? selectedDraft.address,
         email: updated.email ?? "",
         labels: selectedDraft.labels,
         name: updated.ragione_sociale,
@@ -175,6 +200,7 @@ export function ClientsListClient() {
       setClientOverrides((current) => ({ ...current, [nextClient.id]: nextClient }));
       setSelected(nextClient);
       setSelectedDraft({
+        address: nextClient.address,
         email: nextClient.email,
         labels: nextClient.labels,
         name: nextClient.name,
@@ -397,6 +423,14 @@ export function ClientsListClient() {
                         value={selectedDraft.name}
                       />
                     </label>
+                    <label className="sm:col-span-2">
+                      <span className="text-muted">Indirizzo</span>
+                      <input
+                        className="mt-1 h-10 w-full rounded-xl border border-border bg-surface px-3 text-sm text-foreground outline-none focus:border-electric"
+                        onChange={(event) => setSelectedDraft((draft) => draft ? { ...draft, address: event.target.value } : draft)}
+                        value={selectedDraft.address}
+                      />
+                    </label>
                     <p><span className="text-muted">P.IVA</span><br />{selectedView.vat}</p>
                     <p><span className="text-muted">CF</span><br />{selectedView.taxCode}</p>
                     <label>
@@ -436,6 +470,7 @@ export function ClientsListClient() {
                     </div>
                     <div className="flex gap-2">
                       <input
+                        list="client-label-options"
                         className="h-10 min-w-0 flex-1 rounded-xl border border-border bg-surface px-3 text-sm text-foreground outline-none focus:border-electric"
                         onChange={(event) => setLabelDraft(event.target.value)}
                         onKeyDown={(event) => {
@@ -444,9 +479,16 @@ export function ClientsListClient() {
                             addLabel();
                           }
                         }}
-                        placeholder="Nuova etichetta"
+                        placeholder="Scegli o crea etichetta"
                         value={labelDraft}
                       />
+                      <datalist id="client-label-options">
+                        {labelOptions
+                          .filter((label) => !selectedDraft.labels.some((item) => item.toLowerCase() === label.toLowerCase()))
+                          .map((label) => (
+                            <option key={label} value={label} />
+                          ))}
+                      </datalist>
                       <Button onClick={addLabel} type="button" variant="outline">
                         <Plus className="h-4 w-4" />
                         Aggiungi
@@ -489,23 +531,15 @@ export function ClientsListClient() {
                   </div>
                 </section>
 
-                <section className="rounded-2xl border border-danger/30 bg-danger/5 p-4">
-                  <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-danger">
-                    Zona eliminazione
-                  </p>
-                  <p className="mt-2 text-sm text-muted">
-                    Il cliente puo essere eliminato solo se non ha pratiche aperte.
-                  </p>
-                  <Button
-                    className="mt-3 border border-danger/40 bg-danger/10 text-danger hover:bg-danger/15"
-                    onClick={() => setDeleteConfirmOpen(true)}
-                    type="button"
-                    variant="outline"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    Elimina cliente
-                  </Button>
-                </section>
+                <Button
+                  className="border border-danger/40 bg-danger/10 text-danger hover:bg-danger/15"
+                  onClick={() => setDeleteConfirmOpen(true)}
+                  type="button"
+                  variant="outline"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Elimina cliente
+                </Button>
               </div>
             </>
           ) : null}
