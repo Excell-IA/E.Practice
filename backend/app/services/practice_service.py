@@ -215,11 +215,17 @@ class PracticeService:
     ) -> Practice | None:
         """Aggiorna lo stato della pratica derivandolo dallo stato delle fasi.
 
-        Regole (V0):
+        Regole (V0, 4 stati derivati):
         - almeno una fase ``blocked`` → ``sospesa``
         - tutte le fasi sono ``completed`` o ``skipped`` (e ce n'è almeno una) → ``chiusa``
-        - almeno una fase ``in_progress`` oppure mix completed/skipped/pending → ``in_corso``
-        - tutte ``pending`` (o nessuna fase) → ``aperta``
+        - altrimenti → ``aperta`` (anche se ha fasi in_progress: il livello di
+          avanzamento si vede dal progress %, niente bisogno di uno stato
+          intermedio "in_corso").
+
+        Nota: ``in_attesa`` non è derivato — è uno stato manuale (blocco
+        esterno: cliente non risponde, doc mancante). Va impostato dall'utente
+        e ``recompute_status`` non lo sovrascrive a meno che le condizioni
+        sospesa/chiusa scattino esplicitamente.
         """
         pid = str(practice_id)
         practice = await self._practices.get(pid)
@@ -231,8 +237,9 @@ class PracticeService:
             target = "sospesa"
         elif phases and all(p.status in ("completed", "skipped") for p in phases):
             target = "chiusa"
-        elif any(p.status in ("in_progress", "completed", "skipped") for p in phases):
-            target = "in_corso"
+        elif practice.status == "in_attesa":
+            # rispetta lo stato manuale finché non scattano sospesa/chiusa
+            target = "in_attesa"
         else:
             target = "aperta"
 

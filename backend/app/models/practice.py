@@ -7,7 +7,7 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict
 
 PracticePriority = Literal["bassa", "media", "alta"]
-PracticeStatus = Literal["aperta", "in_corso", "in_attesa", "sospesa", "chiusa", "archiviata"]
+PracticeStatus = Literal["aperta", "in_attesa", "sospesa", "chiusa", "archiviata"]
 PracticeCollaboratorRole = Literal["editor", "viewer"]
 
 

@@ -21,12 +21,11 @@ import json
 import statistics
 import sys
 import time
+import urllib.error
+import urllib.request
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any
-
-import urllib.request
-import urllib.error
 
 MARIO_ID = "11111111-1111-4111-8111-000000000001"
 HEADERS = {"X-User-Id": MARIO_ID, "Content-Type": "application/json", "Accept": "application/json"}
@@ -127,7 +126,7 @@ def main() -> int:
 
     # 6. Dettaglio pratica aggregato
     s, p, ms = request(base, "GET", f"/api/practices/{first_id}")
-    record(steps, f"dettaglio pratica {first_code}", "GET", f"/api/practices/{{id}}", s, p, ms)
+    record(steps, f"dettaglio pratica {first_code}", "GET", "/api/practices/{id}", s, p, ms)
     detail = json.loads(p) if p else {}
     phases = [item["phase"] for item in detail.get("phases", [])]
     pending_phase = next(

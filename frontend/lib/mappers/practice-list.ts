@@ -8,7 +8,6 @@ function statusToDirectory(status: ApiPracticeListItem["status"]): DirectoryPrac
   if (status === "chiusa" || status === "archiviata") return "chiusa";
   if (status === "sospesa") return "sospesa";
   if (status === "in_attesa") return "in_attesa";
-  if (status === "in_corso") return "in_corso";
   return "aperta";
 }
 

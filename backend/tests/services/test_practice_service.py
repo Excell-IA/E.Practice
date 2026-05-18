@@ -165,7 +165,7 @@ async def _build_service(
 
 @pytest.mark.asyncio
 async def test_recompute_status_blocked_phase_marks_sospesa() -> None:
-    practice = _make_practice(status="in_corso")
+    practice = _make_practice(status="aperta")
     phases = [
         _make_phase(practice.id, order_index=1, status="completed"),
         _make_phase(practice.id, order_index=2, status="blocked"),
@@ -180,7 +180,7 @@ async def test_recompute_status_blocked_phase_marks_sospesa() -> None:
 
 @pytest.mark.asyncio
 async def test_recompute_status_all_completed_or_skipped_marks_chiusa() -> None:
-    practice = _make_practice(status="in_corso")
+    practice = _make_practice(status="aperta")
     phases = [
         _make_phase(practice.id, order_index=1, status="completed"),
         _make_phase(practice.id, order_index=2, status="skipped"),
@@ -194,7 +194,12 @@ async def test_recompute_status_all_completed_or_skipped_marks_chiusa() -> None:
 
 
 @pytest.mark.asyncio
-async def test_recompute_status_in_progress_phase_marks_in_corso() -> None:
+async def test_recompute_status_in_progress_phase_stays_aperta() -> None:
+    """V0 (4 stati): una pratica con fasi in_progress resta 'aperta'.
+
+    Il livello di avanzamento si vede dal progress %, niente bisogno di uno
+    stato intermedio 'in_corso'.
+    """
     practice = _make_practice(status="aperta")
     phases = [
         _make_phase(practice.id, order_index=1, status="in_progress"),
@@ -203,12 +208,12 @@ async def test_recompute_status_in_progress_phase_marks_in_corso() -> None:
     service, _, _ = await _build_service(practice, phases)
     updated = await service.recompute_status(practice.id, practice.created_by)
     assert updated is not None
-    assert updated.status == "in_corso"
+    assert updated.status == "aperta"
 
 
 @pytest.mark.asyncio
 async def test_recompute_status_all_pending_marks_aperta() -> None:
-    practice = _make_practice(status="in_corso")
+    practice = _make_practice(status="aperta")
     phases = [
         _make_phase(practice.id, order_index=1, status="pending"),
         _make_phase(practice.id, order_index=2, status="pending"),
@@ -220,7 +225,7 @@ async def test_recompute_status_all_pending_marks_aperta() -> None:
 
 
 @pytest.mark.asyncio
-async def test_recompute_status_chiusa_to_in_corso_clears_completed_at() -> None:
+async def test_recompute_status_chiusa_back_to_aperta_clears_completed_at() -> None:
     practice = _make_practice(status="chiusa")
     practice = practice.model_copy(update={"completed_at": datetime.now(UTC)})
     phases = [
@@ -230,5 +235,20 @@ async def test_recompute_status_chiusa_to_in_corso_clears_completed_at() -> None
     service, _, _ = await _build_service(practice, phases)
     updated = await service.recompute_status(practice.id, practice.created_by)
     assert updated is not None
-    assert updated.status == "in_corso"
+    assert updated.status == "aperta"
     assert updated.completed_at is None
+
+
+@pytest.mark.asyncio
+async def test_recompute_status_preserves_manual_in_attesa() -> None:
+    """Lo stato manuale 'in_attesa' viene preservato dal recompute (a meno
+    che non scattino le condizioni sospesa o chiusa)."""
+    practice = _make_practice(status="in_attesa")
+    phases = [
+        _make_phase(practice.id, order_index=1, status="pending"),
+        _make_phase(practice.id, order_index=2, status="pending"),
+    ]
+    service, _, _ = await _build_service(practice, phases)
+    updated = await service.recompute_status(practice.id, practice.created_by)
+    assert updated is not None
+    assert updated.status == "in_attesa"

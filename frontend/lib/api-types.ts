@@ -1402,7 +1402,7 @@ export interface components {
              * Status
              * @enum {string}
              */
-            status: "aperta" | "in_corso" | "in_attesa" | "sospesa" | "chiusa" | "archiviata";
+            status: "aperta" | "in_attesa" | "sospesa" | "chiusa" | "archiviata";
             /**
              * Created By
              * Format: uuid
@@ -1562,7 +1562,7 @@ export interface components {
              * Status
              * @enum {string}
              */
-            status: "aperta" | "in_corso" | "in_attesa" | "sospesa" | "chiusa" | "archiviata";
+            status: "aperta" | "in_attesa" | "sospesa" | "chiusa" | "archiviata";
             /**
              * Created By
              * Format: uuid
@@ -1661,7 +1661,7 @@ export interface components {
             /** Priority */
             priority?: ("bassa" | "media" | "alta") | null;
             /** Status */
-            status?: ("aperta" | "in_corso" | "in_attesa" | "sospesa" | "chiusa" | "archiviata") | null;
+            status?: ("aperta" | "in_attesa" | "sospesa" | "chiusa" | "archiviata") | null;
             /** Created By */
             created_by?: string | null;
             /** Completed At */
@@ -1779,7 +1779,7 @@ export interface components {
              * Status
              * @enum {string}
              */
-            status: "aperta" | "in_corso" | "in_attesa" | "sospesa" | "chiusa" | "archiviata";
+            status: "aperta" | "in_attesa" | "sospesa" | "chiusa" | "archiviata";
             /** Count */
             count: number;
         };
@@ -1868,7 +1868,7 @@ export interface components {
              * Status
              * @enum {string}
              */
-            status: "aperta" | "in_corso" | "in_attesa" | "sospesa" | "chiusa" | "archiviata";
+            status: "aperta" | "in_attesa" | "sospesa" | "chiusa" | "archiviata";
             /** Scadenza */
             scadenza: string | null;
             /** Giorni Al Target */
@@ -2619,7 +2619,7 @@ export interface operations {
             query?: {
                 /** @description Ricerca su title, code */
                 q?: string | null;
-                status?: ("aperta" | "in_corso" | "in_attesa" | "sospesa" | "chiusa" | "archiviata") | null;
+                status?: ("aperta" | "in_attesa" | "sospesa" | "chiusa" | "archiviata") | null;
                 priority?: ("bassa" | "media" | "alta") | null;
                 responsible_id?: string | null;
                 client_id?: string | null;

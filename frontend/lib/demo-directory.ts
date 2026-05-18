@@ -22,7 +22,7 @@ export type DirectoryPractice = {
   categoryColor: string;
   responsible: { name: string; initials: string; color: string };
   dueDate: string;
-  status: "aperta" | "in_corso" | "in_attesa" | "sospesa" | "chiusa";
+  status: "aperta" | "in_attesa" | "sospesa" | "chiusa";
   progress: number;
   phasesClosed: number;
   phasesTotal: number;
@@ -174,7 +174,7 @@ export const directoryPractices: DirectoryPractice[] = [
     phasesTotal: 6,
     progress: 33,
     responsible: { color: "#0f766e", initials: "SS", name: "Sara Salvi" },
-    status: "in_corso",
+    status: "aperta",
     title: "Bilancio 2025 Acciaierie Valgobbia",
   },
   {
@@ -189,7 +189,7 @@ export const directoryPractices: DirectoryPractice[] = [
     phasesTotal: 6,
     progress: 50,
     responsible: { color: "#0f766e", initials: "SS", name: "Sara Salvi" },
-    status: "in_corso",
+    status: "aperta",
     title: "Apertura P.IVA Torchio Davide",
   },
   {
@@ -204,7 +204,7 @@ export const directoryPractices: DirectoryPractice[] = [
     phasesTotal: 6,
     progress: 17,
     responsible: { color: "#14532d", initials: "MB", name: "Mario Bonometti" },
-    status: "in_corso",
+    status: "aperta",
     title: "Ricorso CTP Officine Meccaniche Brescia",
   },
   {

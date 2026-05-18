@@ -25,7 +25,6 @@ type ColumnFilterKey = "status" | "category" | "responsible" | "client";
 
 function statusLabel(status: DirectoryPractice["status"]) {
   if (status === "aperta") return "Aperta";
-  if (status === "in_corso") return "In corso";
   if (status === "in_attesa") return "In attesa";
   if (status === "sospesa") return "Sospesa";
   return "Chiusa";

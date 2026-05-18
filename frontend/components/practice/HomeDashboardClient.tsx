@@ -58,7 +58,7 @@ function DashboardCard({ description, href, icon, kpi, title, v1 }: DashboardCar
 export function HomeDashboardClient() {
   const clientsCount = directoryClients.length;
   const practicesOpen = directoryPractices.filter((p) => p.status !== "chiusa").length;
-  const practicesInProgress = directoryPractices.filter((p) => p.status === "in_corso").length;
+  const practicesInProgress = directoryPractices.filter((p) => p.progress > 0 && p.status !== "chiusa").length;
   const featuredPracticeCode = directoryPractices[0]?.code ?? "PR-2026-001";
 
   return (

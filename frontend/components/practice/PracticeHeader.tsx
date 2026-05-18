@@ -11,22 +11,24 @@ type PracticeHeaderProps = {
   phases: PracticePhase[];
 };
 
-type ExposedPracticeStatus = Extract<PracticeStatus, "aperta" | "sospesa" | "chiusa">;
+type ExposedPracticeStatus = Extract<PracticeStatus, "aperta" | "in_attesa" | "sospesa" | "chiusa">;
 
 const statusLabel: Record<ExposedPracticeStatus, string> = {
   aperta: "Aperta",
-  chiusa: "Chiusa",
+  in_attesa: "In attesa",
   sospesa: "Sospesa",
+  chiusa: "Chiusa",
 };
 
 const statusVariant: Record<ExposedPracticeStatus, "info" | "success" | "warning"> = {
   aperta: "info",
-  chiusa: "success",
+  in_attesa: "warning",
   sospesa: "warning",
+  chiusa: "success",
 };
 
 function exposedStatus(status: PracticeStatus): ExposedPracticeStatus {
-  if (status === "chiusa" || status === "sospesa") return status;
+  if (status === "chiusa" || status === "sospesa" || status === "in_attesa") return status;
   return "aperta";
 }
 

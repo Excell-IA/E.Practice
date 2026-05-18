@@ -737,7 +737,7 @@
       "apertura": "2026-04-01",
       "scadenza": "2026-05-31",
       "priority": "alta",
-      "status": "in_corso",
+      "status": "aperta",
       "created_at": "2026-04-01T09:00:00+02:00",
       "created_by": "11111111-1111-4111-8111-000000000001",
       "completed_at": null
@@ -754,7 +754,7 @@
       "apertura": "2026-05-05",
       "scadenza": "2026-05-20",
       "priority": "media",
-      "status": "in_corso",
+      "status": "aperta",
       "created_at": "2026-05-05T10:00:00+02:00",
       "created_by": "11111111-1111-4111-8111-000000000002",
       "completed_at": null
@@ -771,7 +771,7 @@
       "apertura": "2026-04-10",
       "scadenza": "2026-05-10",
       "priority": "alta",
-      "status": "in_corso",
+      "status": "aperta",
       "created_at": "2026-04-10T11:30:00+02:00",
       "created_by": "11111111-1111-4111-8111-000000000001",
       "completed_at": null

@@ -1,4 +1,4 @@
-export type PracticeStatus = "aperta" | "in_corso" | "in_attesa" | "sospesa" | "chiusa" | "archiviata";
+export type PracticeStatus = "aperta" | "in_attesa" | "sospesa" | "chiusa" | "archiviata";
 export type PhaseStatus = "done" | "in_progress" | "pending" | "skipped" | "blocked";
 export type EventType = "call" | "mail" | "warning";
 

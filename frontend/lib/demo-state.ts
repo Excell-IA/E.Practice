@@ -90,7 +90,7 @@ const practice: Practice = {
   progress: 50,
   responsible: DEMO_USERS[0],
   startDate: "2026-01-22",
-  status: "in_corso",
+  status: "aperta",
   title: "Bilancio 2025 Acciaierie Valgobbia",
 };
 

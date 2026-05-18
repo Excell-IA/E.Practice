@@ -1101,7 +1101,6 @@
                 {
                   "enum": [
                     "aperta",
-                    "in_corso",
                     "in_attesa",
                     "sospesa",
                     "chiusa",
@@ -4821,7 +4820,6 @@
             "type": "string",
             "enum": [
               "aperta",
-              "in_corso",
               "in_attesa",
               "sospesa",
               "chiusa",
@@ -5294,7 +5292,6 @@
             "type": "string",
             "enum": [
               "aperta",
-              "in_corso",
               "in_attesa",
               "sospesa",
               "chiusa",
@@ -5649,7 +5646,6 @@
                 "type": "string",
                 "enum": [
                   "aperta",
-                  "in_corso",
                   "in_attesa",
                   "sospesa",
                   "chiusa",
@@ -5924,7 +5920,6 @@
             "type": "string",
             "enum": [
               "aperta",
-              "in_corso",
               "in_attesa",
               "sospesa",
               "chiusa",
@@ -6101,7 +6096,6 @@
             "type": "string",
             "enum": [
               "aperta",
-              "in_corso",
               "in_attesa",
               "sospesa",
               "chiusa",
