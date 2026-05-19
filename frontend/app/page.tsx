@@ -1,3 +1,4 @@
+import { HelpCircle } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -26,6 +27,15 @@ export default function HomePage() {
               Entra
             </Link>
           </div>
+        </div>
+
+        <div className="mt-8 flex items-center gap-3 rounded-xl border border-border bg-surface-container/60 px-5 py-3 text-sm text-muted">
+          <span className="inline-flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full border border-electric/40 bg-electric/10 text-electric">
+            <HelpCircle className="h-5 w-5" />
+          </span>
+          <p>
+            <span className="font-semibold text-foreground">Benvenuto.</span> Per capire come funziona ogni vista, clicca il pulsante con l&apos;icona qui accanto, sempre a sinistra del titolo della pagina.
+          </p>
         </div>
       </div>
     </main>
