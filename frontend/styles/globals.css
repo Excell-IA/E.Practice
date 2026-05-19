@@ -148,3 +148,27 @@ svg text {
 :root[data-theme="excellia"] input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover {
   opacity: 1;
 }
+
+.tree-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--surface-container-highest) var(--surface-container-low);
+}
+
+.tree-scroll::-webkit-scrollbar {
+  height: 12px;
+}
+
+.tree-scroll::-webkit-scrollbar-track {
+  background: var(--surface-container-low);
+  border-radius: 6px;
+}
+
+.tree-scroll::-webkit-scrollbar-thumb {
+  background: var(--surface-container-highest);
+  border-radius: 6px;
+  border: 2px solid var(--surface-container-low);
+}
+
+.tree-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--electric);
+}

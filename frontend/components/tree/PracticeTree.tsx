@@ -75,8 +75,12 @@ const groupTypeLabel = {
   warning: "Avvisi",
 };
 
+const PAN_DRAG_THRESHOLD = 5;
+
 export function PracticeTree({ practice, phases, events, onSwitchTab, pendingSelection, onTreeSelectionApplied, onRequestNoteFocus }: PracticeTreeProps) {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const panState = useRef<{ startX: number; startScrollLeft: number; pointerId: number } | null>(null);
+  const hasDraggedRef = useRef(false);
   const [todayDate, setTodayDate] = useState<Date>(() => new Date());
   useEffect(() => {
     setTodayDate(new Date());
@@ -352,12 +356,58 @@ export function PracticeTree({ practice, phases, events, onSwitchTab, pendingSel
   }
 
   function handleTrunkClick(event: MouseEvent<SVGLineElement>) {
+    if (hasDraggedRef.current) return;
     if (activeUser.permission === "viewer") return;
     const point = svgPointFromPointer(event);
     if (!point) return;
     const date = isoDate(xToTimelineDate(point.x));
     setComposerDate(date);
     setComposerPhaseId(closestPhaseId(date));
+  }
+
+  function onPanStart(event: PointerEvent<HTMLDivElement>) {
+    if (event.pointerType === "mouse" && event.button !== 0) return;
+    const scrollArea = scrollAreaRef.current;
+    if (!scrollArea) return;
+    panState.current = {
+      startX: event.clientX,
+      startScrollLeft: scrollArea.scrollLeft,
+      pointerId: event.pointerId,
+    };
+    hasDraggedRef.current = false;
+  }
+
+  function onPanMove(event: PointerEvent<HTMLDivElement>) {
+    const state = panState.current;
+    const scrollArea = scrollAreaRef.current;
+    if (!state || !scrollArea) return;
+    const dx = event.clientX - state.startX;
+    if (!hasDraggedRef.current) {
+      if (Math.abs(dx) < PAN_DRAG_THRESHOLD) return;
+      hasDraggedRef.current = true;
+      try {
+        scrollArea.setPointerCapture(state.pointerId);
+      } catch {}
+      scrollArea.style.cursor = "grabbing";
+    }
+    scrollArea.scrollLeft = state.startScrollLeft - dx;
+  }
+
+  function onPanEnd(event: PointerEvent<HTMLDivElement>) {
+    const state = panState.current;
+    const scrollArea = scrollAreaRef.current;
+    if (state && scrollArea && hasDraggedRef.current) {
+      try {
+        scrollArea.releasePointerCapture(state.pointerId);
+      } catch {}
+      scrollArea.style.cursor = "";
+    }
+    panState.current = null;
+    if (hasDraggedRef.current) {
+      window.setTimeout(() => {
+        hasDraggedRef.current = false;
+      }, 0);
+    }
   }
 
   useEffect(() => {
@@ -455,7 +505,14 @@ export function PracticeTree({ practice, phases, events, onSwitchTab, pendingSel
         </div>
 
         <CardContent className="p-0">
-          <div className="overflow-x-auto" ref={scrollAreaRef}>
+          <div
+            className="tree-scroll cursor-grab overflow-x-auto select-none touch-pan-y"
+            onPointerCancel={onPanEnd}
+            onPointerDown={onPanStart}
+            onPointerMove={onPanMove}
+            onPointerUp={onPanEnd}
+            ref={scrollAreaRef}
+          >
             <svg
               aria-label="Albero della pratica"
               className="h-[470px] min-w-[3200px] text-foreground"
