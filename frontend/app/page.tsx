@@ -34,7 +34,9 @@ export default function HomePage() {
             <HelpCircle className="h-5 w-5" />
           </span>
           <p>
-            <span className="font-semibold text-foreground">Benvenuto.</span> Per capire come funziona ogni vista, clicca il pulsante con l&apos;icona qui accanto, sempre a sinistra del titolo della pagina.
+            <span className="font-semibold text-foreground">Benvenuto in E.Practice!</span>
+            <br />
+            Per brevi guide pagina per pagina clicca sul pulsante &laquo;?&raquo; con l&apos;icona qui accanto, si aprir&agrave; un panel informativo.
           </p>
         </div>
       </div>

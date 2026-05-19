@@ -150,25 +150,29 @@ svg text {
 }
 
 .tree-scroll {
-  scrollbar-width: thin;
-  scrollbar-color: var(--surface-container-highest) var(--surface-container-low);
+  scrollbar-width: auto;
+  scrollbar-color: var(--electric) var(--surface-container-high);
+  scrollbar-gutter: stable;
 }
 
 .tree-scroll::-webkit-scrollbar {
-  height: 12px;
+  height: 14px;
+  -webkit-appearance: none;
+  display: block;
 }
 
 .tree-scroll::-webkit-scrollbar-track {
-  background: var(--surface-container-low);
-  border-radius: 6px;
+  background: var(--surface-container-high);
+  border-radius: 8px;
+  margin: 0 4px;
 }
 
 .tree-scroll::-webkit-scrollbar-thumb {
-  background: var(--surface-container-highest);
-  border-radius: 6px;
-  border: 2px solid var(--surface-container-low);
+  background: var(--electric);
+  border-radius: 8px;
+  min-width: 40px;
 }
 
 .tree-scroll::-webkit-scrollbar-thumb:hover {
-  background: var(--electric);
+  background: var(--primary-container);
 }
