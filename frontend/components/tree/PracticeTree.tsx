@@ -1,10 +1,8 @@
 "use client";
 
 import {
-  AlertTriangle,
   CalendarDays,
   Maximize2,
-  MessageSquareText,
   Minus,
   MoveHorizontal,
   Plus,
@@ -18,16 +16,16 @@ import { HelpButton } from "@/components/ui/help-button";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { V1Hint } from "@/components/ui/v1-hint";
-import { useDemoStore } from "@/lib/demo-state";
+import { useDemoStore, type DemoNote } from "@/lib/demo-state";
 import type { Practice, PracticeEvent, PracticePhase, TreeSelection } from "@/lib/types";
 
 import { BezierEdge } from "./BezierEdge";
-import { EventGroupNode } from "./EventGroupNode";
-import { EventNode } from "./EventNode";
+import { CommunicationsGroupNode } from "./CommunicationsGroupNode";
 import { NodeDrawer } from "./NodeDrawer";
+import { NotesGroupNode } from "./NotesGroupNode";
 import { PhaseNode } from "./PhaseNode";
+import { TimelineDayDrawer, type TimelineDayGroup } from "./TimelineDayDrawer";
 import { TodayLine } from "./TodayLine";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 
 type PracticeTreeProps = {
   practice: Practice;
@@ -61,29 +59,34 @@ type TrunkHover = {
   y: number;
 };
 
-type EventGroup = {
+type CommunicationsCluster = {
   key: string;
   events: PracticeEvent[];
-  date: string;
-  type: PracticeEvent["type"];
-  phase: PracticePhase;
+  startDate: string;
+  endDate: string;
+  x: number;
 };
 
-const groupTypeLabel = {
-  call: "Telefonate",
-  mail: "Email",
-  warning: "Avvisi",
+type NotesCluster = {
+  key: string;
+  notes: DemoNote[];
+  startDate: string;
+  endDate: string;
+  x: number;
 };
 
 const PAN_DRAG_THRESHOLD = 5;
+const CLUSTER_THRESHOLD_PX = 56;
 
-export function PracticeTree({ practice, phases, events, onSwitchTab, pendingSelection, onTreeSelectionApplied, onRequestNoteFocus }: PracticeTreeProps) {
+export function PracticeTree({ practice, phases, events, onSwitchTab, pendingSelection, onTreeSelectionApplied }: PracticeTreeProps) {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const panState = useRef<{ startX: number; startScrollLeft: number; pointerId: number } | null>(null);
   const hasDraggedRef = useRef(false);
   const [todayDate, setTodayDate] = useState<Date>(() => new Date());
+  const [mounted, setMounted] = useState(false);
   useEffect(() => {
     setTodayDate(new Date());
+    setMounted(true);
   }, []);
   const todayIso = useMemo(() => {
     const local = new Date(todayDate.getTime() - todayDate.getTimezoneOffset() * 60000);
@@ -98,7 +101,7 @@ export function PracticeTree({ practice, phases, events, onSwitchTab, pendingSel
   }, [todayIso]);
   const [composerPhaseId, setComposerPhaseId] = useState<string | null>(null);
   const [trunkHover, setTrunkHover] = useState<TrunkHover | null>(null);
-  const [groupSelection, setGroupSelection] = useState<EventGroup | null>(null);
+  const [dayDrawer, setDayDrawer] = useState<TimelineDayGroup | null>(null);
   const activeUser = useDemoStore((state) => state.activeUser);
   const applyAction = useDemoStore((state) => state.applyAction);
   const allNotes = useDemoStore((state) => state.notes);
@@ -204,13 +207,6 @@ export function PracticeTree({ practice, phases, events, onSwitchTab, pendingSel
     return closest?.id ?? currentPhase?.id ?? orderedPhases[0]?.id ?? "";
   }
 
-  function resolveEventPhase(event: PracticeEvent) {
-    return (
-      orderedPhases.find((item) => item.id === event.phaseId) ??
-      orderedPhases.find((item) => item.id === closestPhaseId(event.occurredAt))
-    );
-  }
-
   const phasePositions = useMemo(() => {
     return new Map(
       orderedPhases.map((phase, index) => {
@@ -220,71 +216,99 @@ export function PracticeTree({ practice, phases, events, onSwitchTab, pendingSel
     );
   }, [dateToTimelineX, orderedPhases, phaseTimelineDate]);
 
-  const noteMarks = useMemo(() => {
-    const items = allNotes
-      .filter((note) => !note.phaseId)
-      .map((note) => {
-        const dateIso = note.occurredAt ?? note.createdAt?.slice(0, 10) ?? "";
-        if (!dateIso) return null;
-        return {
-          id: note.id,
-          x: dateToTimelineX(dateIso),
-          body: note.body,
-          authorName: note.author.name,
-          dateIso,
-        };
-      })
-      .filter((mark): mark is NonNullable<typeof mark> => mark !== null)
-      .sort((a, b) => a.dateIso.localeCompare(b.dateIso));
-    let lastX = -Infinity;
-    let lane = 0;
-    return items.map((mark) => {
-      if (mark.x - lastX < 110) {
-        lane = (lane + 1) % 2;
+  // Clustering: aggrego comunicazioni la cui distanza in pixel sulla linea
+  // sia inferiore a CLUSTER_THRESHOLD_PX. La conversione px→giorni è implicita
+  // in dateToTimelineX: px/giorno cambia con la durata della pratica (e con
+  // lo zoom in V2), quindi la soglia in giorni si adatta automaticamente.
+  const communicationClusters = useMemo<CommunicationsCluster[]>(() => {
+    const sorted = events
+      .filter((e) => Boolean(e.occurredAt))
+      .map((e) => ({ event: e, dateOnly: e.occurredAt.slice(0, 10) }))
+      .sort((a, b) => a.dateOnly.localeCompare(b.dateOnly));
+    const clusters: CommunicationsCluster[] = [];
+    for (const { event, dateOnly } of sorted) {
+      const x = dateToTimelineX(dateOnly);
+      const last = clusters[clusters.length - 1];
+      if (last && Math.abs(x - last.x) < CLUSTER_THRESHOLD_PX) {
+        last.events.push(event);
+        if (dateOnly > last.endDate) last.endDate = dateOnly;
+        if (dateOnly < last.startDate) last.startDate = dateOnly;
+        const xs = last.events.map((e) => dateToTimelineX(e.occurredAt.slice(0, 10)));
+        last.x = xs.reduce((s, v) => s + v, 0) / xs.length;
       } else {
-        lane = 0;
-      }
-      lastX = mark.x;
-      return { ...mark, y: lane === 0 ? 360 : 312 };
-    });
-  }, [allNotes, dateToTimelineX]);
-
-  const eventGroups = useMemo<EventGroup[]>(() => {
-    const map = new Map<string, EventGroup>();
-    for (const event of events) {
-      const phase =
-        orderedPhases.find((item) => item.id === event.phaseId) ?? orderedPhases[0];
-      if (!phase) continue;
-      const dateOnly = (event.occurredAt ?? "").slice(0, 10);
-      if (!dateOnly) continue;
-      const key = `${dateOnly}__${event.type}__${phase.id}`;
-      const existing = map.get(key);
-      if (existing) {
-        existing.events.push(event);
-      } else {
-        map.set(key, { key, events: [event], date: dateOnly, type: event.type, phase });
+        clusters.push({
+          key: `comm-${dateOnly}-${event.id}`,
+          events: [event],
+          startDate: dateOnly,
+          endDate: dateOnly,
+          x,
+        });
       }
     }
-    return Array.from(map.values()).sort((a, b) => a.date.localeCompare(b.date));
-  }, [events, orderedPhases]);
+    return clusters;
+  }, [events, dateToTimelineX]);
 
-  const groupPositions = useMemo(() => {
-    const sorted = [...eventGroups].sort((a, b) => a.date.localeCompare(b.date));
+  const communicationPositions = useMemo(() => {
     const map = new Map<string, { x: number; y: number }>();
     let lastX = -Infinity;
     let lane = 0;
-    for (const group of sorted) {
-      const x = dateToTimelineX(group.date);
-      if (x - lastX < 110) {
+    for (const cluster of communicationClusters) {
+      if (cluster.x - lastX < 110) {
         lane = (lane + 1) % 2;
       } else {
         lane = 0;
       }
-      map.set(group.key, { x, y: lane === 0 ? 132 : 180 });
-      lastX = x;
+      map.set(cluster.key, { x: cluster.x, y: lane === 0 ? 132 : 180 });
+      lastX = cluster.x;
     }
     return map;
-  }, [dateToTimelineX, eventGroups]);
+  }, [communicationClusters]);
+
+  const noteClusters = useMemo<NotesCluster[]>(() => {
+    if (!mounted) return [];
+    const sorted = allNotes
+      .filter((n) => !n.phaseId)
+      .map((n) => ({ note: n, dateIso: n.occurredAt ?? n.createdAt?.slice(0, 10) ?? "" }))
+      .filter(({ dateIso }) => Boolean(dateIso))
+      .sort((a, b) => a.dateIso.localeCompare(b.dateIso));
+    const clusters: NotesCluster[] = [];
+    for (const { note, dateIso } of sorted) {
+      const x = dateToTimelineX(dateIso);
+      const last = clusters[clusters.length - 1];
+      if (last && Math.abs(x - last.x) < CLUSTER_THRESHOLD_PX) {
+        last.notes.push(note);
+        if (dateIso > last.endDate) last.endDate = dateIso;
+        if (dateIso < last.startDate) last.startDate = dateIso;
+        const xs = last.notes.map((n) => dateToTimelineX(n.occurredAt ?? n.createdAt?.slice(0, 10) ?? ""));
+        last.x = xs.reduce((s, v) => s + v, 0) / xs.length;
+      } else {
+        clusters.push({
+          key: `notes-${dateIso}-${note.id}`,
+          notes: [note],
+          startDate: dateIso,
+          endDate: dateIso,
+          x,
+        });
+      }
+    }
+    return clusters;
+  }, [allNotes, dateToTimelineX, mounted]);
+
+  const notePositions = useMemo(() => {
+    const map = new Map<string, { x: number; y: number }>();
+    let lastX = -Infinity;
+    let lane = 0;
+    for (const cluster of noteClusters) {
+      if (cluster.x - lastX < 110) {
+        lane = (lane + 1) % 2;
+      } else {
+        lane = 0;
+      }
+      map.set(cluster.key, { x: cluster.x, y: lane === 0 ? 360 : 312 });
+      lastX = cluster.x;
+    }
+    return map;
+  }, [noteClusters]);
   const freshSelection = useMemo((): TreeSelection | null => {
     if (!selection) return null;
     if (selection.kind === "phase") {
@@ -525,7 +549,7 @@ export function PracticeTree({ practice, phases, events, onSwitchTab, pendingSel
                   <stop offset="50%" stopColor="var(--electric)" />
                   <stop offset="100%" stopColor="var(--on-surface-muted)" stopOpacity="0.45" />
                 </linearGradient>
-                {(["call", "mail", "warning", "note"] as const).map((tone) => (
+                {(["call", "mail", "note"] as const).map((tone) => (
                   <marker
                     id={`arrow-${tone}`}
                     key={tone}
@@ -542,9 +566,7 @@ export function PracticeTree({ practice, phases, events, onSwitchTab, pendingSel
                           ? "fill-[#C193FF]"
                           : tone === "note"
                             ? "fill-electric"
-                            : tone === "warning"
-                              ? "fill-warning"
-                              : "fill-warning"
+                            : "fill-warning"
                       }
                       d="M 0 0 L 8 4 L 0 8 z"
                     />
@@ -604,46 +626,34 @@ export function PracticeTree({ practice, phases, events, onSwitchTab, pendingSel
               ) : null}
               <TodayLine x={todayX} />
 
-              {eventGroups.map((group) => {
-                const position = groupPositions.get(group.key);
+              {communicationClusters.map((cluster) => {
+                const position = communicationPositions.get(cluster.key);
                 if (!position) return null;
+                const isMulti = cluster.events.length > 1;
+                const edgeTone = isMulti ? "note" : cluster.events[0].type;
                 return (
                   <BezierEdge
                     fromX={position.x}
                     fromY={timeline.y + (position.y < timeline.y ? -10 : 10)}
-                    key={`edge-${group.key}`}
+                    key={`edge-${cluster.key}`}
                     toX={position.x}
                     toY={position.y + (position.y < timeline.y ? 24 : -24)}
                     arrow
-                    tone={group.type}
+                    tone={edgeTone}
                   />
                 );
               })}
 
-              {eventGroups.map((group) => {
-                const position = groupPositions.get(group.key);
+              {communicationClusters.map((cluster) => {
+                const position = communicationPositions.get(cluster.key);
                 if (!position) return null;
-                if (group.events.length > 1) {
-                  return (
-                    <EventGroupNode
-                      count={group.events.length}
-                      date={group.date}
-                      key={group.key}
-                      onSelect={() => setGroupSelection(group)}
-                      timelineY={timeline.y}
-                      type={group.type}
-                      x={position.x}
-                      y={position.y}
-                    />
-                  );
-                }
-                const event = group.events[0];
                 return (
-                  <EventNode
-                    event={event}
-                    key={group.key}
-                    onSelect={selectEvent}
-                    phase={group.phase}
+                  <CommunicationsGroupNode
+                    endDate={cluster.endDate}
+                    events={cluster.events}
+                    key={cluster.key}
+                    onSelect={() => setDayDrawer({ kind: "communications", startDate: cluster.startDate, endDate: cluster.endDate, items: cluster.events })}
+                    startDate={cluster.startDate}
                     timelineY={timeline.y}
                     x={position.x}
                     y={position.y}
@@ -651,63 +661,36 @@ export function PracticeTree({ practice, phases, events, onSwitchTab, pendingSel
                 );
               })}
 
-              {noteMarks.map((mark) => (
-                <BezierEdge
-                  arrow
-                  fromX={mark.x}
-                  fromY={timeline.y + (mark.y < timeline.y ? -10 : 10)}
-                  key={`note-edge-${mark.id}`}
-                  toX={mark.x}
-                  toY={mark.y + (mark.y < timeline.y ? 24 : -24)}
-                  tone="note"
-                />
-              ))}
-
-              {noteMarks.map((mark) => {
-                const labelY = mark.y < timeline.y ? -40 : 54;
-                const noteDate = new Intl.DateTimeFormat("it-IT", {
-                  day: "2-digit",
-                  month: "short",
-                  year: "numeric",
-                }).format(new Date(mark.dateIso));
-                const dateChipY = mark.y < timeline.y ? timeline.y + 30 : timeline.y - 24;
-                const preview = mark.body.length > 18 ? `${mark.body.slice(0, 18)}…` : mark.body;
+              {noteClusters.map((cluster) => {
+                const position = notePositions.get(cluster.key);
+                if (!position) return null;
                 return (
-                  <g
-                    aria-label={`Nota di ${mark.authorName}`}
-                    className="group cursor-pointer"
-                    key={`note-${mark.id}`}
-                    onClick={() => {
-                      if (onRequestNoteFocus) onRequestNoteFocus(mark.id);
-                      else onSwitchTab("note");
-                    }}
-                    role="button"
-                    tabIndex={0}
-                    transform={`translate(${mark.x} 0)`}
-                  >
-                    <title>{`Nota — ${mark.authorName} — ${noteDate}\n${mark.body.slice(0, 120)}`}</title>
-                    <circle className="fill-transparent" cy={timeline.y} r="22" />
-                    <circle className="fill-electric/10 stroke-electric/20 stroke-2 transition-colors group-hover:fill-electric/20 group-hover:stroke-electric/50" cy={timeline.y} r="16" />
-                    <circle className="fill-surface-high stroke-electric stroke-2" cy={timeline.y} r="10" />
-                    <circle className="fill-electric" cy={timeline.y} r="4" />
-                    <g className="opacity-0 transition-opacity group-hover:opacity-100">
-                      <rect className="fill-surface-high stroke-border" height="50" rx="12" width="164" x="-82" y={dateChipY - 30} />
-                      <text className="fill-electric text-[10px] font-semibold uppercase tracking-wider" textAnchor="middle" y={dateChipY - 16}>NOTA</text>
-                      <text className="fill-foreground text-[11px] font-semibold" textAnchor="middle" y={dateChipY - 1}>{noteDate}</text>
-                      <text className="fill-muted text-[10px] font-semibold" textAnchor="middle" y={dateChipY + 13}>{mark.authorName}</text>
-                    </g>
-                    <g transform={`translate(0 ${mark.y})`}>
-                      <circle className="fill-none stroke-electric/0 stroke-2 transition-colors group-hover:stroke-electric/45" r="22" />
-                      <circle className="fill-electric/10 stroke-electric stroke-[1.5]" r="18" />
-                      <foreignObject height="20" width="20" x="-10" y="-10">
-                        <div className="flex h-5 w-5 items-center justify-center text-foreground">
-                          <MessageSquareText className="h-4 w-4" />
-                        </div>
-                      </foreignObject>
-                      <rect className="fill-surface-container" height="22" rx="11" width="104" x="-52" y={labelY - 15} />
-                      <text className="fill-muted text-[11px] font-semibold" textAnchor="middle" y={labelY}>{preview}</text>
-                    </g>
-                  </g>
+                  <BezierEdge
+                    arrow
+                    fromX={position.x}
+                    fromY={timeline.y + (position.y < timeline.y ? -10 : 10)}
+                    key={`note-edge-${cluster.key}`}
+                    toX={position.x}
+                    toY={position.y + (position.y < timeline.y ? 24 : -24)}
+                    tone="note"
+                  />
+                );
+              })}
+
+              {noteClusters.map((cluster) => {
+                const position = notePositions.get(cluster.key);
+                if (!position) return null;
+                return (
+                  <NotesGroupNode
+                    endDate={cluster.endDate}
+                    key={cluster.key}
+                    notes={cluster.notes}
+                    onSelect={() => setDayDrawer({ kind: "notes", startDate: cluster.startDate, endDate: cluster.endDate, items: cluster.notes })}
+                    startDate={cluster.startDate}
+                    timelineY={timeline.y}
+                    x={position.x}
+                    y={position.y}
+                  />
                 );
               })}
 
@@ -738,52 +721,11 @@ export function PracticeTree({ practice, phases, events, onSwitchTab, pendingSel
 
       <NodeDrawer onOpenChange={setDrawerOpen} onSwitchTab={onSwitchTab} open={drawerOpen} selection={freshSelection} />
 
-      <Sheet onOpenChange={(open) => !open && setGroupSelection(null)} open={groupSelection !== null}>
-        <SheetContent>
-          {groupSelection ? (
-            <>
-              <SheetHeader>
-                <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-electric">
-                  {groupTypeLabel[groupSelection.type]} - Fase {groupSelection.phase.order}
-                </p>
-                <SheetTitle>
-                  {groupSelection.events.length} {groupTypeLabel[groupSelection.type].toLowerCase()} il{" "}
-                  {displayDate(groupSelection.date)}
-                </SheetTitle>
-                <SheetDescription>
-                  Clicca su una voce per aprirne il dettaglio.
-                </SheetDescription>
-              </SheetHeader>
-
-              <div className="mt-4 flex flex-1 flex-col gap-2 overflow-y-auto">
-                {[...groupSelection.events]
-                  .sort((a, b) => (a.occurredAt ?? "").localeCompare(b.occurredAt ?? ""))
-                  .map((event) => (
-                    <button
-                      className="flex flex-col gap-1 rounded-xl border border-border bg-surface-container px-4 py-3 text-left transition-colors hover:border-electric/40 hover:bg-surface-high"
-                      key={event.id}
-                      onClick={() => {
-                        selectEvent(event, groupSelection.phase);
-                        setGroupSelection(null);
-                      }}
-                      type="button"
-                    >
-                      <span className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
-                        {event.author.name}
-                      </span>
-                      <span className="font-label text-sm font-semibold text-foreground">
-                        {event.title}
-                      </span>
-                      {event.description ? (
-                        <span className="line-clamp-2 text-xs text-muted">{event.description}</span>
-                      ) : null}
-                    </button>
-                  ))}
-              </div>
-            </>
-          ) : null}
-        </SheetContent>
-      </Sheet>
+      <TimelineDayDrawer
+        group={dayDrawer}
+        onOpenChange={(open) => !open && setDayDrawer(null)}
+        open={dayDrawer !== null}
+      />
     </>
   );
 }
