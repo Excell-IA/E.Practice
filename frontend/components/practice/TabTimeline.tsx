@@ -2,7 +2,7 @@
 
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
-import { CheckCircle2, Mail, MessageSquareText, PhoneCall, PlayCircle, TriangleAlert } from "lucide-react";
+import { CheckCircle2, Mail, MessageSquareText, PhoneCall, PlayCircle } from "lucide-react";
 import { useMemo, useState, type ReactNode } from "react";
 
 import { Badge } from "@/components/ui/badge";
@@ -60,19 +60,11 @@ function eventMeta(event: PracticeEvent) {
       typeLabel: "Evento - Telefonata",
     };
   }
-  if (event.type === "mail") {
-    return {
-      badgeVariant: "info" as const,
-      icon: <Mail className="h-4 w-4" />,
-      iconTitle: "Email",
-      typeLabel: "Evento - Email",
-    };
-  }
   return {
-    badgeVariant: "danger" as const,
-    icon: <TriangleAlert className="h-4 w-4" />,
-    iconTitle: "Avviso",
-    typeLabel: "Evento - Avviso",
+    badgeVariant: "info" as const,
+    icon: <Mail className="h-4 w-4" />,
+    iconTitle: "Email",
+    typeLabel: "Evento - Email",
   };
 }
 

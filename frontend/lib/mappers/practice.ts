@@ -55,8 +55,7 @@ function mapPhaseStatus(status: ApiPhaseStatus): PracticePhase["status"] {
 
 function mapEventType(type: ApiEventType): EventType {
   if (type === "telefonata_in" || type === "telefonata_out") return "call";
-  if (type === "email_in" || type === "email_out") return "mail";
-  return "warning";
+  return "mail";
 }
 
 function mapLabelTone(color: string): PracticeLabel["tone"] {

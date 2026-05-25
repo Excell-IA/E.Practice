@@ -146,16 +146,6 @@ const initialEvents: PracticeEvent[] = [
     title: "Mail docs",
     type: "mail",
   },
-  {
-    id: "event-03",
-    author: DEMO_USERS[0],
-    description: "Segnalata attenzione su scadenza deposito e verifica approvazione assembleare.",
-    occurredAt: "2026-03-12",
-    phaseId: "phase-04",
-    practiceId: practice.id,
-    title: "Alert scadenza",
-    type: "warning",
-  },
 ];
 
 const initialNotes: DemoNote[] = [];
@@ -182,7 +172,7 @@ type DemoAction =
   | { type: "update_phase"; phaseId: string; planned_end: string }
   | { type: "assign_phase"; phaseId: string; userId: string }
   | { type: "add_note"; phaseId?: string | null; body: string; occurredAt?: string }
-  | { type: "update_note"; noteId: string; body: string }
+  | { type: "update_note"; noteId: string; body: string; authorId?: string; occurredAt?: string }
   | { type: "create_event"; phaseId: string; eventType: EventType; title: string; description: string; occurredAt: string }
   | {
       type: "update_event";
@@ -403,8 +393,16 @@ export const useDemoStore = create<DemoState>((set) => ({
       }
 
       if (action.type === "update_note") {
+        const newAuthor = action.authorId ? state.users.find((user) => user.id === action.authorId) : undefined;
         const notes = state.notes.map((note) =>
-          note.id === action.noteId ? { ...note, body: action.body } : note,
+          note.id === action.noteId
+            ? {
+                ...note,
+                body: action.body,
+                ...(newAuthor ? { author: newAuthor } : {}),
+                ...(action.occurredAt ? { occurredAt: action.occurredAt } : {}),
+              }
+            : note,
         );
         rememberNotes(notes);
         return { notes };

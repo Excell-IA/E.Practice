@@ -195,9 +195,9 @@ export function EventComposer({
             </div>
           ) : (
             <div className="grid gap-3 md:grid-cols-[140px_1fr_1.4fr_auto] md:items-center">
-              <Badge className="justify-self-start px-3 py-1.5" variant={composerType === "warning" ? "warning" : "info"}>
+              <Badge className="justify-self-start px-3 py-1.5" variant="info">
                 <span className="font-display text-sm font-bold uppercase tracking-wider">
-                  {composerType === "call" ? "Telefonata" : composerType === "mail" ? "Email" : "Avviso"}
+                  {composerType === "call" ? "Telefonata" : "Email"}
                 </span>
               </Badge>
               <label className="text-sm font-semibold text-muted">
