@@ -35,6 +35,8 @@ class PracticeEventBase(BaseModel):
     event_time: time | None = None
     author_id: UUID
     visual_position: VisualPosition | None = None
+    participant_type: Literal["azienda", "persona"] | None = None
+    participant_id: UUID | None = None
 
 
 # L2 OPERATIVO - esposta all'AI solo tramite view L3
@@ -59,3 +61,5 @@ class PracticeEventUpdate(BaseModel):
     event_time: time | None = None
     author_id: UUID | None = None
     visual_position: VisualPosition | None = None
+    participant_type: Literal["azienda", "persona"] | None = None
+    participant_id: UUID | None = None

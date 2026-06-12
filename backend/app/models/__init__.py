@@ -25,6 +25,13 @@ from app.models.client import (
     ClientType,
     ClientUpdate,
 )
+from app.models.contact import (
+    ContactCreateRequest,
+    ContactDetail,
+    ContactSummary,
+    ContactTargetType,
+    ContactUpdateRequest,
+)
 from app.models.label import (
     ClientLabel,
     Label,
@@ -52,6 +59,7 @@ from app.models.practice import (
     PracticeCreate,
     PracticePriority,
     PracticeStatus,
+    PracticeTargetType,
     PracticeUpdate,
 )
 from app.models.practice_event import (
@@ -83,6 +91,8 @@ from app.models.requests import (
     CreateEventRequest,
     CreatePracticeRequest,
     CreatePracticeResponse,
+    EnsurePracticeRequest,
+    EnsurePracticeResponse,
     PhaseOverride,
     RemoveLabelRequest,
     SkipPhaseRequest,
@@ -116,10 +126,17 @@ __all__ = [
     "ClientStatus",
     "ClientType",
     "ClientUpdate",
+    "ContactCreateRequest",
+    "ContactDetail",
+    "ContactSummary",
+    "ContactTargetType",
+    "ContactUpdateRequest",
     "CompletePhaseRequest",
     "CreateEventRequest",
     "CreatePracticeRequest",
     "CreatePracticeResponse",
+    "EnsurePracticeRequest",
+    "EnsurePracticeResponse",
     "Label",
     "LabelBase",
     "LabelCreate",
@@ -155,6 +172,7 @@ __all__ = [
     "PracticePhaseUpdate",
     "PracticePriority",
     "PracticeStatus",
+    "PracticeTargetType",
     "PracticeUpdate",
     "Reminder",
     "ReminderBase",

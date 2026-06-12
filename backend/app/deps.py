@@ -15,6 +15,7 @@ from typing import Annotated
 
 from fastapi import Header, HTTPException, status
 
+from app.clients import ContactsClient
 from app.config import Settings, get_settings
 from app.constants import USER_HEADER
 from app.logging_setup import bind_request_context
@@ -66,6 +67,14 @@ CurrentUserId = Annotated[str, "Depends(get_current_user_id)"]
 def get_settings_dep() -> Settings:
     """Wrapper per iniettare Settings nei router via FastAPI Depends."""
     return get_settings()
+
+
+def get_contacts_client() -> ContactsClient:
+    settings = get_settings()
+    return ContactsClient(
+        settings.econtacts_base_url,
+        timeout_seconds=settings.econtacts_timeout_seconds,
+    )
 
 
 # ---------------------------------------------------------------------------

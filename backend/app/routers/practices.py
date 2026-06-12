@@ -2,17 +2,20 @@
 
 from __future__ import annotations
 
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Response, status
 from pydantic import BaseModel
 
+from app.clients import ContactsClient, ContactsClientError
+from app.clients.contact_mapper import company_to_detail, person_to_detail
 from app.deps import (
     get_activity_log_repo,
     get_attachment_repo,
     get_category_repo,
     get_client_repo,
+    get_contacts_client,
     get_current_user_id,
     get_label_repo,
     get_note_repo,
@@ -25,13 +28,17 @@ from app.deps import (
     get_reminder_repo,
     get_user_repo,
 )
+from app.logging_setup import get_logger
 from app.models import (
     ActivityLog,
     Attachment,
     Category,
     Client,
+    ContactDetail,
     CreatePracticeRequest,
     CreatePracticeResponse,
+    EnsurePracticeRequest,
+    EnsurePracticeResponse,
     Label,
     Note,
     PhaseTemplate,
@@ -41,6 +48,7 @@ from app.models import (
     PracticePhase,
     PracticePriority,
     PracticeStatus,
+    PracticeTargetType,
     PracticeUpdate,
     Reminder,
     User,
@@ -52,6 +60,7 @@ from app.services.activity_service import ActivityService
 from app.services.practice_service import PracticeService
 
 router = APIRouter(prefix="/practices", tags=["practices"])
+log = get_logger("ework.epractice.practices")
 
 
 # ---------------------------------------------------------------------------
@@ -128,6 +137,8 @@ class PracticeDetail(BaseModel):
 
     practice: Practice
     client: Client | None = None
+    target: ContactDetail | None = None
+    target_source: Literal["econtacts", "legacy", "unavailable"] = "legacy"
     category: CategorySummary | None = None
     responsible: UserSummary | None = None
     labels: list[LabelSummary]
@@ -200,8 +211,15 @@ async def list_practices(
     priority: Annotated[PracticePriority | None, Query()] = None,
     responsible_id: Annotated[UUID | None, Query()] = None,
     client_id: Annotated[UUID | None, Query()] = None,
+    target_type: Annotated[PracticeTargetType | None, Query()] = None,
+    target_id: Annotated[UUID | None, Query()] = None,
     category_id: Annotated[UUID | None, Query()] = None,
 ) -> Page[PracticeListItem]:
+    if (target_type is None) != (target_id is None):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="target_type e target_id devono essere specificati insieme",
+        )
     filters: dict[str, object] = {}
     if status_filter:
         filters["status"] = status_filter
@@ -211,6 +229,9 @@ async def list_practices(
         filters["responsible_id"] = responsible_id
     if client_id:
         filters["client_id"] = client_id
+    if target_type and target_id:
+        filters["target_type"] = target_type
+        filters["target_id"] = target_id
     if category_id:
         filters["category_id"] = category_id
     items = await practice_repo.list(**filters)
@@ -243,6 +264,28 @@ async def list_practices(
     )
 
 
+@router.post("/ensure", response_model=EnsurePracticeResponse)
+async def ensure_practice(
+    body: EnsurePracticeRequest,
+    practice_repo: Annotated[Repository[Practice], Depends(get_practice_repo)],
+    template_repo: Annotated[Repository[PhaseTemplate], Depends(get_phase_template_repo)],
+    phase_repo: Annotated[Repository[PracticePhase], Depends(get_practice_phase_repo)],
+    activity_repo: Annotated[Repository[ActivityLog], Depends(get_activity_log_repo)],
+    reminder_repo: Annotated[Repository[Reminder], Depends(get_reminder_repo)],
+    current_user_id: Annotated[str, Depends(get_current_user_id)],
+) -> EnsurePracticeResponse:
+    """Assicura una pratica relazionale al primo evento senza crearla in fase import."""
+
+    service = PracticeService(
+        practice_repo,
+        template_repo,
+        phase_repo,
+        ActivityService(activity_repo),
+        reminder_repo=reminder_repo,
+    )
+    return await service.ensure_for_target(body, current_user_id)
+
+
 # ---------------------------------------------------------------------------
 # DETAIL — aggregato joined (drop-ready frontend)
 # ---------------------------------------------------------------------------
@@ -266,7 +309,10 @@ async def get_practice_detail(
     collaborators_bridge: Annotated[
         set[tuple[str, str, str]], Depends(get_practice_collaborator_bridge)
     ],
+    contacts_client: Annotated[ContactsClient, Depends(get_contacts_client)],
     current_user_id: Annotated[str, Depends(get_current_user_id)],
+    authorization: Annotated[str | None, Header(alias="Authorization")] = None,
+    correlation_id: Annotated[str | None, Header(alias="X-Correlation-Id")] = None,
 ) -> PracticeDetail:
     """Detail completo con joined names — una sola GET per la pagina."""
     practice = await practice_repo.get(str(practice_id))
@@ -276,7 +322,33 @@ async def get_practice_detail(
     # Indice users per evitare N+1 sui lookup (1 listata, poi dict)
     users_index = await _load_users_index(user_repo)
 
-    client = await client_repo.get(str(practice.client_id))
+    client = await client_repo.get(str(practice.client_id)) if practice.client_id else None
+    target: ContactDetail | None = None
+    target_source: Literal["econtacts", "legacy", "unavailable"] = (
+        "legacy" if client is not None else "unavailable"
+    )
+    if practice.target_type and practice.target_id:
+        try:
+            payload = await contacts_client.get_subject(
+                practice.target_type,
+                practice.target_id,
+                authorization=authorization,
+                correlation_id=correlation_id,
+            )
+            target = (
+                person_to_detail(payload)
+                if practice.target_type == "persona"
+                else company_to_detail(payload)
+            )
+            target_source = "econtacts"
+        except ContactsClientError as exc:
+            log.warning(
+                "practice_target_resolution_failed",
+                practice_id=str(practice.id),
+                target_type=practice.target_type,
+                status_code=exc.status_code,
+            )
+            target_source = "unavailable"
     category = await category_repo.get(str(practice.category_id))
     responsible_user = (
         users_index.get(str(practice.responsible_id)) if practice.responsible_id else None
@@ -374,6 +446,8 @@ async def get_practice_detail(
     return PracticeDetail(
         practice=practice,
         client=client,
+        target=target,
+        target_source=target_source,
         category=_category_to_summary(category),
         responsible=_user_to_summary(responsible_user),
         labels=labels,

@@ -14,6 +14,8 @@ from app.logging_setup import get_logger
 from app.models import (
     CreatePracticeRequest,
     CreatePracticeResponse,
+    EnsurePracticeRequest,
+    EnsurePracticeResponse,
     PhaseOverride,
     PhaseTemplate,
     Practice,
@@ -79,13 +81,18 @@ class PracticeService:
         code = await self._next_code()
         practice_id = uuid4()
         now = datetime.now(UTC)
+        subject_id = request.target_id or request.client_id
+        if subject_id is None:
+            raise ValueError("La pratica richiede un soggetto E.Contacts o un client V0")
         practice = Practice(
             id=practice_id,
             code=code,
             title=request.title,
             description=request.description,
             client_id=request.client_id,
-            client_token=tokenize(request.client_id),
+            client_token=tokenize(subject_id),
+            target_type=request.target_type,
+            target_id=request.target_id,
             category_id=request.category_id,
             responsible_id=request.responsible_id,
             apertura=request.apertura,
@@ -183,9 +190,47 @@ class PracticeService:
                 "code": code,
                 "n_phases": len(phase_ids),
                 "n_reminders": reminder_count,
+                "target_type": request.target_type,
+                "target_id": str(request.target_id) if request.target_id else None,
             },
         )
         return CreatePracticeResponse(practice_id=practice_id, code=code, phase_ids=phase_ids)
+
+    async def ensure_for_target(
+        self,
+        request: EnsurePracticeRequest,
+        current_user_id: str | UUID,
+    ) -> EnsurePracticeResponse:
+        """Restituisce la pratica attiva del target o la crea in modo idempotente."""
+
+        matches = await self._practices.list(
+            target_type=request.target_type,
+            target_id=request.target_id,
+        )
+        active = [practice for practice in matches if practice.status != "archiviata"]
+        if active:
+            active.sort(key=lambda practice: practice.created_at, reverse=True)
+            return EnsurePracticeResponse(practice=active[0], created=False)
+
+        created = await self.create_with_template(
+            CreatePracticeRequest(
+                target_type=request.target_type,
+                target_id=request.target_id,
+                category_id=request.category_id,
+                title=request.title,
+                description=request.description,
+                responsible_id=request.responsible_id,
+                apertura=request.apertura,
+                scadenza=request.scadenza,
+                priority=request.priority,
+                create_default_reminders=request.create_default_reminders,
+            ),
+            current_user_id,
+        )
+        practice = await self._practices.get(str(created.practice_id))
+        if practice is None:
+            raise RuntimeError("Practice creata ma non rileggibile dal repository")
+        return EnsurePracticeResponse(practice=practice, created=True)
 
     async def progress_stats(self, practice_id: UUID | str) -> tuple[int, int, int]:
         """Ritorna ``(closed, total, pct)`` calcolato dalle fasi della pratica.

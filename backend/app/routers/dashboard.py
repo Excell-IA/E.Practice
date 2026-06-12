@@ -109,7 +109,7 @@ class TopUrgentPractice(BaseModel):
     status: PracticeStatus
     scadenza: date | None
     giorni_al_target: int | None
-    client_id: UUID
+    client_id: UUID | None = None
     client_ragione_sociale: str | None = None
     responsible: UserMiniSummary | None = None
 

@@ -8,16 +8,26 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from time import perf_counter
 from typing import Annotated
+from uuid import uuid4
 
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, RedirectResponse
+from starlette.middleware.base import RequestResponseEndpoint
+from starlette.requests import Request
+from starlette.responses import Response
 
 from app.config import Settings, get_settings
-from app.constants import API_PREFIX, MODULE_NAME
+from app.constants import API_PREFIX, DEMO_TENANT_ID, MODULE_NAME
 from app.deps import get_all_repositories, get_settings_dep
-from app.logging_setup import configure_logging, get_logger
+from app.logging_setup import (
+    bind_request_context,
+    clear_request_context,
+    configure_logging,
+    get_logger,
+)
 from app.routers._helpers import register_exception_handlers
 
 
@@ -51,7 +61,11 @@ async def _try_load_seed() -> None:
             log.info("seed_loaded", path=cfg.seed_path)
             return
         except Exception as exc:
-            log.error("seed_load_failed", err=str(exc), path=cfg.seed_path)
+            log.error(
+                "seed_load_failed",
+                error_type=type(exc).__name__,
+                path=cfg.seed_path,
+            )
             return
 
     log.warning("seed_loader_unknown_api", module=seed_loader.__name__)
@@ -103,6 +117,44 @@ app.add_middleware(
 register_exception_handlers(app)
 
 
+@app.middleware("http")
+async def request_observability(
+    request: Request,
+    call_next: RequestResponseEndpoint,
+) -> Response:
+    """Propaga il correlation ID e produce un log tecnico privo di PII."""
+    correlation_id = request.headers.get("X-Correlation-Id") or str(uuid4())
+    clear_request_context()
+    bind_request_context(
+        correlation_id=correlation_id,
+        tenant_id=_settings_boot.tenant_id or DEMO_TENANT_ID,
+    )
+    started = perf_counter()
+    log = get_logger("ework.epractice.http")
+    try:
+        response = await call_next(request)
+    except Exception:
+        log.exception(
+            "request_failed",
+            method=request.method,
+            path=request.url.path,
+            duration_ms=round((perf_counter() - started) * 1000),
+        )
+        raise
+    else:
+        response.headers["X-Correlation-Id"] = correlation_id
+        log.info(
+            "request_completed",
+            method=request.method,
+            path=request.url.path,
+            status_code=response.status_code,
+            duration_ms=round((perf_counter() - started) * 1000),
+        )
+        return response
+    finally:
+        clear_request_context()
+
+
 # --- Health probe ---
 @app.get(f"{API_PREFIX}/health", tags=["meta"])
 async def health(
@@ -137,6 +189,7 @@ from app.routers import (  # noqa: E402
     attachments,
     categories,
     clients,
+    contacts,
     dashboard,
     events,
     notes,
@@ -153,6 +206,7 @@ for router in (
     session.router,
     users.router,
     clients.router,
+    contacts.router,
     categories.router,
     templates.router,
     practices.router,

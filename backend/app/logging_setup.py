@@ -81,6 +81,7 @@ def get_logger(name: str | None = None) -> structlog.stdlib.BoundLogger:
 
 def bind_request_context(
     *,
+    correlation_id: str | None = None,
     user_id: str | None = None,
     practice_id: str | None = None,
     tenant_id: str | None = None,
@@ -91,6 +92,8 @@ def bind_request_context(
     request-scoped. Pulire con `clear_request_context()` a fine richiesta.
     """
     payload: dict[str, str] = {}
+    if correlation_id is not None:
+        payload["correlation_id"] = correlation_id
     if user_id is not None:
         payload["user_id"] = user_id
     if practice_id is not None:

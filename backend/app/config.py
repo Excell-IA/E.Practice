@@ -52,6 +52,13 @@ class Settings(BaseSettings):
         ),
     )
 
+    # --- Servizi E.Work ---
+    econtacts_base_url: str = Field(
+        default="http://127.0.0.1:8001",
+        description="API E.Contacts autorevole per aziende e persone.",
+    )
+    econtacts_timeout_seconds: float = Field(default=3.0, gt=0)
+
     # --- Auth ---
     basic_auth_user: str | None = Field(
         default=None,

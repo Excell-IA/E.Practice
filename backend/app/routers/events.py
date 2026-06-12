@@ -50,6 +50,8 @@ async def create_event(
         event_time=body.event_time,
         author_id=body.author_id,
         visual_position=body.visual_position or "top",
+        participant_type=body.participant_type,
+        participant_id=body.participant_id,
         created_at=datetime.now(UTC),
     )
     created = await event_repo.create(event)

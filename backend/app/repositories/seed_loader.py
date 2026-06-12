@@ -126,10 +126,14 @@ def populate_repositories(seed: dict[str, list[Any]], repos: RepositoryMap) -> N
     for record in seed["practices"]:
         if not isinstance(record, dict):
             continue
-        client_id = str(record.get("client_id", ""))
-        if client_id not in client_ids:
+        client_id = record.get("client_id")
+        target_id = record.get("target_id")
+        if client_id is not None and str(client_id) not in client_ids:
             raise ValueError(f"Practice references unknown client_id: {client_id}")
-        record["client_token"] = tokenize(client_id)
+        subject_id = target_id or client_id
+        if subject_id is None:
+            raise ValueError("Practice requires client_id or target_id")
+        record["client_token"] = tokenize(str(subject_id))
 
     for key in REQUIRED_SEED_KEYS:
         model = MODEL_BY_KEY[key]

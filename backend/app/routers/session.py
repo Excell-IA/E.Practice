@@ -47,5 +47,5 @@ async def create_session(
             detail=f"User {user.email} non attivo (status={user.status})",
         )
     bind_request_context(user_id=str(user.id))
-    log.info("session_created", user_id=str(user.id), email=user.email, role=user.role)
+    log.info("session_created", user_id=str(user.id), role=user.role)
     return SessionResponse(user=user)

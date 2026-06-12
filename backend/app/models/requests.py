@@ -3,9 +3,9 @@
 from datetime import date
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, model_validator
 
-from app.models.practice import PracticePriority
+from app.models.practice import Practice, PracticePriority, PracticeTargetType
 from app.models.practice_event import PracticeEventCreate
 
 
@@ -23,7 +23,9 @@ class PhaseOverride(BaseModel):
 class CreatePracticeRequest(BaseModel):
     model_config = ConfigDict(populate_by_name=True, from_attributes=True)
 
-    client_id: UUID
+    client_id: UUID | None = None
+    target_type: PracticeTargetType | None = None
+    target_id: UUID | None = None
     category_id: UUID
     title: str
     description: str | None = None
@@ -44,6 +46,16 @@ class CreatePracticeRequest(BaseModel):
     con order_index oltre il template sono lasciate al piano V1.
     """
 
+    @model_validator(mode="after")
+    def validate_subject_reference(self) -> "CreatePracticeRequest":
+        has_target_type = self.target_type is not None
+        has_target_id = self.target_id is not None
+        if has_target_type != has_target_id:
+            raise ValueError("target_type e target_id devono essere valorizzati insieme")
+        if self.client_id is None and self.target_id is None:
+            raise ValueError("Specificare client_id oppure target_type e target_id")
+        return self
+
 
 class CreatePracticeResponse(BaseModel):
     model_config = ConfigDict(populate_by_name=True, from_attributes=True)
@@ -51,6 +63,30 @@ class CreatePracticeResponse(BaseModel):
     practice_id: UUID
     code: str
     phase_ids: list[UUID]
+
+
+class EnsurePracticeRequest(BaseModel):
+    """Crea la pratica relazionale solo quando il primo evento la richiede."""
+
+    model_config = ConfigDict(populate_by_name=True, from_attributes=True)
+
+    target_type: PracticeTargetType
+    target_id: UUID
+    category_id: UUID
+    title: str
+    description: str | None = None
+    responsible_id: UUID | None = None
+    apertura: date
+    scadenza: date | None = None
+    priority: PracticePriority = "media"
+    create_default_reminders: bool = False
+
+
+class EnsurePracticeResponse(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, from_attributes=True)
+
+    practice: Practice
+    created: bool
 
 
 class UpdatePhaseRequest(BaseModel):
