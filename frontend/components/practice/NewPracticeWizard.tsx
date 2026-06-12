@@ -14,22 +14,22 @@ import { HelpButton } from "@/components/ui/help-button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
   attachAttachment,
-  createClient,
+  createContact,
   createPractice,
   deleteAttachment,
   getCategories,
+  getContacts,
   getTemplatePreview,
   getUsers,
   listAttachments,
-  searchClients,
+  searchContacts,
   uploadAttachment,
   type ApiAttachment,
   type ApiCategory,
-  type ApiClientSearchHit,
+  type ApiContactSummary,
   type ApiTemplatePreview,
   type ApiUser,
 } from "@/lib/api";
-import { directoryClients } from "@/lib/demo-directory";
 import { DEMO_USERS, useDemoStore } from "@/lib/demo-state";
 import { cn } from "@/lib/utils";
 
@@ -51,21 +51,6 @@ const fallbackLabels: LabelOption[] = [
   { id: "44444444-4444-4444-8444-000000000003", name: "Bandi", variant: "success" },
   { id: "44444444-4444-4444-8444-000000000005", name: "Bilancio", variant: "info" },
 ];
-
-const fallbackClients: ApiClientSearchHit[] = directoryClients
-  .map((client) => ({
-    cf: client.taxCode,
-    cliente_dal_anno: 2026,
-    code: client.code,
-    id: client.id,
-    indirizzo_sede: client.address,
-    piva: client.vat === "-" ? null : client.vat,
-    practice_count: 1,
-    practice_count_open: 1,
-    ragione_sociale: client.name,
-    type: client.type,
-  }))
-  .sort((a, b) => a.ragione_sociale.localeCompare(b.ragione_sociale, "it"));
 
 function today() {
   return new Date().toISOString().slice(0, 10);
@@ -112,9 +97,9 @@ export function NewPracticeWizard() {
   const clientSectionRef = useRef<HTMLElement>(null);
   const titleSectionRef = useRef<HTMLElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const initialClientId = searchParams.get("clientId");
+  const initialClientId = searchParams.get("targetId") ?? searchParams.get("clientId");
   const [clientQuery, setClientQuery] = useState("");
-  const [clientHits, setClientHits] = useState<ApiClientSearchHit[]>(fallbackClients);
+  const [clientHits, setClientHits] = useState<ApiContactSummary[]>([]);
   const [selectedClientId, setSelectedClientId] = useState(initialClientId ?? "");
   const [clientError, setClientError] = useState(false);
   const [titleError, setTitleError] = useState(false);
@@ -154,7 +139,7 @@ export function NewPracticeWizard() {
   const [error, setError] = useState<string | null>(null);
   const [step, setStep] = useState<1 | 2>(1);
   const selectedCategory = categories.find((category) => category.id === categoryId) ?? categories[0];
-  const selectedClient = clientHits.find((client) => client.id === selectedClientId) ?? fallbackClients.find((client) => client.id === selectedClientId);
+  const selectedClient = clientHits.find((client) => client.target_id === selectedClientId);
   const preloadedAttachmentIds = useMemo(
     () =>
       (searchParams.get("attachments") ?? "")
@@ -177,6 +162,15 @@ export function NewPracticeWizard() {
   useEffect(() => {
     void getCategories().then(setCategories).catch(() => undefined);
     void getUsers().then(setUsers).catch(() => undefined);
+    void getContacts()
+      .then((contacts) =>
+        setClientHits(
+          [...contacts].sort((a, b) => a.display_name.localeCompare(b.display_name, "it")),
+        ),
+      )
+      .catch((err: unknown) =>
+        setError(err instanceof Error ? err.message : "E.Contacts non disponibile."),
+      );
   }, []);
 
   useEffect(() => {
@@ -185,9 +179,16 @@ export function NewPracticeWizard() {
 
   useEffect(() => {
     const handle = window.setTimeout(() => {
-      void searchClients(clientQuery)
-        .then((hits) => setClientHits((hits.length ? hits : fallbackClients).sort((a, b) => a.ragione_sociale.localeCompare(b.ragione_sociale, "it"))))
-        .catch(() => setClientHits(fallbackClients));
+      const request = clientQuery.trim() ? searchContacts(clientQuery.trim()) : getContacts();
+      void request
+        .then((hits) =>
+          setClientHits(
+            [...hits].sort((a, b) => a.display_name.localeCompare(b.display_name, "it")),
+          ),
+        )
+        .catch((err: unknown) =>
+          setError(err instanceof Error ? err.message : "E.Contacts non disponibile."),
+        );
     }, 200);
     return () => window.clearTimeout(handle);
   }, [clientQuery]);
@@ -221,34 +222,34 @@ export function NewPracticeWizard() {
     const piva = isPiva ? raw : null;
     const cf = !isPiva && isCf && raw ? raw : null;
     try {
-      const created = await createClient(
+      const created = await createContact(
         {
-          code: "",
-          cf,
+          display_name: clientDraft.name.trim(),
           email: clientDraft.email.trim() || null,
-          indirizzo_sede: null,
-          piva,
-          ragione_sociale: clientDraft.name.trim(),
-          status: "attivo",
-          telefono: clientDraft.phone.trim() || null,
-          type: clientDraft.type,
+          phone: clientDraft.phone.trim() || null,
+          target_type: clientDraft.type === "societa" ? "azienda" : "persona",
+          tax_id: piva ?? cf,
         },
         activeUser.id,
       );
-      const hit: ApiClientSearchHit = {
-        cf: created.cf,
-        cliente_dal_anno: 2026,
-        code: created.code,
-        id: created.id,
-        indirizzo_sede: created.indirizzo_sede,
-        piva: created.piva,
-        practice_count: 0,
-        practice_count_open: 0,
-        ragione_sociale: created.ragione_sociale,
-        type: created.type,
+      const hit: ApiContactSummary = {
+        city: created.city,
+        confidence: null,
+        display_name: created.display_name,
+        email: created.email,
+        match_type: null,
+        role: created.role,
+        source: "econtacts",
+        status: created.status,
+        target_id: created.target_id,
+        target_type: created.target_type,
+        tax_id: created.tax_id,
       };
-      setClientHits((current) => [hit, ...current.filter((client) => client.id !== hit.id)]);
-      setSelectedClientId(hit.id);
+      setClientHits((current) => [
+        hit,
+        ...current.filter((client) => client.target_id !== hit.target_id),
+      ]);
+      setSelectedClientId(hit.target_id);
       setClientError(false);
       setClientSheetOpen(false);
       setClientDraft({ email: "", name: "", phone: "", type: "societa", vat: "" });
@@ -381,7 +382,7 @@ export function NewPracticeWizard() {
   }
 
   function validate() {
-    const missingClient = !selectedClientId;
+    const missingClient = !selectedClient;
     const missingTitle = !title.trim();
     setClientError(missingClient);
     setTitleError(missingTitle);
@@ -403,6 +404,7 @@ export function NewPracticeWizard() {
 
   async function submit() {
     if (!validate()) return;
+    if (!selectedClient) return;
     setSubmitting(true);
     setError(null);
     try {
@@ -411,7 +413,8 @@ export function NewPracticeWizard() {
         {
           apertura,
           category_id: categoryId,
-          client_id: selectedClientId,
+          target_id: selectedClientId,
+          target_type: selectedClient.target_type,
           collaborator_ids: [],
           create_default_reminders: reminders,
           description,
@@ -524,8 +527,8 @@ export function NewPracticeWizard() {
                       : "— Seleziona un cliente —"}
                   </option>
                   {clientHits.map((client) => (
-                    <option key={client.id} value={client.id}>
-                      {client.ragione_sociale}
+                    <option key={client.target_id} value={client.target_id}>
+                      {client.display_name}
                     </option>
                   ))}
                 </select>
@@ -538,7 +541,9 @@ export function NewPracticeWizard() {
               </div>
             </div>
             <span className="block text-xs text-muted">
-              {selectedClient ? `${selectedClient.code} - ${selectedClient.piva ?? selectedClient.cf ?? "senza P.IVA"}` : "Seleziona un cliente"}
+              {selectedClient
+                ? `E.Contacts - ${selectedClient.tax_id ?? selectedClient.target_type}`
+                : "Seleziona un soggetto da E.Contacts"}
             </span>
           </CardContent>
         </Card>

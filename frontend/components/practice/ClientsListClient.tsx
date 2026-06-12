@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowDown, ArrowUp, Link as LinkIcon, Plus, Search, Trash2, UserRound, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -11,7 +11,16 @@ import { Button } from "@/components/ui/button";
 import { HelpButton } from "@/components/ui/help-button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { V1Hint } from "@/components/ui/v1-hint";
-import { createClient, deleteClient, getPractices, updateClient } from "@/lib/api";
+import { TimelineWidget } from "@/components/practice/TimelineWidget";
+import {
+  createContact,
+  deleteContact,
+  getContact,
+  getContacts,
+  getPractices,
+  updateContact,
+  type ApiContactSummary,
+} from "@/lib/api";
 import { directoryClients, directoryPractices, type DirectoryClient, type DirectoryPractice } from "@/lib/demo-directory";
 import { useDemoStore } from "@/lib/demo-state";
 import { mapApiPracticeToDirectoryPractice } from "@/lib/mappers/practice-list";
@@ -35,6 +44,11 @@ type ClientEditDraft = {
   phone: string;
 };
 
+type ContactDirectoryClient = DirectoryClient & {
+  legacyId: string | null;
+  targetType: ApiContactSummary["target_type"];
+};
+
 function initials(name: string) {
   return name
     .split(" ")
@@ -50,14 +64,46 @@ function getInitialClientLabels() {
   );
 }
 
+function mapContactToDirectory(contact: ApiContactSummary): ContactDirectoryClient {
+  const legacy =
+    directoryClients.find(
+      (client) =>
+        Boolean(contact.tax_id) &&
+        (client.vat === contact.tax_id || client.taxCode === contact.tax_id),
+    ) ??
+    directoryClients.find(
+      (client) => client.name.toLocaleLowerCase("it") === contact.display_name.toLocaleLowerCase("it"),
+    );
+  return {
+    address: legacy?.address ?? "",
+    city: contact.city ?? legacy?.city ?? "",
+    code: legacy?.code ?? `EC-${contact.target_id.slice(0, 6).toUpperCase()}`,
+    email: contact.email ?? legacy?.email ?? "",
+    id: contact.target_id,
+    labels: legacy?.labels ?? [],
+    legacyId: legacy?.id ?? null,
+    name: contact.display_name,
+    phone: legacy?.phone ?? "",
+    targetType: contact.target_type,
+    taxCode: contact.tax_id ?? legacy?.taxCode ?? "-",
+    type: contact.target_type === "azienda" ? "societa" : "persona_fisica",
+    vat: contact.tax_id ?? legacy?.vat ?? "-",
+  };
+}
+
+function matchesClient(practice: DirectoryPractice, client: ContactDirectoryClient) {
+  return practice.clientId === client.id || practice.clientId === client.legacyId;
+}
+
 export function ClientsListClient() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [query, setQuery] = useState("");
-  const [selected, setSelected] = useState<DirectoryClient | null>(null);
+  const [selected, setSelected] = useState<ContactDirectoryClient | null>(null);
   const [selectedDraft, setSelectedDraft] = useState<ClientEditDraft | null>(null);
   const [labelDraft, setLabelDraft] = useState("");
   const [labelCatalog, setLabelCatalog] = useState<string[]>(getInitialClientLabels);
-  const [clientOverrides, setClientOverrides] = useState<Record<string, DirectoryClient>>({});
+  const [clientOverrides, setClientOverrides] = useState<Record<string, ContactDirectoryClient>>({});
   const [deletedClientIds, setDeletedClientIds] = useState<Set<string>>(() => new Set());
   const [savingClient, setSavingClient] = useState(false);
   const [clientSaveMessage, setClientSaveMessage] = useState<string | null>(null);
@@ -81,21 +127,34 @@ export function ClientsListClient() {
     queryFn: () => getPractices(),
     queryKey: ["practices"],
   });
+  const contactsQuery = useQuery({
+    queryFn: getContacts,
+    queryKey: ["contacts"],
+  });
   const allPractices: DirectoryPractice[] = useMemo(() => {
-    const fromApi = practicesQuery.data?.items.map(mapApiPracticeToDirectoryPractice) ?? [];
+    const fromApi =
+      practicesQuery.data?.items.map((practice) =>
+        mapApiPracticeToDirectoryPractice(practice, contactsQuery.data),
+      ) ?? [];
     return fromApi.length ? fromApi : directoryPractices;
-  }, [practicesQuery.data?.items]);
+  }, [contactsQuery.data, practicesQuery.data?.items]);
   const clients = useMemo(() => {
     const needle = query.trim().toLowerCase();
-    const baseClients = directoryClients
+    const contacts = contactsQuery.data ?? [];
+    const baseClients = contacts
+      .map(mapContactToDirectory)
       .filter((client) => !deletedClientIds.has(client.id))
       .map((client) => clientOverrides[client.id] ?? client);
     const filtered = needle ? baseClients.filter((client) =>
       `${client.name} ${client.vat} ${client.taxCode}`.toLowerCase().includes(needle),
     ) : baseClients;
     return [...filtered].sort((a, b) => {
-      const openA = allPractices.filter((practice) => practice.clientId === a.id && practice.status !== "chiusa").length;
-      const openB = allPractices.filter((practice) => practice.clientId === b.id && practice.status !== "chiusa").length;
+      const openA = allPractices.filter(
+        (practice) => matchesClient(practice, a) && practice.status !== "chiusa",
+      ).length;
+      const openB = allPractices.filter(
+        (practice) => matchesClient(practice, b) && practice.status !== "chiusa",
+      ).length;
       const left = sortKey === "openCount" ? openA : a[sortKey];
       const right = sortKey === "openCount" ? openB : b[sortKey];
       const result = typeof left === "number" && typeof right === "number"
@@ -103,8 +162,18 @@ export function ClientsListClient() {
         : String(left).localeCompare(String(right), "it");
       return sortDirection === "asc" ? result : -result;
     });
-  }, [allPractices, clientOverrides, deletedClientIds, query, sortDirection, sortKey]);
-  const clientPractices = selected ? allPractices.filter((practice) => practice.clientId === selected.id) : [];
+  }, [
+    allPractices,
+    clientOverrides,
+    contactsQuery.data,
+    deletedClientIds,
+    query,
+    sortDirection,
+    sortKey,
+  ]);
+  const clientPractices = selected
+    ? allPractices.filter((practice) => matchesClient(practice, selected))
+    : [];
   const selectedView = selected && selectedDraft
     ? {
       ...selected,
@@ -133,7 +202,7 @@ export function ClientsListClient() {
     return <Icon className="h-3.5 w-3.5" />;
   }
 
-  function openClient(client: DirectoryClient) {
+  function openClient(client: ContactDirectoryClient) {
     setSelected(client);
     setSelectedDraft({
       address: client.address,
@@ -146,6 +215,21 @@ export function ClientsListClient() {
     setClientEditError(null);
     setClientSaveMessage(null);
     setDeleteConfirmOpen(false);
+    void getContact(client.targetType, client.id)
+      .then((detail) => {
+        setSelectedDraft((draft) =>
+          draft
+            ? {
+                ...draft,
+                address: detail.address ?? draft.address,
+                email: detail.email ?? draft.email,
+                name: detail.display_name,
+                phone: detail.phone ?? draft.phone,
+              }
+            : draft,
+        );
+      })
+      .catch(console.warn);
   }
 
   function closeClient() {
@@ -178,23 +262,24 @@ export function ClientsListClient() {
     setClientEditError(null);
     setClientSaveMessage(null);
     try {
-      const updated = await updateClient(
+      const updated = await updateContact(
+        selected.targetType,
         selected.id,
         {
+          display_name: selectedDraft.name.trim(),
+          address: selectedDraft.address.trim() || null,
           email: selectedDraft.email.trim() || null,
-          indirizzo_sede: selectedDraft.address.trim() || null,
-          ragione_sociale: selectedDraft.name.trim(),
-          telefono: selectedDraft.phone.trim() || null,
+          phone: selectedDraft.phone.trim() || null,
         },
         activeUser.id,
       );
-      const nextClient: DirectoryClient = {
+      const nextClient: ContactDirectoryClient = {
         ...selected,
-        address: updated.indirizzo_sede ?? selectedDraft.address,
-        email: updated.email ?? "",
+        address: updated.address ?? selectedDraft.address,
+        email: updated.email ?? selectedDraft.email,
         labels: selectedDraft.labels,
-        name: updated.ragione_sociale,
-        phone: updated.telefono ?? "",
+        name: updated.display_name,
+        phone: updated.phone ?? selectedDraft.phone,
       };
       setClientOverrides((current) => ({ ...current, [nextClient.id]: nextClient }));
       setSelected(nextClient);
@@ -219,7 +304,7 @@ export function ClientsListClient() {
     setDeletingClient(true);
     setClientEditError(null);
     try {
-      await deleteClient(selected.id, activeUser.id);
+      await deleteContact(selected.targetType, selected.id, activeUser.id);
       setDeletedClientIds((current) => {
         const next = new Set(current);
         next.add(selected.id);
@@ -245,20 +330,17 @@ export function ClientsListClient() {
     const piva = isPiva ? raw : null;
     const cf = !isPiva && isCf ? raw : null;
     try {
-      await createClient(
+      await createContact(
         {
-          code: "",
-          cf,
+          display_name: newClient.name.trim(),
           email: newClient.email.trim() || null,
-          indirizzo_sede: null,
-          piva,
-          ragione_sociale: newClient.name.trim(),
-          status: "attivo",
-          telefono: newClient.phone.trim() || null,
-          type: newClient.type,
+          phone: newClient.phone.trim() || null,
+          target_type: newClient.type === "societa" ? "azienda" : "persona",
+          tax_id: piva ?? cf,
         },
         activeUser.id,
       );
+      await queryClient.invalidateQueries({ queryKey: ["contacts"] });
       setNewClient({ email: "", name: "", phone: "", type: "societa", vat: "" });
       setNewClientOpen(false);
     } catch (err) {
@@ -322,6 +404,13 @@ export function ClientsListClient() {
           </div>
         </div>
 
+        {contactsQuery.isError ? (
+          <p className="mb-4 rounded-xl border border-danger/40 bg-danger/10 px-4 py-3 text-sm font-semibold text-danger">
+            E.Contacts non è raggiungibile. La rubrica locale non viene più usata per i nuovi
+            flussi.
+          </p>
+        ) : null}
+
         <div className="overflow-x-auto rounded-2xl border border-border bg-surface-low">
           <table className="w-full min-w-[920px] border-collapse text-sm">
             <thead className="bg-surface-container text-left font-display text-[11px] uppercase tracking-[0.14em] text-muted">
@@ -337,7 +426,9 @@ export function ClientsListClient() {
             </thead>
             <tbody>
               {clients.map((client) => {
-                const openCount = allPractices.filter((practice) => practice.clientId === client.id && practice.status !== "chiusa").length;
+                const openCount = allPractices.filter(
+                  (practice) => matchesClient(practice, client) && practice.status !== "chiusa",
+                ).length;
                 return (
                   <tr
                     className="cursor-pointer border-t border-border transition-colors hover:bg-surface-container"
@@ -352,7 +443,9 @@ export function ClientsListClient() {
                           className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-high hover:text-electric"
                           onClick={(event) => {
                             event.stopPropagation();
-                            router.push(`/pratiche/nuova?clientId=${client.id}`);
+                            router.push(
+                              `/pratiche/nuova?targetId=${client.id}&targetType=${client.targetType}`,
+                            );
                           }}
                           title="Aggiungi pratica per questo cliente"
                           type="button"
@@ -527,6 +620,14 @@ export function ClientsListClient() {
                     )}
                   </div>
                 </section>
+
+                <TimelineWidget
+                  compact
+                  subjectName={selectedView.name}
+                  targetId={selected.id}
+                  targetType={selected.targetType}
+                  userId={activeUser.id}
+                />
 
                 <Button
                   className="border border-danger/40 bg-danger/10 text-danger hover:bg-danger/15"

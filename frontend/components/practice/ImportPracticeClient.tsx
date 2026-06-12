@@ -14,6 +14,7 @@ import { V1Hint } from "@/components/ui/v1-hint";
 import {
   attachAttachment,
   deleteAttachment,
+  getContacts,
   getPractices,
   uploadAttachment,
   type ApiAttachment,
@@ -51,20 +52,28 @@ export function ImportPracticeClient() {
     queryFn: () => getPractices(),
     queryKey: ["practices"],
   });
+  const contactsQuery = useQuery({
+    enabled: attachDialogOpen,
+    queryFn: getContacts,
+    queryKey: ["contacts"],
+  });
 
   const allPractices = useMemo(() => {
-    return practicesQuery.data?.items.map(mapApiPracticeToDirectoryPractice) ?? [];
-  }, [practicesQuery.data?.items]);
+    return (
+      practicesQuery.data?.items.map((practice) =>
+        mapApiPracticeToDirectoryPractice(practice, contactsQuery.data),
+      ) ?? []
+    );
+  }, [contactsQuery.data, practicesQuery.data?.items]);
 
   const clientOptions = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const p of allPractices) {
-      if (!map.has(p.clientId)) map.set(p.clientId, p.clientName);
-    }
-    return Array.from(map.entries())
-      .map(([id, name]) => ({ id, name }))
+    return (contactsQuery.data ?? [])
+      .map((contact) => ({
+        id: contact.target_id,
+        name: contact.display_name,
+      }))
       .sort((a, b) => a.name.localeCompare(b.name, "it"));
-  }, [allPractices]);
+  }, [contactsQuery.data]);
 
   const practiceOptions = useMemo(() => {
     const filtered = selectedClientId
@@ -318,7 +327,7 @@ export function ImportPracticeClient() {
                 }}
                 value={selectedClientId}
               >
-                <option value="">Tutti i clienti</option>
+                <option value="">Tutti i soggetti E.Contacts</option>
                 {clientOptions.map((client) => (
                   <option key={client.id} value={client.id}>
                     {client.name}

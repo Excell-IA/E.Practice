@@ -17,6 +17,9 @@ export type ApiCategory = components["schemas"]["Category"];
 export type ApiUser = components["schemas"]["User"];
 export type ApiTemplatePreview = components["schemas"]["TemplatePreview"];
 export type ApiCreatePracticeResponse = components["schemas"]["CreatePracticeResponse"];
+export type ApiContactSummary = components["schemas"]["ContactSummary"];
+export type ApiContactDetail = components["schemas"]["ContactDetail"];
+export type ApiEnsurePracticeResponse = components["schemas"]["EnsurePracticeResponse"];
 
 export type UserCreateInput = {
   avatar_color?: string | null;
@@ -36,10 +39,26 @@ function activeUserId(userId?: string) {
   return window.localStorage.getItem("epractice:user-id") ?? DEFAULT_USER_ID;
 }
 
+function activeAccessToken() {
+  if (typeof window === "undefined") return null;
+  return (
+    window.localStorage.getItem("ework:access-token") ??
+    window.localStorage.getItem("access_token") ??
+    window.localStorage.getItem("token")
+  );
+}
+
 export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): Promise<T> {
   const headers = new Headers(options.headers);
   headers.set("Accept", "application/json");
   headers.set("X-User-Id", activeUserId(options.userId));
+  const accessToken = activeAccessToken();
+  if (accessToken && !headers.has("Authorization")) {
+    headers.set("Authorization", `Bearer ${accessToken}`);
+  }
+  if (!headers.has("X-Correlation-Id")) {
+    headers.set("X-Correlation-Id", crypto.randomUUID());
+  }
 
   const isFormData = typeof FormData !== "undefined" && options.body instanceof FormData;
   if (options.body && !isFormData && !headers.has("Content-Type")) {
@@ -70,9 +89,16 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
   return (await response.json()) as T;
 }
 
-export function getPractices(q?: string) {
+export function getPractices(
+  q?: string,
+  target?: { targetId: string; targetType: ApiContactSummary["target_type"] },
+) {
   const params = new URLSearchParams({ limit: "20", offset: "0" });
   if (q) params.set("q", q);
+  if (target) {
+    params.set("target_id", target.targetId);
+    params.set("target_type", target.targetType);
+  }
   return apiFetch<ApiPracticePage>(`/api/practices?${params.toString()}`);
 }
 
@@ -91,6 +117,54 @@ export function getClientPractices(clientId: string) {
 export function searchClients(q: string) {
   const params = new URLSearchParams({ limit: "10", q });
   return apiFetch<ApiClientSearchHit[]>(`/api/clients/search?${params.toString()}`);
+}
+
+export function getContacts() {
+  return apiFetch<ApiContactSummary[]>("/api/contacts?limit=100");
+}
+
+export function searchContacts(q: string) {
+  const params = new URLSearchParams({ limit: "20", q });
+  return apiFetch<ApiContactSummary[]>(`/api/contacts/search?${params.toString()}`);
+}
+
+export function getContact(targetType: ApiContactSummary["target_type"], targetId: string) {
+  return apiFetch<ApiContactDetail>(`/api/contacts/${targetType}/${targetId}`);
+}
+
+export function createContact(
+  input: components["schemas"]["ContactCreateRequest"],
+  userId: string,
+) {
+  return apiFetch<ApiContactDetail>("/api/contacts", {
+    body: JSON.stringify(input),
+    method: "POST",
+    userId,
+  });
+}
+
+export function updateContact(
+  targetType: ApiContactSummary["target_type"],
+  targetId: string,
+  input: components["schemas"]["ContactUpdateRequest"],
+  userId: string,
+) {
+  return apiFetch<ApiContactDetail>(`/api/contacts/${targetType}/${targetId}`, {
+    body: JSON.stringify(input),
+    method: "PATCH",
+    userId,
+  });
+}
+
+export function deleteContact(
+  targetType: ApiContactSummary["target_type"],
+  targetId: string,
+  userId: string,
+) {
+  return apiFetch<void>(`/api/contacts/${targetType}/${targetId}`, {
+    method: "DELETE",
+    userId,
+  });
 }
 
 export function getCategories() {
@@ -195,6 +269,17 @@ export function deleteClient(clientId: string, userId: string) {
 
 export function createPractice(input: components["schemas"]["CreatePracticeRequest"], userId: string) {
   return apiFetch<ApiCreatePracticeResponse>("/api/practices", {
+    body: JSON.stringify(input),
+    method: "POST",
+    userId,
+  });
+}
+
+export function ensurePractice(
+  input: components["schemas"]["EnsurePracticeRequest"],
+  userId: string,
+) {
+  return apiFetch<ApiEnsurePracticeResponse>("/api/practices/ensure", {
     body: JSON.stringify(input),
     method: "POST",
     userId,

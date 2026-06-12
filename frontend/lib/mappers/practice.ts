@@ -80,17 +80,23 @@ export function mapPracticeDetailToUi(detail: ApiPracticeDetail, knownUsers: rea
     notesByPhase.set(note.phase_id, (notesByPhase.get(note.phase_id) ?? 0) + 1);
   });
 
-  const clientName = detail.client?.ragione_sociale ?? "Cliente";
+  const clientName =
+    detail.target?.display_name ?? detail.client?.ragione_sociale ?? "Soggetto non disponibile";
+  const subjectId = detail.practice.target_id ?? detail.practice.client_id ?? "";
   const practice: Practice = {
     id: detail.practice.id,
     category: detail.category?.name ?? "Pratica",
     categoryIcon: detail.category?.icon ?? "folder-kanban",
     client: {
-      city: detail.client?.indirizzo_sede ?? "",
-      id: detail.practice.client_id,
+      city: detail.target?.city ?? detail.client?.indirizzo_sede ?? "",
+      id: subjectId,
       industry: detail.client?.ateco ?? "",
       name: clientName,
-      vatNumber: detail.client?.piva ? `P.IVA ${detail.client.piva}` : "",
+      vatNumber: detail.target?.tax_id
+        ? `P.IVA/CF ${detail.target.tax_id}`
+        : detail.client?.piva
+          ? `P.IVA ${detail.client.piva}`
+          : "",
     },
     code: detail.practice.code,
     description: detail.practice.description ?? "",

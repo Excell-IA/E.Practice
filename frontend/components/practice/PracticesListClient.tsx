@@ -13,7 +13,7 @@ import { Badge, type BadgeProps } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { HelpButton } from "@/components/ui/help-button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { deletePractice, getPractices, listAttachments, type ApiAttachment } from "@/lib/api";
+import { deletePractice, getContacts, getPractices, listAttachments, type ApiAttachment } from "@/lib/api";
 import { directoryPractices, type DirectoryPractice } from "@/lib/demo-directory";
 import { useDemoStore } from "@/lib/demo-state";
 import { mapApiPracticeToDirectoryPractice } from "@/lib/mappers/practice-list";
@@ -233,14 +233,21 @@ export function PracticesListClient() {
     queryFn: () => getPractices(),
     queryKey: ["practices"],
   });
+  const contactsQuery = useQuery({
+    queryFn: getContacts,
+    queryKey: ["contacts"],
+  });
   const attachmentsQuery = useQuery({
     queryFn: () => listAttachments(),
     queryKey: ["attachments-all"],
   });
   const sourcePractices = useMemo(() => {
-    const apiPractices = practicesQuery.data?.items.map(mapApiPracticeToDirectoryPractice) ?? [];
+    const apiPractices =
+      practicesQuery.data?.items.map((practice) =>
+        mapApiPracticeToDirectoryPractice(practice, contactsQuery.data),
+      ) ?? [];
     return apiPractices.length ? apiPractices : directoryPractices;
-  }, [practicesQuery.data?.items]);
+  }, [contactsQuery.data, practicesQuery.data?.items]);
   const attachmentsByPracticeId = useMemo(() => {
     const map = new Map<string, ApiAttachment[]>();
     for (const att of attachmentsQuery.data ?? []) {

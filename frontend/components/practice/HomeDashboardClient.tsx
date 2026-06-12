@@ -1,12 +1,15 @@
 "use client";
 
+import { useQuery } from "@tanstack/react-query";
 import { FolderKanban, Plug, Route, Sparkles, UserSquare2, UsersRound, Workflow } from "lucide-react";
 import Link from "next/link";
 import { type ReactNode } from "react";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { V1Hint } from "@/components/ui/v1-hint";
-import { directoryClients, directoryPractices } from "@/lib/demo-directory";
+import { getContacts, getPractices } from "@/lib/api";
+import { directoryPractices } from "@/lib/demo-directory";
+import { mapApiPracticeToDirectoryPractice } from "@/lib/mappers/practice-list";
 import { cn } from "@/lib/utils";
 
 type DashboardCardProps = {
@@ -56,10 +59,24 @@ function DashboardCard({ description, href, icon, kpi, title, v1 }: DashboardCar
 }
 
 export function HomeDashboardClient() {
-  const clientsCount = directoryClients.length;
-  const practicesOpen = directoryPractices.filter((p) => p.status !== "chiusa").length;
-  const practicesInProgress = directoryPractices.filter((p) => p.progress > 0 && p.status !== "chiusa").length;
-  const featuredPracticeCode = directoryPractices[0]?.code ?? "PR-2026-001";
+  const contactsQuery = useQuery({
+    queryFn: getContacts,
+    queryKey: ["contacts"],
+  });
+  const practicesQuery = useQuery({
+    queryFn: () => getPractices(),
+    queryKey: ["practices"],
+  });
+  const practices =
+    practicesQuery.data?.items.map((practice) =>
+      mapApiPracticeToDirectoryPractice(practice, contactsQuery.data),
+    ) ?? directoryPractices;
+  const clientsCount = contactsQuery.data?.length ?? 0;
+  const practicesOpen = practices.filter((practice) => practice.status !== "chiusa").length;
+  const practicesInProgress = practices.filter(
+    (practice) => practice.progress > 0 && practice.status !== "chiusa",
+  ).length;
+  const featuredPracticeCode = practices[0]?.code ?? "PR-2026-001";
 
   return (
     <main className="min-h-[calc(100vh-120px)] bg-surface">

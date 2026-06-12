@@ -194,6 +194,60 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/contacts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Contacts */
+        get: operations["list_contacts_api_contacts_get"];
+        put?: never;
+        /** Create Contact */
+        post: operations["create_contact_api_contacts_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/contacts/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Search Contacts */
+        get: operations["search_contacts_api_contacts_search_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/contacts/{target_type}/{target_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Contact */
+        get: operations["get_contact_api_contacts__target_type___target_id__get"];
+        put?: never;
+        post?: never;
+        /** Delete Contact */
+        delete: operations["delete_contact_api_contacts__target_type___target_id__delete"];
+        options?: never;
+        head?: never;
+        /** Update Contact */
+        patch: operations["update_contact_api_contacts__target_type___target_id__patch"];
+        trace?: never;
+    };
     "/api/categories": {
         parameters: {
             query?: never;
@@ -310,6 +364,26 @@ export interface paths {
          *     ogni fase (days_before=2). Se `label_ids` non vuoto, aggancia le etichette.
          */
         post: operations["create_practice_api_practices_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/practices/ensure": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ensure Practice
+         * @description Assicura una pratica relazionale al primo evento senza crearla in fase import.
+         */
+        post: operations["ensure_practice_api_practices_ensure_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1089,6 +1163,121 @@ export interface components {
             /** Reminder Recipient */
             reminder_recipient?: string | null;
         };
+        /** ContactCreateRequest */
+        ContactCreateRequest: {
+            /**
+             * Target Type
+             * @enum {string}
+             */
+            target_type: "azienda" | "persona";
+            /** Display Name */
+            display_name: string;
+            /** Tax Id */
+            tax_id?: string | null;
+            /** Email */
+            email?: string | null;
+            /** Phone */
+            phone?: string | null;
+            /** Address */
+            address?: string | null;
+            /** City */
+            city?: string | null;
+        };
+        /** ContactDetail */
+        ContactDetail: {
+            /**
+             * Target Id
+             * Format: uuid
+             */
+            target_id: string;
+            /**
+             * Target Type
+             * @enum {string}
+             */
+            target_type: "azienda" | "persona";
+            /** Display Name */
+            display_name: string;
+            /** Tax Id */
+            tax_id?: string | null;
+            /** Email */
+            email?: string | null;
+            /** City */
+            city?: string | null;
+            /** Status */
+            status?: string | null;
+            /** Role */
+            role?: string | null;
+            /** Confidence */
+            confidence?: number | null;
+            /** Match Type */
+            match_type?: string | null;
+            /**
+             * Source
+             * @default econtacts
+             * @constant
+             */
+            source: "econtacts";
+            /** Phone */
+            phone?: string | null;
+            /** Address */
+            address?: string | null;
+            /** Company Id */
+            company_id?: string | null;
+            /** Site Id */
+            site_id?: string | null;
+            /** Contact Person Id */
+            contact_person_id?: string | null;
+        };
+        /** ContactSummary */
+        ContactSummary: {
+            /**
+             * Target Id
+             * Format: uuid
+             */
+            target_id: string;
+            /**
+             * Target Type
+             * @enum {string}
+             */
+            target_type: "azienda" | "persona";
+            /** Display Name */
+            display_name: string;
+            /** Tax Id */
+            tax_id?: string | null;
+            /** Email */
+            email?: string | null;
+            /** City */
+            city?: string | null;
+            /** Status */
+            status?: string | null;
+            /** Role */
+            role?: string | null;
+            /** Confidence */
+            confidence?: number | null;
+            /** Match Type */
+            match_type?: string | null;
+            /**
+             * Source
+             * @default econtacts
+             * @constant
+             */
+            source: "econtacts";
+        };
+        /** ContactUpdateRequest */
+        ContactUpdateRequest: {
+            /** Display Name */
+            display_name?: string | null;
+            /** Tax Id */
+            tax_id?: string | null;
+            /** Email */
+            email?: string | null;
+            /** Phone */
+            phone?: string | null;
+            /** Address */
+            address?: string | null;
+            /** City */
+            city?: string | null;
+        };
         /** CreateEventRequest */
         CreateEventRequest: {
             /**
@@ -1121,14 +1310,19 @@ export interface components {
             author_id: string;
             /** Visual Position */
             visual_position?: ("top" | "bottom") | null;
+            /** Participant Type */
+            participant_type?: ("azienda" | "persona") | null;
+            /** Participant Id */
+            participant_id?: string | null;
         };
         /** CreatePracticeRequest */
         CreatePracticeRequest: {
-            /**
-             * Client Id
-             * Format: uuid
-             */
-            client_id: string;
+            /** Client Id */
+            client_id?: string | null;
+            /** Target Type */
+            target_type?: ("azienda" | "persona") | null;
+            /** Target Id */
+            target_id?: string | null;
             /**
              * Category Id
              * Format: uuid
@@ -1209,6 +1403,57 @@ export interface components {
             ultime_attivita: components["schemas"]["ActivityEnriched"][];
             /** Carico Per Utente */
             carico_per_utente: components["schemas"]["UserWorkload"][];
+        };
+        /**
+         * EnsurePracticeRequest
+         * @description Crea la pratica relazionale solo quando il primo evento la richiede.
+         */
+        EnsurePracticeRequest: {
+            /**
+             * Target Type
+             * @enum {string}
+             */
+            target_type: "azienda" | "persona";
+            /**
+             * Target Id
+             * Format: uuid
+             */
+            target_id: string;
+            /**
+             * Category Id
+             * Format: uuid
+             */
+            category_id: string;
+            /** Title */
+            title: string;
+            /** Description */
+            description?: string | null;
+            /** Responsible Id */
+            responsible_id?: string | null;
+            /**
+             * Apertura
+             * Format: date
+             */
+            apertura: string;
+            /** Scadenza */
+            scadenza?: string | null;
+            /**
+             * Priority
+             * @default media
+             * @enum {string}
+             */
+            priority: "bassa" | "media" | "alta";
+            /**
+             * Create Default Reminders
+             * @default false
+             */
+            create_default_reminders: boolean;
+        };
+        /** EnsurePracticeResponse */
+        EnsurePracticeResponse: {
+            practice: components["schemas"]["Practice"];
+            /** Created */
+            created: boolean;
         };
         /** EventEnriched */
         EventEnriched: {
@@ -1379,13 +1624,14 @@ export interface components {
             title: string;
             /** Description */
             description?: string | null;
-            /**
-             * Client Id
-             * Format: uuid
-             */
-            client_id: string;
+            /** Client Id */
+            client_id?: string | null;
             /** Client Token */
-            client_token: string;
+            client_token?: string | null;
+            /** Target Type */
+            target_type?: ("azienda" | "persona") | null;
+            /** Target Id */
+            target_id?: string | null;
             /**
              * Category Id
              * Format: uuid
@@ -1439,6 +1685,13 @@ export interface components {
         PracticeDetail: {
             practice: components["schemas"]["Practice"];
             client?: components["schemas"]["Client"] | null;
+            target?: components["schemas"]["ContactDetail"] | null;
+            /**
+             * Target Source
+             * @default legacy
+             * @enum {string}
+             */
+            target_source: "econtacts" | "legacy" | "unavailable";
             category?: components["schemas"]["CategorySummary"] | null;
             responsible?: components["schemas"]["UserSummary"] | null;
             /** Labels */
@@ -1492,6 +1745,10 @@ export interface components {
             author_id: string;
             /** Visual Position */
             visual_position?: ("top" | "bottom") | null;
+            /** Participant Type */
+            participant_type?: ("azienda" | "persona") | null;
+            /** Participant Id */
+            participant_id?: string | null;
             /**
              * Id
              * Format: uuid
@@ -1523,6 +1780,10 @@ export interface components {
             author_id?: string | null;
             /** Visual Position */
             visual_position?: ("top" | "bottom") | null;
+            /** Participant Type */
+            participant_type?: ("azienda" | "persona") | null;
+            /** Participant Id */
+            participant_id?: string | null;
         };
         /**
          * PracticeListItem
@@ -1539,13 +1800,14 @@ export interface components {
             title: string;
             /** Description */
             description?: string | null;
-            /**
-             * Client Id
-             * Format: uuid
-             */
-            client_id: string;
+            /** Client Id */
+            client_id?: string | null;
             /** Client Token */
-            client_token: string;
+            client_token?: string | null;
+            /** Target Type */
+            target_type?: ("azienda" | "persona") | null;
+            /** Target Id */
+            target_id?: string | null;
             /**
              * Category Id
              * Format: uuid
@@ -1658,6 +1920,10 @@ export interface components {
             client_id?: string | null;
             /** Client Token */
             client_token?: string | null;
+            /** Target Type */
+            target_type?: ("azienda" | "persona") | null;
+            /** Target Id */
+            target_id?: string | null;
             /** Category Id */
             category_id?: string | null;
             /** Responsible Id */
@@ -1881,11 +2147,8 @@ export interface components {
             scadenza: string | null;
             /** Giorni Al Target */
             giorni_al_target: number | null;
-            /**
-             * Client Id
-             * Format: uuid
-             */
-            client_id: string;
+            /** Client Id */
+            client_id?: string | null;
             /** Client Ragione Sociale */
             client_ragione_sociale?: string | null;
             responsible?: components["schemas"]["UserMiniSummary"] | null;
@@ -2511,6 +2774,225 @@ export interface operations {
             };
         };
     };
+    list_contacts_api_contacts_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+            };
+            header?: {
+                Authorization?: string | null;
+                "X-Correlation-Id"?: string | null;
+                "X-User-Id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContactSummary"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_contact_api_contacts_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                Authorization?: string | null;
+                "X-Correlation-Id"?: string | null;
+                "X-User-Id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContactCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContactDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    search_contacts_api_contacts_search_get: {
+        parameters: {
+            query: {
+                q: string;
+                limit?: number;
+            };
+            header?: {
+                Authorization?: string | null;
+                "X-Correlation-Id"?: string | null;
+                "X-User-Id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContactSummary"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_contact_api_contacts__target_type___target_id__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                Authorization?: string | null;
+                "X-Correlation-Id"?: string | null;
+                "X-User-Id"?: string | null;
+            };
+            path: {
+                target_type: "azienda" | "persona";
+                target_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContactDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_contact_api_contacts__target_type___target_id__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                Authorization?: string | null;
+                "X-Correlation-Id"?: string | null;
+                "X-User-Id"?: string | null;
+            };
+            path: {
+                target_type: "azienda" | "persona";
+                target_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_contact_api_contacts__target_type___target_id__patch: {
+        parameters: {
+            query?: never;
+            header?: {
+                Authorization?: string | null;
+                "X-Correlation-Id"?: string | null;
+                "X-User-Id"?: string | null;
+            };
+            path: {
+                target_type: "azienda" | "persona";
+                target_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContactUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContactDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_categories_api_categories_get: {
         parameters: {
             query?: {
@@ -2719,6 +3201,8 @@ export interface operations {
                 priority?: ("bassa" | "media" | "alta") | null;
                 responsible_id?: string | null;
                 client_id?: string | null;
+                target_type?: ("azienda" | "persona") | null;
+                target_id?: string | null;
                 category_id?: string | null;
                 offset?: number;
                 limit?: number;
@@ -2784,10 +3268,47 @@ export interface operations {
             };
         };
     };
+    ensure_practice_api_practices_ensure_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-User-Id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EnsurePracticeRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EnsurePracticeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_practice_detail_api_practices__practice_id__get: {
         parameters: {
             query?: never;
             header?: {
+                Authorization?: string | null;
+                "X-Correlation-Id"?: string | null;
                 "X-User-Id"?: string | null;
             };
             path: {
