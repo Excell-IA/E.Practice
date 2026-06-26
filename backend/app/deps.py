@@ -13,11 +13,13 @@ from __future__ import annotations
 from functools import lru_cache
 from typing import Annotated
 
-from fastapi import Header, HTTPException, status
+from fastapi import Depends, Header, HTTPException, status
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.clients import ContactsClient
 from app.config import Settings, get_settings
 from app.constants import USER_HEADER
+from app.db import get_sql_session
 from app.logging_setup import bind_request_context
 from app.models import (
     ActivityLog,
@@ -35,6 +37,7 @@ from app.models import (
 )
 from app.repositories.base import Repository
 from app.repositories.memory import InMemoryRepository
+from app.repositories.sql import SQLAlchemyRepository
 
 # ---------------------------------------------------------------------------
 # Auth / contesto richiesta
@@ -85,64 +88,352 @@ def get_contacts_client() -> ContactsClient:
 # li gestisco come set di tuple in `_bridges` qui sotto.
 
 
+def _use_sql(settings: Settings) -> bool:
+    return settings.storage_mode in {"sql", "ework"}
+
+
+async def get_optional_sql_session(
+    settings: Annotated[Settings, Depends(get_settings_dep)],
+):
+    if not _use_sql(settings):
+        yield None
+        return
+    async for session in get_sql_session():
+        yield session
+
+
 @lru_cache(maxsize=1)
-def get_user_repo() -> Repository[User]:
+def _memory_user_repo() -> Repository[User]:
     return InMemoryRepository[User](entity_name="User")
 
 
 @lru_cache(maxsize=1)
-def get_client_repo() -> Repository[Client]:
+def _memory_client_repo() -> Repository[Client]:
     return InMemoryRepository[Client](entity_name="Client")
 
 
 @lru_cache(maxsize=1)
-def get_category_repo() -> Repository[Category]:
+def _memory_category_repo() -> Repository[Category]:
     return InMemoryRepository[Category](entity_name="Category")
 
 
 @lru_cache(maxsize=1)
-def get_phase_template_repo() -> Repository[PhaseTemplate]:
+def _memory_phase_template_repo() -> Repository[PhaseTemplate]:
     return InMemoryRepository[PhaseTemplate](entity_name="PhaseTemplate")
 
 
 @lru_cache(maxsize=1)
-def get_practice_repo() -> Repository[Practice]:
+def _memory_practice_repo() -> Repository[Practice]:
     return InMemoryRepository[Practice](entity_name="Practice")
 
 
 @lru_cache(maxsize=1)
-def get_practice_phase_repo() -> Repository[PracticePhase]:
+def _memory_practice_phase_repo() -> Repository[PracticePhase]:
     return InMemoryRepository[PracticePhase](entity_name="PracticePhase")
 
 
 @lru_cache(maxsize=1)
-def get_practice_event_repo() -> Repository[PracticeEvent]:
+def _memory_practice_event_repo() -> Repository[PracticeEvent]:
     return InMemoryRepository[PracticeEvent](entity_name="PracticeEvent")
 
 
 @lru_cache(maxsize=1)
-def get_note_repo() -> Repository[Note]:
+def _memory_note_repo() -> Repository[Note]:
     return InMemoryRepository[Note](entity_name="Note")
 
 
 @lru_cache(maxsize=1)
-def get_attachment_repo() -> Repository[Attachment]:
+def _memory_attachment_repo() -> Repository[Attachment]:
     return InMemoryRepository[Attachment](entity_name="Attachment")
 
 
 @lru_cache(maxsize=1)
-def get_reminder_repo() -> Repository[Reminder]:
+def _memory_reminder_repo() -> Repository[Reminder]:
     return InMemoryRepository[Reminder](entity_name="Reminder")
 
 
 @lru_cache(maxsize=1)
-def get_label_repo() -> Repository[Label]:
+def _memory_label_repo() -> Repository[Label]:
     return InMemoryRepository[Label](entity_name="Label")
 
 
 @lru_cache(maxsize=1)
-def get_activity_log_repo() -> Repository[ActivityLog]:
+def _memory_activity_log_repo() -> Repository[ActivityLog]:
     return InMemoryRepository[ActivityLog](entity_name="ActivityLog")
+
+
+def get_user_repo() -> Repository[User]:
+    return _memory_user_repo()
+
+
+def get_client_repo() -> Repository[Client]:
+    return _memory_client_repo()
+
+
+async def get_category_repo(
+    settings: Annotated[Settings, Depends(get_settings_dep)],
+    session: Annotated[AsyncSession | None, Depends(get_optional_sql_session)],
+) -> Repository[Category]:
+    if _use_sql(settings) and session is not None:
+        return SQLAlchemyRepository[Category](
+            session=session,
+            entity_name="Category",
+            table_name="practice_categories",
+            model=Category,
+            columns=("id", "name", "group_name", "icon", "color", "description", "active"),
+            order_by="name ASC",
+            soft_delete=True,
+        )
+    return _memory_category_repo()
+
+
+async def get_phase_template_repo(
+    settings: Annotated[Settings, Depends(get_settings_dep)],
+    session: Annotated[AsyncSession | None, Depends(get_optional_sql_session)],
+) -> Repository[PhaseTemplate]:
+    if _use_sql(settings) and session is not None:
+        return SQLAlchemyRepository[PhaseTemplate](
+            session=session,
+            entity_name="PhaseTemplate",
+            table_name="practice_phase_templates",
+            model=PhaseTemplate,
+            columns=(
+                "id",
+                "category_id",
+                "order_index",
+                "name",
+                "description",
+                "duration_days",
+                "default_role",
+            ),
+            order_by="category_id ASC, order_index ASC",
+            soft_delete=True,
+        )
+    return _memory_phase_template_repo()
+
+
+async def get_practice_repo(
+    settings: Annotated[Settings, Depends(get_settings_dep)],
+    session: Annotated[AsyncSession | None, Depends(get_optional_sql_session)],
+) -> Repository[Practice]:
+    if _use_sql(settings) and session is not None:
+        return SQLAlchemyRepository[Practice](
+            session=session,
+            entity_name="Practice",
+            table_name="practice_practices",
+            model=Practice,
+            columns=(
+                "id",
+                "code",
+                "title",
+                "description",
+                "client_id",
+                "client_token",
+                "target_type",
+                "target_id",
+                "category_id",
+                "responsible_id",
+                "apertura",
+                "scadenza",
+                "priority",
+                "status",
+                "created_by",
+                "completed_at",
+                "created_at",
+            ),
+            order_by="created_at DESC",
+            soft_delete=True,
+        )
+    return _memory_practice_repo()
+
+
+async def get_practice_phase_repo(
+    settings: Annotated[Settings, Depends(get_settings_dep)],
+    session: Annotated[AsyncSession | None, Depends(get_optional_sql_session)],
+) -> Repository[PracticePhase]:
+    if _use_sql(settings) and session is not None:
+        return SQLAlchemyRepository[PracticePhase](
+            session=session,
+            entity_name="PracticePhase",
+            table_name="practice_phases",
+            model=PracticePhase,
+            columns=(
+                "id",
+                "practice_id",
+                "template_id",
+                "order_index",
+                "name",
+                "description",
+                "assignee_id",
+                "planned_start",
+                "planned_end",
+                "actual_start",
+                "actual_end",
+                "status",
+                "skip_reason",
+                "completed_by",
+                "completed_at",
+            ),
+            order_by="practice_id ASC, order_index ASC",
+            soft_delete=True,
+        )
+    return _memory_practice_phase_repo()
+
+
+async def get_practice_event_repo(
+    settings: Annotated[Settings, Depends(get_settings_dep)],
+    session: Annotated[AsyncSession | None, Depends(get_optional_sql_session)],
+) -> Repository[PracticeEvent]:
+    if _use_sql(settings) and session is not None:
+        return SQLAlchemyRepository[PracticeEvent](
+            session=session,
+            entity_name="PracticeEvent",
+            table_name="practice_events",
+            model=PracticeEvent,
+            columns=(
+                "id",
+                "practice_id",
+                "phase_id",
+                "event_type",
+                "title",
+                "description",
+                "event_date",
+                "event_time",
+                "author_id",
+                "visual_position",
+                "participant_type",
+                "participant_id",
+                "created_at",
+            ),
+            order_by="event_date DESC, created_at DESC",
+        )
+    return _memory_practice_event_repo()
+
+
+async def get_note_repo(
+    settings: Annotated[Settings, Depends(get_settings_dep)],
+    session: Annotated[AsyncSession | None, Depends(get_optional_sql_session)],
+) -> Repository[Note]:
+    if _use_sql(settings) and session is not None:
+        return SQLAlchemyRepository[Note](
+            session=session,
+            entity_name="Note",
+            table_name="practice_notes",
+            model=Note,
+            columns=(
+                "id",
+                "practice_id",
+                "phase_id",
+                "event_id",
+                "content",
+                "author_id",
+                "occurred_at",
+                "created_at",
+            ),
+            order_by="created_at DESC",
+            soft_delete=True,
+        )
+    return _memory_note_repo()
+
+
+async def get_attachment_repo(
+    settings: Annotated[Settings, Depends(get_settings_dep)],
+    session: Annotated[AsyncSession | None, Depends(get_optional_sql_session)],
+) -> Repository[Attachment]:
+    if _use_sql(settings) and session is not None:
+        return SQLAlchemyRepository[Attachment](
+            session=session,
+            entity_name="Attachment",
+            table_name="practice_attachments",
+            model=Attachment,
+            columns=(
+                "id",
+                "practice_id",
+                "phase_id",
+                "event_id",
+                "file_name",
+                "mime_type",
+                "size_bytes",
+                "storage_key",
+                "source",
+                "uploaded_by",
+                "uploaded_at",
+            ),
+            field_to_column={"filename": "file_name", "created_at": "uploaded_at"},
+            order_by="uploaded_at DESC",
+            soft_delete=True,
+        )
+    return _memory_attachment_repo()
+
+
+async def get_reminder_repo(
+    settings: Annotated[Settings, Depends(get_settings_dep)],
+    session: Annotated[AsyncSession | None, Depends(get_optional_sql_session)],
+) -> Repository[Reminder]:
+    if _use_sql(settings) and session is not None:
+        return SQLAlchemyRepository[Reminder](
+            session=session,
+            entity_name="Reminder",
+            table_name="practice_reminders",
+            model=Reminder,
+            columns=(
+                "id",
+                "practice_id",
+                "phase_id",
+                "title",
+                "target_date",
+                "days_before",
+                "recipient_id",
+                "status",
+                "created_at",
+            ),
+            order_by="target_date ASC",
+            soft_delete=True,
+        )
+    return _memory_reminder_repo()
+
+
+async def get_label_repo(
+    settings: Annotated[Settings, Depends(get_settings_dep)],
+    session: Annotated[AsyncSession | None, Depends(get_optional_sql_session)],
+) -> Repository[Label]:
+    if _use_sql(settings) and session is not None:
+        return SQLAlchemyRepository[Label](
+            session=session,
+            entity_name="Label",
+            table_name="practice_labels",
+            model=Label,
+            columns=("id", "name", "color", "scope", "description"),
+            order_by="name ASC",
+            soft_delete=True,
+        )
+    return _memory_label_repo()
+
+
+async def get_activity_log_repo(
+    settings: Annotated[Settings, Depends(get_settings_dep)],
+    session: Annotated[AsyncSession | None, Depends(get_optional_sql_session)],
+) -> Repository[ActivityLog]:
+    if _use_sql(settings) and session is not None:
+        return SQLAlchemyRepository[ActivityLog](
+            session=session,
+            entity_name="ActivityLog",
+            table_name="practice_activity_log",
+            model=ActivityLog,
+            columns=(
+                "id",
+                "actor_id",
+                "action",
+                "entity_type",
+                "entity_id",
+                "practice_id",
+                "metadata",
+                "created_at",
+            ),
+            field_to_column={"timestamp": "created_at"},
+            order_by="created_at DESC",
+        )
+    return _memory_activity_log_repo()
 
 
 # I modelli ponte `PracticeLabel`/`ClientLabel` non hanno un `id` statico
@@ -194,18 +485,18 @@ def get_all_repositories() -> dict[str, Repository]:
     `practice_collaborators` non è nel seed e resta come bridge separato.
     """
     return {
-        "users": get_user_repo(),
-        "clients": get_client_repo(),
-        "categories": get_category_repo(),
-        "phase_templates": get_phase_template_repo(),
-        "practices": get_practice_repo(),
-        "practice_phases": get_practice_phase_repo(),
-        "practice_events": get_practice_event_repo(),
-        "notes": get_note_repo(),
-        "attachments": get_attachment_repo(),
-        "reminders": get_reminder_repo(),
-        "labels": get_label_repo(),
-        "activity_log": get_activity_log_repo(),
+        "users": _memory_user_repo(),
+        "clients": _memory_client_repo(),
+        "categories": _memory_category_repo(),
+        "phase_templates": _memory_phase_template_repo(),
+        "practices": _memory_practice_repo(),
+        "practice_phases": _memory_practice_phase_repo(),
+        "practice_events": _memory_practice_event_repo(),
+        "notes": _memory_note_repo(),
+        "attachments": _memory_attachment_repo(),
+        "reminders": _memory_reminder_repo(),
+        "labels": _memory_label_repo(),
+        "activity_log": _memory_activity_log_repo(),
         "practice_labels": get_practice_label_repo(),
         "client_labels": get_client_label_repo(),
     }

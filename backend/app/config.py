@@ -30,9 +30,20 @@ class Settings(BaseSettings):
     environment: Literal["dev", "staging", "production"] = "dev"
 
     # --- Storage ---
-    storage_mode: Literal["memory", "sql"] = Field(
+    storage_mode: Literal["memory", "sql", "ework"] = Field(
         default="memory",
-        description="V0 'memory' (dict + seed.json); V1 'sql' (PostgreSQL + SQLAlchemy).",
+        description=(
+            "V0 'memory' (dict + seed.json); V1 'sql'/'ework' "
+            "(PostgreSQL condiviso E.Work + SQLAlchemy)."
+        ),
+    )
+    database_url: str = Field(
+        default="postgresql+asyncpg://ework:ework_dev@localhost:5432/ework",
+        description="DB condiviso E.Work. Usato solo con STORAGE_MODE=sql/ework.",
+    )
+    ework_tenant_slug: str = Field(
+        default="excellia",
+        description="Slug tenant E.Work: seleziona lo schema tenant_{slug}.",
     )
     seed_path: str = Field(
         default="../data/seed.json",
