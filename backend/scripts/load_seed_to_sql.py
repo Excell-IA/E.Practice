@@ -132,7 +132,7 @@ async def _assert_schema_exists(session: Any) -> None:
     if int(result.scalar_one()) != 1:
         raise SeedLoadError(
             f"Schema E.Work incompleto: manca {schema}.practice_practices. "
-            "Serve prima il merge/apply della migration E.Work per PR155."
+            "Serve prima applicare la migration E.Practice module-owned per PR155."
         )
 
 

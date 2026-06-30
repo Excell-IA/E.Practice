@@ -6,6 +6,7 @@ Implementa lo stesso contratto di `InMemoryRepository`, ma legge/scrive tabelle
 
 from __future__ import annotations
 
+import json
 from collections.abc import Sequence
 from typing import Any, Generic, cast
 
@@ -26,6 +27,7 @@ class SQLAlchemyRepository(Repository[T], Generic[T]):
         model: type[T],
         columns: Sequence[str],
         field_to_column: dict[str, str] | None = None,
+        json_columns: Sequence[str] = (),
         order_by: str | None = None,
         soft_delete: bool = False,
     ) -> None:
@@ -36,6 +38,7 @@ class SQLAlchemyRepository(Repository[T], Generic[T]):
         self._columns = set(columns)
         self._field_to_column = field_to_column or {}
         self._column_to_field = {value: key for key, value in self._field_to_column.items()}
+        self._json_columns = set(json_columns)
         self._order_by = order_by
         self._soft_delete = soft_delete
 
@@ -178,6 +181,8 @@ class SQLAlchemyRepository(Repository[T], Generic[T]):
         for field, value in raw.items():
             column = self._field_to_column.get(field, field)
             if column in self._columns:
+                if column in self._json_columns and value is not None:
+                    value = json.dumps(value, ensure_ascii=False)
                 values[column] = value
         return values
 

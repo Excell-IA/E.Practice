@@ -431,6 +431,7 @@ async def get_activity_log_repo(
                 "created_at",
             ),
             field_to_column={"timestamp": "created_at"},
+            json_columns=("metadata",),
             order_by="created_at DESC",
         )
     return _memory_activity_log_repo()
