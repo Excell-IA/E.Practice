@@ -71,6 +71,20 @@ class Settings(BaseSettings):
     econtacts_timeout_seconds: float = Field(default=3.0, gt=0)
 
     # --- Auth ---
+    jwt_secret: str = Field(
+        default="dev_secret_cambia_in_produzione",
+        description="Segreto JWT condiviso con la shell E.Work.",
+    )
+    jwt_algorithm: Literal["HS256"] = "HS256"
+    collaudo_mode: bool = Field(
+        default=True,
+        description=(
+            "Bypass locale: se manca Authorization usa X-User-Id. "
+            "In produzione deve essere false."
+        ),
+    )
+    collaudo_tenant_id: str = Field(default="excellia")
+    collaudo_user_id: str = Field(default="11111111-1111-4111-8111-000000000001")
     basic_auth_user: str | None = Field(
         default=None,
         description="Se valorizzato, abilita HTTP Basic Auth sul backend (deploy demo).",

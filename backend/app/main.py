@@ -192,6 +192,7 @@ from app.routers import (  # noqa: E402
     contacts,
     dashboard,
     events,
+    internal,
     notes,
     phases,
     practices,
@@ -220,3 +221,7 @@ for router in (
     search.router,
 ):
     app.include_router(router, prefix=API_PREFIX)
+
+# Endpoint M2M chiamato dalla shell E.Work: deve restare fuori da /api,
+# allineato a E.Contacts e al fan-out EW110.
+app.include_router(internal.router)

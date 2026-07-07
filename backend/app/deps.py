@@ -10,10 +10,16 @@ firma — i router restano identici.
 
 from __future__ import annotations
 
+import base64
+import hashlib
+import hmac
+import json
 from functools import lru_cache
-from typing import Annotated
+from time import time
+from typing import Annotated, TypedDict
 
 from fastapi import Depends, Header, HTTPException, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.clients import ContactsClient
@@ -43,25 +49,115 @@ from app.repositories.sql import SQLAlchemyRepository
 # Auth / contesto richiesta
 # ---------------------------------------------------------------------------
 
+bearer_scheme = HTTPBearer(auto_error=False)
+
+
+class TokenPayload(TypedDict):
+    user_id: str
+    tenant_id: str
+    role: str
+    is_system: bool
+
+
+def _b64url_decode(value: str) -> bytes:
+    padding = "=" * (-len(value) % 4)
+    return base64.urlsafe_b64decode(f"{value}{padding}".encode("ascii"))
+
+
+def _decode_hs256_jwt(token: str, settings: Settings) -> TokenPayload:
+    parts = token.split(".")
+    if len(parts) != 3:
+        raise ValueError("Formato token non valido")
+    header_raw, payload_raw, signature_raw = parts
+    header = json.loads(_b64url_decode(header_raw))
+    if header.get("alg") != settings.jwt_algorithm:
+        raise ValueError("Algoritmo token non valido")
+
+    signed = f"{header_raw}.{payload_raw}".encode("ascii")
+    expected = hmac.new(settings.jwt_secret.encode("utf-8"), signed, hashlib.sha256).digest()
+    signature = _b64url_decode(signature_raw)
+    if not hmac.compare_digest(expected, signature):
+        raise ValueError("Firma token non valida")
+
+    payload = json.loads(_b64url_decode(payload_raw))
+    exp = payload.get("exp")
+    if isinstance(exp, int | float) and exp < time():
+        raise ValueError("Token scaduto")
+    user_id = payload.get("user_id")
+    tenant_id = payload.get("tenant_id")
+    if not isinstance(user_id, str) or not user_id:
+        raise ValueError("user_id mancante nel token")
+    if not isinstance(tenant_id, str) or not tenant_id:
+        raise ValueError("tenant_id mancante nel token")
+    role = payload.get("role", "member")
+    return {
+        "user_id": user_id,
+        "tenant_id": tenant_id,
+        "role": role if isinstance(role, str) else "member",
+        "is_system": bool(payload.get("is_system", False)),
+    }
+
+
+async def get_token_payload(
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
+    settings: Annotated[Settings, Depends(get_settings_dep)],
+    x_user_id: Annotated[str | None, Header(alias=USER_HEADER)] = None,
+) -> TokenPayload:
+    """Valida il JWT E.Work o usa il bypass locale esplicito.
+
+    In produzione il Bearer token e' obbligatorio. In sviluppo, `COLLAUDO_MODE`
+    conserva il vecchio header `X-User-Id` per i test e per avvii isolati.
+    """
+    if credentials is not None:
+        try:
+            payload = _decode_hs256_jwt(credentials.credentials, settings)
+        except (ValueError, json.JSONDecodeError, UnicodeDecodeError) as exc:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Token non valido",
+                headers={"WWW-Authenticate": "Bearer"},
+            ) from exc
+        bind_request_context(user_id=payload["user_id"], tenant_id=payload["tenant_id"])
+        return payload
+
+    if settings.collaudo_mode:
+        user_id = (x_user_id or settings.collaudo_user_id).strip()
+        tenant_id = settings.collaudo_tenant_id.strip()
+        bind_request_context(user_id=user_id, tenant_id=tenant_id)
+        return {
+            "user_id": user_id,
+            "tenant_id": tenant_id,
+            "role": "admin",
+            "is_system": False,
+        }
+
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Token mancante",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
+
+def get_system_caller(
+    token: Annotated[TokenPayload, Depends(get_token_payload)],
+) -> TokenPayload:
+    """Richiede un token M2M emesso dalla shell E.Work."""
+    if not token.get("is_system"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Chiamata riservata alla shell E.Work",
+        )
+    return token
+
 
 async def get_current_user_id(
-    x_user_id: Annotated[str | None, Header(alias=USER_HEADER)] = None,
+    token: Annotated[TokenPayload, Depends(get_token_payload)],
 ) -> str:
-    """Recupera l'ID utente dall'header `X-User-Id` e binda al log context.
+    """Recupera l'ID utente dal JWT E.Work o dal bypass `COLLAUDO_MODE`.
 
-    V0: nessuna validazione contro il repository utenti (la fa il service che
-    serve, vedi router session). L'header deve essere presente e non vuoto,
-    altrimenti 401.
+    Il vecchio `X-User-Id` resta valido solo quando `COLLAUDO_MODE=true`.
     """
-    if not x_user_id or not x_user_id.strip():
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Header {USER_HEADER} mancante o vuoto",
-            headers={"WWW-Authenticate": USER_HEADER},
-        )
-    user_id = x_user_id.strip()
-    bind_request_context(user_id=user_id)
-    return user_id
+    return token["user_id"]
 
 
 CurrentUserId = Annotated[str, "Depends(get_current_user_id)"]
