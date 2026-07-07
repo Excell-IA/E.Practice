@@ -41,7 +41,7 @@ shared/                 Codice cross-stack (V0 vuoto, V2 shared/ai/)
 data/                   seed.json V0 (F4)
 docs/                   Documentazione operativa (deploy, runbook)
 .github/workflows/      backend.yml (ruff+mypy) + frontend.yml (eslint+tsc)
-docker-compose.yml      Demo locale standalone (backend porta 8000)
+docker-compose.yml      Demo locale standalone (backend porta 8002)
 ```
 
 ## Comandi (Windows PowerShell o Git Bash)

@@ -4,7 +4,10 @@
 # V1: aggiungeremo un service `postgres` con volume persistente.
 #
 # Avvio: docker compose up --build
-# Backend disponibile su http://localhost:8000 (docs su /docs).
+# Backend disponibile su http://localhost:8002 (docs su /docs).
+# Porta 8002: convenzione integrazione E.Work (shell 8000, E.Contacts 8001,
+# E.Practice 8002 — vedi README.md / CLAUDE.md). Il fan-out di provisioning
+# EW110 (POST /internal/provisioning) usa questa porta di default.
 # Richiede `backend/Dockerfile` (creato in F2 - PR011 in poi).
 
 services:
@@ -15,7 +18,7 @@ services:
     image: epractice-backend:v0
     container_name: epractice-backend
     ports:
-      - "8000:8000"
+      - "8002:8002"
     environment:
       MODULE_NAME: e-practice
       STORAGE: memory
@@ -28,10 +31,10 @@ services:
     command: >
       uvicorn app.main:app
       --host 0.0.0.0
-      --port 8000
+      --port 8002
       --reload
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0) if urllib.request.urlopen('http://localhost:8000/healthz', timeout=2).status == 200 else sys.exit(1)"]
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0) if urllib.request.urlopen('http://localhost:8002/healthz', timeout=2).status == 200 else sys.exit(1)"]
       interval: 15s
       timeout: 3s
       retries: 5
