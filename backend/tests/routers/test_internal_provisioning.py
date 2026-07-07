@@ -5,10 +5,11 @@ import json
 
 import pytest
 from fastapi.testclient import TestClient
+from pydantic import ValidationError
 
-from app.config import get_settings
+from app.config import Settings, get_settings
 from app.main import app
-from app.provisioning import PracticeProvisioning
+from app.provisioning import PracticeProvisioning, ProvisioningResult
 
 
 def _b64url(data: bytes) -> str:
@@ -41,9 +42,14 @@ def test_internal_provisioning_calls_practice_provisioning(
 ) -> None:
     calls: list[str] = []
 
-    async def fake_provision_tenant(tenant_id: str) -> str:
+    async def fake_provision_tenant(tenant_id: str) -> ProvisioningResult:
         calls.append(tenant_id)
-        return f"tenant_{tenant_id}"
+        return ProvisioningResult(
+            tenant_id=tenant_id,
+            schema=f"tenant_{tenant_id}",
+            status="provisioned",
+            module_status="registered",
+        )
 
     monkeypatch.setattr(
         PracticeProvisioning,
@@ -62,5 +68,47 @@ def test_internal_provisioning_calls_practice_provisioning(
         "tenant_id": "studioleali",
         "schema": "tenant_studioleali",
         "status": "provisioned",
+        "module_status": "registered",
     }
     assert calls == ["studioleali"]
+
+
+def test_internal_provisioning_rejects_malformed_token() -> None:
+    with TestClient(app) as client:
+        response = client.post(
+            "/internal/provisioning",
+            headers={"Authorization": "Bearer !!!.e30.invalid"},
+        )
+
+    assert response.status_code == 401
+
+
+def test_internal_provisioning_rejects_invalid_tenant_id(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def fake_provision_tenant(tenant_id: str) -> ProvisioningResult:
+        raise ValueError(f"Slug tenant non valido: {tenant_id!r}")
+
+    monkeypatch.setattr(
+        PracticeProvisioning,
+        "provision_tenant",
+        staticmethod(fake_provision_tenant),
+    )
+
+    with TestClient(app) as client:
+        response = client.post(
+            "/internal/provisioning",
+            headers={"Authorization": f"Bearer {_token(tenant_id='studio leali', is_system=True)}"},
+        )
+
+    assert response.status_code == 400
+
+
+def test_settings_rejects_collaudo_mode_in_production() -> None:
+    with pytest.raises(ValidationError):
+        Settings(environment="production", collaudo_mode=True, jwt_secret="not-default")
+
+
+def test_settings_rejects_default_jwt_secret_in_production() -> None:
+    with pytest.raises(ValidationError):
+        Settings(environment="production", collaudo_mode=False)

@@ -11,6 +11,7 @@ firma — i router restano identici.
 from __future__ import annotations
 
 import base64
+import binascii
 import hashlib
 import hmac
 import json
@@ -61,7 +62,10 @@ class TokenPayload(TypedDict):
 
 def _b64url_decode(value: str) -> bytes:
     padding = "=" * (-len(value) % 4)
-    return base64.urlsafe_b64decode(f"{value}{padding}".encode("ascii"))
+    try:
+        return base64.urlsafe_b64decode(f"{value}{padding}".encode("ascii"))
+    except (binascii.Error, UnicodeEncodeError, ValueError) as exc:
+        raise ValueError("Base64url token non valido") from exc
 
 
 def _decode_hs256_jwt(token: str, settings: Settings) -> TokenPayload:
@@ -69,17 +73,26 @@ def _decode_hs256_jwt(token: str, settings: Settings) -> TokenPayload:
     if len(parts) != 3:
         raise ValueError("Formato token non valido")
     header_raw, payload_raw, signature_raw = parts
-    header = json.loads(_b64url_decode(header_raw))
+    try:
+        header = json.loads(_b64url_decode(header_raw))
+    except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+        raise ValueError("Header token non valido") from exc
     if header.get("alg") != settings.jwt_algorithm:
         raise ValueError("Algoritmo token non valido")
 
-    signed = f"{header_raw}.{payload_raw}".encode("ascii")
+    try:
+        signed = f"{header_raw}.{payload_raw}".encode("ascii")
+    except UnicodeEncodeError as exc:
+        raise ValueError("Token non ASCII") from exc
     expected = hmac.new(settings.jwt_secret.encode("utf-8"), signed, hashlib.sha256).digest()
     signature = _b64url_decode(signature_raw)
     if not hmac.compare_digest(expected, signature):
         raise ValueError("Firma token non valida")
 
-    payload = json.loads(_b64url_decode(payload_raw))
+    try:
+        payload = json.loads(_b64url_decode(payload_raw))
+    except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+        raise ValueError("Payload token non valido") from exc
     exp = payload.get("exp")
     if isinstance(exp, int | float) and exp < time():
         raise ValueError("Token scaduto")
@@ -121,6 +134,12 @@ async def get_token_payload(
         return payload
 
     if settings.collaudo_mode:
+        if x_user_id is not None and not x_user_id.strip():
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail=f"{USER_HEADER} vuoto",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
         user_id = (x_user_id or settings.collaudo_user_id).strip()
         tenant_id = settings.collaudo_tenant_id.strip()
         bind_request_context(user_id=user_id, tenant_id=tenant_id)

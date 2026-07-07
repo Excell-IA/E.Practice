@@ -5,10 +5,12 @@ container (Docker / Render). Mai committare un `.env` con valori veri:
 `.env.example` documenta i nomi delle variabili.
 """
 
+from __future__ import annotations
+
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import Field
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from app.constants import DEMO_TENANT_ID, MODULE_NAME
@@ -97,6 +99,16 @@ class Settings(BaseSettings):
         default="console",
         description="'console' per dev (colorato), 'json' per production.",
     )
+
+    @model_validator(mode="after")
+    def production_security_guard(self) -> Settings:
+        """Fail fast se una configurazione demo finisce in produzione."""
+        if self.environment == "production":
+            if self.collaudo_mode:
+                raise ValueError("COLLAUDO_MODE deve essere false in production")
+            if self.jwt_secret == "dev_secret_cambia_in_produzione":
+                raise ValueError("JWT_SECRET di sviluppo non consentito in production")
+        return self
 
 
 @lru_cache(maxsize=1)
