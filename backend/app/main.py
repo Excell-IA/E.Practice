@@ -1,7 +1,7 @@
 """FastAPI app entry point E.Practice.
 
-Boot:
-    uvicorn app.main:app --reload --port 8000
+Boot integrato E.Work:
+    uvicorn app.main:app --reload --port 8002
 """
 
 from __future__ import annotations

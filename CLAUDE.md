@@ -41,7 +41,7 @@ shared/                 Codice cross-stack (V0 vuoto, V2 shared/ai/)
 data/                   seed.json V0 (F4)
 docs/                   Documentazione operativa (deploy, runbook)
 .github/workflows/      backend.yml (ruff+mypy) + frontend.yml (eslint+tsc)
-docker-compose.yml      Demo locale (backend porta 8000)
+docker-compose.yml      Demo locale standalone (backend porta 8000)
 ```
 
 ## Comandi (Windows PowerShell o Git Bash)
@@ -53,8 +53,8 @@ python -m venv .venv
 .venv/Scripts/python.exe -m pip install -e ".[dev]"
 
 # Run dev
-.venv/Scripts/python.exe -m uvicorn app.main:app --reload --port 8000
-# → http://localhost:8000/docs
+.venv/Scripts/python.exe -m uvicorn app.main:app --reload --port 8002
+# → http://localhost:8002/docs
 
 # Lint + type-check (stessi check della CI)
 .venv/Scripts/python.exe -m ruff check .

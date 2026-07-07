@@ -1,7 +1,7 @@
 import type { components } from "@/lib/api-types";
 import type { PracticeStatus } from "@/lib/types";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8002";
 const DEFAULT_USER_ID = "11111111-1111-4111-8111-000000000001";
 
 export type ApiPracticePage = components["schemas"]["Page_PracticeListItem_"];

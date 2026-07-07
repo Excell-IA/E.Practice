@@ -71,6 +71,20 @@ npm install
 npm run dev                     # http://localhost:3000
 ```
 
+Sviluppo integrato con E.Work:
+
+```bash
+# E.Work backend:  http://localhost:8000
+# E.Contacts API:  http://localhost:8001
+# E.Practice API:  http://localhost:8002
+cd backend
+.venv\Scripts\python.exe -m uvicorn app.main:app --reload --port 8002
+
+cd frontend
+$env:NEXT_PUBLIC_API_URL="http://localhost:8002"
+npm run dev
+```
+
 Demo locale via Docker (vedi PR007):
 ```bash
 docker compose up
