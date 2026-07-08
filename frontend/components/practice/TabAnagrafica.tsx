@@ -1,13 +1,14 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
 import { Building2, Mail, MapPin, Pencil, Phone, Tags } from "lucide-react";
+import { useMemo } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { V1Hint } from "@/components/ui/v1-hint";
-import { getClient, getClientPractices } from "@/lib/api";
+import { getPractices } from "@/lib/api";
+import { useQuery } from "@tanstack/react-query";
 import type { Practice } from "@/lib/types";
 
 type TabAnagraficaProps = {
@@ -19,26 +20,31 @@ function valueOrDash(value: string | null | undefined) {
 }
 
 export function TabAnagrafica({ practice }: TabAnagraficaProps) {
-  const clientQuery = useQuery({
-    queryFn: () => getClient(practice.client.id),
-    queryKey: ["client", practice.client.id],
-  });
+  const contactTarget = useMemo(() => {
+    if (!practice.client.targetType || practice.client.source !== "econtacts") return undefined;
+    return { targetId: practice.client.id, targetType: practice.client.targetType };
+  }, [practice.client.id, practice.client.source, practice.client.targetType]);
+
   const clientPracticesQuery = useQuery({
-    queryFn: () => getClientPractices(practice.client.id),
-    queryKey: ["client-practices", practice.client.id],
+    enabled: Boolean(contactTarget),
+    queryFn: () => getPractices(undefined, contactTarget),
+    queryKey: ["contact-practices", practice.client.targetType, practice.client.id],
   });
-  const client = clientQuery.data;
   const openPractices =
-    clientPracticesQuery.data?.filter((item) => item.status !== "chiusa" && item.status !== "archiviata").length ?? 1;
+    clientPracticesQuery.data?.items.filter((item) => item.status !== "chiusa" && item.status !== "archiviata")
+      .length ?? 1;
 
   return (
     <section className="space-y-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="font-display text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">Anagrafica</p>
-          <h3 className="font-display text-xl font-semibold text-foreground">
-            {client?.ragione_sociale ?? practice.client.name}
-          </h3>
+          <h3 className="font-display text-xl font-semibold text-foreground">{practice.client.name}</h3>
+          {practice.client.source ? (
+            <p className="mt-1 text-xs text-muted">
+              Origine: {practice.client.source === "econtacts" ? "E.Contacts" : "rubrica legacy"}
+            </p>
+          ) : null}
         </div>
         <V1Hint label="Disponibile in V1">
           <Button type="button" variant="outline">
@@ -59,16 +65,16 @@ export function TabAnagrafica({ practice }: TabAnagraficaProps) {
           <CardContent className="space-y-3 text-sm">
             <div>
               <p className="text-xs uppercase tracking-[0.12em] text-muted">Nominativo</p>
-              <p className="font-semibold text-foreground">{client?.ragione_sociale ?? practice.client.name}</p>
+              <p className="font-semibold text-foreground">{practice.client.name}</p>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
                 <p className="text-xs uppercase tracking-[0.12em] text-muted">P.IVA</p>
-                <p className="font-semibold text-foreground">{valueOrDash(client?.piva ?? practice.client.vatNumber)}</p>
+                <p className="font-semibold text-foreground">{valueOrDash(practice.client.vatNumber)}</p>
               </div>
               <div>
                 <p className="text-xs uppercase tracking-[0.12em] text-muted">Codice fiscale</p>
-                <p className="font-semibold text-foreground">{valueOrDash(client?.cf)}</p>
+                <p className="font-semibold text-foreground">{valueOrDash(practice.client.vatNumber)}</p>
               </div>
             </div>
           </CardContent>
@@ -84,13 +90,11 @@ export function TabAnagrafica({ practice }: TabAnagraficaProps) {
           <CardContent className="space-y-3 text-sm">
             <div>
               <p className="text-xs uppercase tracking-[0.12em] text-muted">Indirizzo / citta</p>
-              <p className="font-semibold text-foreground">
-                {valueOrDash(client?.indirizzo_sede ?? practice.client.city)}
-              </p>
+              <p className="font-semibold text-foreground">{valueOrDash(practice.client.city)}</p>
             </div>
             <div>
               <p className="text-xs uppercase tracking-[0.12em] text-muted">ATECO / Settore</p>
-              <p className="font-semibold text-foreground">{valueOrDash(client?.ateco ?? practice.client.industry)}</p>
+              <p className="font-semibold text-foreground">{valueOrDash(practice.client.industry)}</p>
             </div>
           </CardContent>
         </Card>
@@ -105,18 +109,18 @@ export function TabAnagrafica({ practice }: TabAnagraficaProps) {
           <CardContent className="grid gap-3 text-sm sm:grid-cols-3">
             <div>
               <p className="text-xs uppercase tracking-[0.12em] text-muted">Email</p>
-              <p className="font-semibold text-foreground">{valueOrDash(client?.email)}</p>
+              <p className="font-semibold text-foreground">{valueOrDash(practice.client.email)}</p>
             </div>
             <div>
               <p className="text-xs uppercase tracking-[0.12em] text-muted">Telefono</p>
-              <p className="font-semibold text-foreground">{valueOrDash(client?.telefono)}</p>
+              <p className="font-semibold text-foreground">{valueOrDash(practice.client.phone)}</p>
             </div>
             <div>
               <p className="flex items-center gap-1 text-xs uppercase tracking-[0.12em] text-muted">
                 <Mail className="h-3.5 w-3.5" />
                 PEC
               </p>
-              <p className="font-semibold text-foreground">{valueOrDash(client?.pec)}</p>
+              <p className="font-semibold text-foreground">-</p>
             </div>
           </CardContent>
         </Card>

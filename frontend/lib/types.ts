@@ -15,6 +15,10 @@ export type Client = {
   vatNumber: string;
   city: string;
   industry: string;
+  email?: string;
+  phone?: string;
+  source?: "econtacts" | "legacy" | "unavailable";
+  targetType?: "azienda" | "persona";
 };
 
 export type PracticeLabel = {

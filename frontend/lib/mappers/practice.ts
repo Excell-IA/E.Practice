@@ -89,9 +89,13 @@ export function mapPracticeDetailToUi(detail: ApiPracticeDetail, knownUsers: rea
     categoryIcon: detail.category?.icon ?? "folder-kanban",
     client: {
       city: detail.target?.city ?? detail.client?.indirizzo_sede ?? "",
+      email: detail.target?.email ?? detail.client?.email ?? "",
       id: subjectId,
       industry: detail.client?.ateco ?? "",
       name: clientName,
+      phone: detail.target?.phone ?? detail.client?.telefono ?? "",
+      source: detail.target_source,
+      targetType: detail.practice.target_type ?? undefined,
       vatNumber: detail.target?.tax_id
         ? `P.IVA/CF ${detail.target.tax_id}`
         : detail.client?.piva
