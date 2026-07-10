@@ -27,6 +27,16 @@ def _token(*, tenant_id: str = "excellia", user_id: str = "__system__", is_syste
     return f"{raw_header}.{raw_payload}.{_b64url(signature)}"
 
 
+def _raw_token(header: object, payload: object, *, sign: bool = True) -> str:
+    settings = get_settings()
+    raw_header = _b64url(json.dumps(header, separators=(",", ":")).encode("utf-8"))
+    raw_payload = _b64url(json.dumps(payload, separators=(",", ":")).encode("utf-8"))
+    signed = f"{raw_header}.{raw_payload}".encode("ascii")
+    secret = settings.jwt_secret if sign else "not-the-secret"
+    signature = hmac.new(secret.encode("utf-8"), signed, hashlib.sha256).digest()
+    return f"{raw_header}.{raw_payload}.{_b64url(signature)}"
+
+
 def test_internal_provisioning_requires_system_token() -> None:
     with TestClient(app) as client:
         response = client.post(
@@ -83,6 +93,26 @@ def test_internal_provisioning_rejects_malformed_token() -> None:
     assert response.status_code == 401
 
 
+@pytest.mark.parametrize(
+    "token",
+    [
+        _raw_token(
+            ["HS256"], {"user_id": "__system__", "tenant_id": "excellia", "is_system": True}
+        ),
+        _raw_token({"alg": "HS256", "typ": "JWT"}, ["__system__", "excellia"]),
+        _raw_token({"alg": "HS256", "typ": "JWT"}, "not-a-dict"),
+    ],
+)
+def test_internal_provisioning_rejects_non_object_jwt_parts(token: str) -> None:
+    with TestClient(app) as client:
+        response = client.post(
+            "/internal/provisioning",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+
+    assert response.status_code == 401
+
+
 def test_internal_provisioning_rejects_invalid_tenant_id(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -111,4 +141,8 @@ def test_settings_rejects_collaudo_mode_in_production() -> None:
 
 def test_settings_rejects_default_jwt_secret_in_production() -> None:
     with pytest.raises(ValidationError):
-        Settings(environment="production", collaudo_mode=False)
+        Settings(
+            environment="production",
+            collaudo_mode=False,
+            jwt_secret="dev_secret_cambia_in_produzione",
+        )

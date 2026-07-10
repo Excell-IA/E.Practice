@@ -77,6 +77,8 @@ def _decode_hs256_jwt(token: str, settings: Settings) -> TokenPayload:
         header = json.loads(_b64url_decode(header_raw))
     except (json.JSONDecodeError, UnicodeDecodeError) as exc:
         raise ValueError("Header token non valido") from exc
+    if not isinstance(header, dict):
+        raise ValueError("Header token non valido")
     if header.get("alg") != settings.jwt_algorithm:
         raise ValueError("Algoritmo token non valido")
 
@@ -93,6 +95,8 @@ def _decode_hs256_jwt(token: str, settings: Settings) -> TokenPayload:
         payload = json.loads(_b64url_decode(payload_raw))
     except (json.JSONDecodeError, UnicodeDecodeError) as exc:
         raise ValueError("Payload token non valido") from exc
+    if not isinstance(payload, dict):
+        raise ValueError("Payload token non valido")
     exp = payload.get("exp")
     if isinstance(exp, int | float) and exp < time():
         raise ValueError("Token scaduto")
