@@ -1,0 +1,209 @@
+{
+  "module": "e-practice",
+  "version": "0.1.0",
+  "description": "Capability manifest E.Practice per E.lia. Le azioni qui dichiarate sono il primo strato: contesto diretto all'agente, senza embedding.",
+  "safety_source": "backend/app/services/mcp_safety.py",
+  "ai_safe_views": [
+    "v_ai_practice_summary",
+    "v_ai_practice_phases_progress"
+  ],
+  "actions": [
+    {
+      "nome": "practices.list",
+      "descrizione": "Elenca le pratiche operative del tenant, con stato, scadenza, avanzamento e soggetto collegato. Usare quando l'utente chiede una panoramica o vuole trovare una pratica.",
+      "parametri": {
+        "q": {
+          "tipo": "string",
+          "obbligatorio": false,
+          "significato": "Filtro testuale su titolo o codice pratica."
+        },
+        "target_id": {
+          "tipo": "uuid",
+          "obbligatorio": false,
+          "significato": "Soggetto E.Contacts a cui limitare le pratiche."
+        },
+        "target_type": {
+          "tipo": "azienda|persona",
+          "obbligatorio": false,
+          "significato": "Tipo del soggetto E.Contacts."
+        }
+      },
+      "precondizioni": [
+        "il tenant ha E.Practice attivo",
+        "l'utente ha accesso alle pratiche del tenant"
+      ],
+      "rischio": "read_only",
+      "viste_ai_safe": [
+        "v_ai_practice_summary"
+      ],
+      "crediti": 0
+    },
+    {
+      "nome": "practices.get",
+      "descrizione": "Legge il dettaglio operativo di una pratica: riepilogo, fasi, eventi, note e allegati metadata. Usare quando l'utente chiede lo stato di una pratica specifica.",
+      "parametri": {
+        "practice_id": {
+          "tipo": "uuid",
+          "obbligatorio": true,
+          "significato": "Identificativo della pratica."
+        }
+      },
+      "precondizioni": [
+        "la pratica esiste",
+        "l'utente puo' leggere la pratica"
+      ],
+      "rischio": "read_only",
+      "viste_ai_safe": [
+        "v_ai_practice_summary",
+        "v_ai_practice_phases_progress"
+      ],
+      "crediti": 0
+    },
+    {
+      "nome": "practices.ensure",
+      "descrizione": "Trova o crea la pratica operativa collegata a un soggetto E.Contacts. Usare quando l'utente vuole registrare un contatto o una attivita' e non e' ancora chiaro se esista una pratica.",
+      "parametri": {
+        "target_id": {
+          "tipo": "uuid",
+          "obbligatorio": true,
+          "significato": "Soggetto E.Contacts."
+        },
+        "target_type": {
+          "tipo": "azienda|persona",
+          "obbligatorio": true,
+          "significato": "Tipo del soggetto E.Contacts."
+        },
+        "title": {
+          "tipo": "string",
+          "obbligatorio": false,
+          "significato": "Titolo iniziale se la pratica va creata."
+        }
+      },
+      "precondizioni": [
+        "il soggetto E.Contacts esiste",
+        "l'utente conferma la creazione se non esiste una pratica"
+      ],
+      "rischio": "write_requires_confirmation",
+      "viste_ai_safe": [
+        "v_ai_practice_summary"
+      ],
+      "crediti": 1
+    },
+    {
+      "nome": "notes.create",
+      "descrizione": "Aggiunge una nota interna a una pratica o a una fase. Usare quando l'utente vuole registrare un promemoria, una telefonata o un'informazione operativa testuale.",
+      "parametri": {
+        "practice_id": {
+          "tipo": "uuid",
+          "obbligatorio": true,
+          "significato": "Pratica a cui associare la nota."
+        },
+        "content": {
+          "tipo": "string",
+          "obbligatorio": true,
+          "significato": "Testo della nota."
+        },
+        "phase_id": {
+          "tipo": "uuid",
+          "obbligatorio": false,
+          "significato": "Fase collegata, se rilevante."
+        },
+        "occurred_at": {
+          "tipo": "date",
+          "obbligatorio": false,
+          "significato": "Data reale dell'accadimento se diversa da oggi."
+        }
+      },
+      "precondizioni": [
+        "la pratica esiste",
+        "l'utente conferma la scrittura della nota"
+      ],
+      "rischio": "write_requires_confirmation",
+      "viste_ai_safe": [
+        "v_ai_practice_summary"
+      ],
+      "crediti": 1
+    },
+    {
+      "nome": "events.create",
+      "descrizione": "Registra un evento operativo nella timeline della pratica, per esempio telefonata, mail o avviso. Usare quando l'utente vuole storicizzare un contatto o una scadenza.",
+      "parametri": {
+        "practice_id": {
+          "tipo": "uuid",
+          "obbligatorio": true,
+          "significato": "Pratica a cui associare l'evento."
+        },
+        "event_type": {
+          "tipo": "telefonata_in|telefonata_out|email_in|email_out|attesa_cliente",
+          "obbligatorio": true,
+          "significato": "Tipo evento."
+        },
+        "title": {
+          "tipo": "string",
+          "obbligatorio": true,
+          "significato": "Titolo sintetico dell'evento."
+        },
+        "event_date": {
+          "tipo": "date",
+          "obbligatorio": true,
+          "significato": "Data dell'evento."
+        }
+      },
+      "precondizioni": [
+        "la pratica esiste",
+        "l'utente conferma la registrazione dell'evento"
+      ],
+      "rischio": "write_requires_confirmation",
+      "viste_ai_safe": [
+        "v_ai_practice_summary"
+      ],
+      "crediti": 1
+    },
+    {
+      "nome": "phases.complete",
+      "descrizione": "Marca una fase come completata. Usare quando l'utente dichiara che una fase della pratica e' conclusa.",
+      "parametri": {
+        "phase_id": {
+          "tipo": "uuid",
+          "obbligatorio": true,
+          "significato": "Fase da completare."
+        }
+      },
+      "precondizioni": [
+        "la fase esiste",
+        "la fase non e' gia' completata",
+        "l'utente conferma il completamento"
+      ],
+      "rischio": "write_requires_confirmation",
+      "viste_ai_safe": [
+        "v_ai_practice_phases_progress"
+      ],
+      "crediti": 1
+    },
+    {
+      "nome": "phases.skip",
+      "descrizione": "Salta una fase motivando il perche'. Usare quando l'utente spiega che una fase non serve per quella pratica.",
+      "parametri": {
+        "phase_id": {
+          "tipo": "uuid",
+          "obbligatorio": true,
+          "significato": "Fase da saltare."
+        },
+        "skip_reason": {
+          "tipo": "string",
+          "obbligatorio": true,
+          "significato": "Motivo del salto."
+        }
+      },
+      "precondizioni": [
+        "la fase esiste",
+        "l'utente conferma il salto"
+      ],
+      "rischio": "write_requires_confirmation",
+      "viste_ai_safe": [
+        "v_ai_practice_phases_progress"
+      ],
+      "crediti": 1
+    }
+  ]
+}
