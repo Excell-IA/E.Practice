@@ -15,10 +15,10 @@ Fonte: confronto competitor iPratiche (E.Watch Caso 2, 04/07/2026), gap #2.
 """
 
 from datetime import date, datetime
-from typing import Literal
+from typing import Annotated, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
 from app.models.practice import PracticePriority
 
@@ -27,13 +27,17 @@ from app.models.practice import PracticePriority
 # ha anche "annullato", una fase no.
 TaskStatus = Literal["da_fare", "in_corso", "bloccato", "completato", "annullato"]
 
+# Il titolo di un'attivita operativa e' obbligatorio e non vuoto: stringa con
+# whitespace strippato e almeno 1 carattere (rifiuta "" e "   ").
+NonEmptyStr = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
+
 
 class PracticeTaskBase(BaseModel):
     model_config = ConfigDict(populate_by_name=True, from_attributes=True)
 
     practice_id: UUID
     phase_id: UUID | None = None
-    title: str
+    title: NonEmptyStr
     description: str | None = None
     assignee_id: UUID | None = None
     priority: PracticePriority = "media"
@@ -57,7 +61,7 @@ class PracticeTaskUpdate(BaseModel):
     model_config = ConfigDict(populate_by_name=True, from_attributes=True)
 
     phase_id: UUID | None = None
-    title: str | None = None
+    title: NonEmptyStr | None = None
     description: str | None = None
     assignee_id: UUID | None = None
     priority: PracticePriority | None = None
