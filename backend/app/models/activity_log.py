@@ -17,7 +17,7 @@ ActivityAction = Literal[
     "viewed_l1",
 ]
 ActivityEntityType = Literal[
-    "practice", "phase", "event", "note", "attachment", "client", "user", "task"
+    "practice", "phase", "event", "note", "attachment", "client", "user", "task", "document_request"
 ]
 ActivityMetadata = dict[str, Any]
 

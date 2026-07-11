@@ -32,6 +32,13 @@ from app.models.contact import (
     ContactTargetType,
     ContactUpdateRequest,
 )
+from app.models.document_request import (
+    DocumentRequest,
+    DocumentRequestBase,
+    DocumentRequestCreate,
+    DocumentRequestStatus,
+    DocumentRequestUpdate,
+)
 from app.models.label import (
     ClientLabel,
     Label,
@@ -138,6 +145,11 @@ __all__ = [
     "ContactSummary",
     "ContactTargetType",
     "ContactUpdateRequest",
+    "DocumentRequest",
+    "DocumentRequestBase",
+    "DocumentRequestCreate",
+    "DocumentRequestStatus",
+    "DocumentRequestUpdate",
     "CompletePhaseRequest",
     "CreateEventRequest",
     "CreatePracticeRequest",

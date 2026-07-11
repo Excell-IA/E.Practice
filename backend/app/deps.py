@@ -33,6 +33,7 @@ from app.models import (
     Attachment,
     Category,
     Client,
+    DocumentRequest,
     Label,
     Note,
     PhaseTemplate,
@@ -275,6 +276,11 @@ def _memory_reminder_repo() -> Repository[Reminder]:
 @lru_cache(maxsize=1)
 def _memory_task_repo() -> Repository[PracticeTask]:
     return InMemoryRepository[PracticeTask](entity_name="PracticeTask")
+
+
+@lru_cache(maxsize=1)
+def _memory_document_request_repo() -> Repository[DocumentRequest]:
+    return InMemoryRepository[DocumentRequest](entity_name="DocumentRequest")
 
 
 @lru_cache(maxsize=1)
@@ -546,6 +552,34 @@ async def get_task_repo(
             soft_delete=True,
         )
     return _memory_task_repo()
+
+
+async def get_document_request_repo(
+    settings: Annotated[Settings, Depends(get_settings_dep)],
+    session: Annotated[AsyncSession | None, Depends(get_optional_sql_session)],
+) -> Repository[DocumentRequest]:
+    if _use_sql(settings) and session is not None:
+        return SQLAlchemyRepository[DocumentRequest](
+            session=session,
+            entity_name="DocumentRequest",
+            table_name="practice_document_requests",
+            model=DocumentRequest,
+            columns=(
+                "id",
+                "practice_id",
+                "phase_id",
+                "name",
+                "description",
+                "status",
+                "attachment_id",
+                "due_date",
+                "received_at",
+                "created_at",
+            ),
+            order_by="created_at DESC",
+            soft_delete=True,
+        )
+    return _memory_document_request_repo()
 
 
 async def get_label_repo(
