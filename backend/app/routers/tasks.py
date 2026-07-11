@@ -45,6 +45,10 @@ from app.services.activity_service import ActivityService
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
+# Ruoli che possono ricevere un task: collaboratori INTERNI dello studio.
+# 'esterno' e' escluso (l'assegnazione al cliente non e' in scope, vedi §4bis Kowy).
+_INTERNAL_ROLES = frozenset({"titolare", "senior", "junior"})
+
 
 async def _validate_refs(
     phase_repo: Repository[PracticePhase],
@@ -76,21 +80,44 @@ async def _validate_refs(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail="Assegnatario non valido: utente inesistente",
             )
+        if assignee.status != "attivo":
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Assegnatario non valido: utente non attivo",
+            )
+        if assignee.role not in _INTERNAL_ROLES:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Assegnatario non valido: ammessi solo collaboratori interni "
+                "(titolare, senior, junior)",
+            )
 
 
 def _normalize_completion(
-    data: dict[str, Any], *, current_pct: int, current_completed: object
+    data: dict[str, Any],
+    *,
+    current_status: str,
+    current_pct: int,
+    current_completed: object,
 ) -> None:
-    """Se lo stato risultante e' `completato`, forza 100% e una data di completamento.
+    """Mantiene coerente lo stato di completamento del task (muta `data` in place).
 
-    Muta `data` in place. Evita lo stato incoerente 'completato con 0% e senza data'.
+    - stato risultante `completato`  -> forza 100% e una data di completamento;
+      evita l'incoerenza 'completato con 0% e senza data'.
+    - RIAPERTURA di un task completato (torna a da_fare/in_corso/...) -> azzera la data
+      di completamento e riporta il % a modificabile (0 se non indicato esplicitamente),
+      cosi' non resta '100% + in_corso'.
     """
-    if data.get("status") != "completato":
-        return
-    if data.get("completion_pct", current_pct) != 100:
-        data["completion_pct"] = 100
-    if data.get("completed_at", current_completed) is None:
-        data["completed_at"] = datetime.now(UTC)
+    new_status = data.get("status", current_status)
+    if new_status == "completato":
+        if data.get("completion_pct", current_pct) != 100:
+            data["completion_pct"] = 100
+        if data.get("completed_at", current_completed) is None:
+            data["completed_at"] = datetime.now(UTC)
+    elif current_status == "completato":
+        data["completed_at"] = None
+        if "completion_pct" not in data:
+            data["completion_pct"] = 0
 
 
 @router.get("", response_model=list[PracticeTask])
@@ -147,7 +174,9 @@ async def create_task(
         assignee_id=body.assignee_id,
     )
     data = body.model_dump()
-    _normalize_completion(data, current_pct=0, current_completed=None)
+    _normalize_completion(
+        data, current_status=data["status"], current_pct=0, current_completed=None
+    )
     task = PracticeTask(id=uuid4(), created_at=datetime.now(UTC), **data)
     created = await repo.create(task)
     await ActivityService(activity_repo).log(
@@ -193,7 +222,10 @@ async def update_task(
         assignee_id=updates.get("assignee_id"),
     )
     _normalize_completion(
-        updates, current_pct=current.completion_pct, current_completed=current.completed_at
+        updates,
+        current_status=current.status,
+        current_pct=current.completion_pct,
+        current_completed=current.completed_at,
     )
     updated = await repo.update(str(task_id), **updates)
     # 'completed' solo alla transizione verso completato; altrimenti 'updated'.

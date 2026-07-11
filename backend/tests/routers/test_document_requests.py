@@ -123,3 +123,40 @@ def test_docreq_scrive_activity_log() -> None:
             row.get("entity_type") == "document_request" and str(row.get("entity_id")) == did
             for row in rows
         )
+
+
+def test_docreq_macchina_a_stati() -> None:
+    with TestClient(app) as client:
+        pid = _practice_ids(client)[0]
+        # non si nasce 'controllato'
+        assert (
+            client.post(
+                "/api/document-requests",
+                json={"practice_id": pid, "name": "x", "status": "controllato"},
+            ).status_code
+            == 422
+        )
+        did = client.post(
+            "/api/document-requests", json={"practice_id": pid, "name": "Visura"}
+        ).json()["id"]
+        # salto vietato: richiesto -> controllato
+        assert (
+            client.patch(
+                f"/api/document-requests/{did}", json={"status": "controllato"}
+            ).status_code
+            == 422
+        )
+        # richiesto -> ricevuto: received_at valorizzata
+        rec = client.patch(f"/api/document-requests/{did}", json={"status": "ricevuto"}).json()
+        assert rec["received_at"] is not None
+        # ricevuto -> controllato: ok
+        assert (
+            client.patch(
+                f"/api/document-requests/{did}", json={"status": "controllato"}
+            ).status_code
+            == 200
+        )
+        # ritorno a 'richiesto': received_at azzerata
+        back = client.patch(f"/api/document-requests/{did}", json={"status": "richiesto"}).json()
+        assert back["status"] == "richiesto"
+        assert back["received_at"] is None

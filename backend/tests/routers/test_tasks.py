@@ -150,3 +150,34 @@ def test_task_scrive_activity_log() -> None:
         assert any(
             row.get("entity_type") == "task" and str(row.get("entity_id")) == tid for row in rows
         ), "la creazione del task deve comparire nell'activity log"
+
+
+def test_task_riapertura_azzera_completamento() -> None:
+    with TestClient(app) as client:
+        pid = _practice_ids(client)[0]
+        tid = client.post(
+            "/api/tasks",
+            json={"practice_id": pid, "title": "chiudo subito", "status": "completato"},
+        ).json()["id"]
+        # riapertura: la data di completamento si azzera e il % torna a 0
+        reopened = client.patch(f"/api/tasks/{tid}", json={"status": "in_corso"}).json()
+        assert reopened["status"] == "in_corso"
+        assert reopened["completed_at"] is None
+        assert reopened["completion_pct"] == 0
+
+
+def test_task_assegnatario_solo_interno_attivo() -> None:
+    with TestClient(app) as client:
+        pid = _practice_ids(client)[0]
+        users = client.get("/api/users").json()
+        rows = users["items"] if isinstance(users, dict) else users
+        non_interno = next(
+            (u for u in rows if u.get("role") == "esterno" or u.get("status") != "attivo"),
+            None,
+        )
+        if non_interno is not None:
+            r = client.post(
+                "/api/tasks",
+                json={"practice_id": pid, "title": "t", "assignee_id": str(non_interno["id"])},
+            )
+            assert r.status_code == 422, r.text

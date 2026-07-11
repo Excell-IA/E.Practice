@@ -76,12 +76,31 @@ async def _validate_refs(
             )
 
 
-def _normalize_received(data: dict[str, Any], *, current_received: object) -> None:
-    """Se lo stato risultante e' 'ricevuto'/'controllato', valorizza received_at se assente."""
-    if data.get("status") not in ("ricevuto", "controllato"):
-        return
-    if data.get("received_at", current_received) is None:
+_RECEIVED_STATES = ("ricevuto", "controllato")
+
+
+def _set_received_coherence(
+    data: dict[str, Any], *, status_value: str, current_received: object
+) -> None:
+    """Coerenza di received_at rispetto allo stato (muta `data` in place).
+
+    - 'richiesto'            -> received_at azzerata (un documento non ancora ricevuto
+      non puo' avere una data di ricezione, nemmeno tornando indietro dallo stato ricevuto);
+    - 'ricevuto'/'controllato' -> received_at valorizzata a oggi se assente.
+    """
+    if status_value == "richiesto":
+        data["received_at"] = None
+    elif status_value in _RECEIVED_STATES and data.get("received_at", current_received) is None:
         data["received_at"] = datetime.now(UTC).date()
+
+
+def _check_transition(current_status: str, new_status: str) -> None:
+    """Impone il ciclo richiesto -> ricevuto -> controllato: vietato saltare 'ricevuto'."""
+    if current_status == "richiesto" and new_status == "controllato":
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Transizione non valida: da 'richiesto' si passa prima a 'ricevuto'",
+        )
 
 
 @router.get("", response_model=list[DocumentRequest])
@@ -127,6 +146,13 @@ async def create_document_request(
     practice = await practice_repo.get(str(body.practice_id))
     if practice is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Pratica non trovata")
+    # Un documento entra in checklist come 'richiesto' (o direttamente 'ricevuto' se gia'
+    # in mano): non puo' nascere 'controllato', che presuppone una verifica successiva.
+    if body.status == "controllato":
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Un documento non puo' nascere 'controllato': prima va ricevuto e verificato",
+        )
     await _validate_refs(
         phase_repo,
         attachment_repo,
@@ -135,7 +161,7 @@ async def create_document_request(
         attachment_id=body.attachment_id,
     )
     data = body.model_dump()
-    _normalize_received(data, current_received=None)
+    _set_received_coherence(data, status_value=data["status"], current_received=None)
     item = DocumentRequest(id=uuid4(), created_at=datetime.now(UTC), **data)
     created = await repo.create(item)
     await ActivityService(activity_repo).log(
@@ -169,6 +195,8 @@ async def update_document_request(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Nessun campo da aggiornare",
         )
+    new_status = updates.get("status", current.status)
+    _check_transition(current.status, new_status)
     await _validate_refs(
         phase_repo,
         attachment_repo,
@@ -176,7 +204,7 @@ async def update_document_request(
         phase_id=updates.get("phase_id"),
         attachment_id=updates.get("attachment_id"),
     )
-    _normalize_received(updates, current_received=current.received_at)
+    _set_received_coherence(updates, status_value=new_status, current_received=current.received_at)
     updated = await repo.update(str(doc_id), **updates)
     await ActivityService(activity_repo).log(
         actor_id=current_user_id,
