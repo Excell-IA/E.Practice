@@ -199,6 +199,7 @@ from app.routers import (  # noqa: E402
     reminders,
     search,
     session,
+    tasks,
     templates,
     users,
 )
@@ -212,6 +213,7 @@ for router in (
     templates.router,
     practices.router,
     phases.router,
+    tasks.router,
     events.router,
     notes.router,
     attachments.router,

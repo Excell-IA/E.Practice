@@ -98,6 +98,13 @@ from app.models.requests import (
     SkipPhaseRequest,
     UpdatePhaseRequest,
 )
+from app.models.task import (
+    PracticeTask,
+    PracticeTaskBase,
+    PracticeTaskCreate,
+    PracticeTaskUpdate,
+    TaskStatus,
+)
 from app.models.user import User, UserBase, UserCreate, UserRole, UserStatus, UserUpdate
 
 __all__ = [
@@ -173,6 +180,10 @@ __all__ = [
     "PracticePriority",
     "PracticeStatus",
     "PracticeTargetType",
+    "PracticeTask",
+    "PracticeTaskBase",
+    "PracticeTaskCreate",
+    "PracticeTaskUpdate",
     "PracticeUpdate",
     "Reminder",
     "ReminderBase",
@@ -181,6 +192,7 @@ __all__ = [
     "ReminderUpdate",
     "RemoveLabelRequest",
     "SkipPhaseRequest",
+    "TaskStatus",
     "UpdatePhaseRequest",
     "User",
     "UserBase",

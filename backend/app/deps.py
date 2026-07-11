@@ -39,6 +39,7 @@ from app.models import (
     Practice,
     PracticeEvent,
     PracticePhase,
+    PracticeTask,
     Reminder,
     User,
 )
@@ -269,6 +270,11 @@ def _memory_attachment_repo() -> Repository[Attachment]:
 @lru_cache(maxsize=1)
 def _memory_reminder_repo() -> Repository[Reminder]:
     return InMemoryRepository[Reminder](entity_name="Reminder")
+
+
+@lru_cache(maxsize=1)
+def _memory_task_repo() -> Repository[PracticeTask]:
+    return InMemoryRepository[PracticeTask](entity_name="PracticeTask")
 
 
 @lru_cache(maxsize=1)
@@ -510,6 +516,36 @@ async def get_reminder_repo(
             soft_delete=True,
         )
     return _memory_reminder_repo()
+
+
+async def get_task_repo(
+    settings: Annotated[Settings, Depends(get_settings_dep)],
+    session: Annotated[AsyncSession | None, Depends(get_optional_sql_session)],
+) -> Repository[PracticeTask]:
+    if _use_sql(settings) and session is not None:
+        return SQLAlchemyRepository[PracticeTask](
+            session=session,
+            entity_name="PracticeTask",
+            table_name="practice_tasks",
+            model=PracticeTask,
+            columns=(
+                "id",
+                "practice_id",
+                "phase_id",
+                "title",
+                "description",
+                "assignee_id",
+                "priority",
+                "status",
+                "due_date",
+                "completion_pct",
+                "completed_at",
+                "created_at",
+            ),
+            order_by="created_at DESC",
+            soft_delete=True,
+        )
+    return _memory_task_repo()
 
 
 async def get_label_repo(
